@@ -1,0 +1,55 @@
+.custom-pills .nav-link.active,
+.custom-pills .nav-link.show {
+  background-color: #EBECED !important;
+  color: black !important;
+  border-color: #EBECED !important;
+}
+
+.custom-pills .nav-link:focus,
+.custom-pills .nav-link {
+  color: black;
+}
+
+.custom-pills .nav-link:hover {
+  background-color: #EBECED;
+  color: black;
+}
+
+.custom-pills .nav-link {
+  position: relative;
+  padding-right: 20px;
+  color: black;
+}
+
+.custom-pills .nav-link::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid black;
+  border-bottom: 2px solid black;
+  transform: translateY(-50%) rotate(45deg);
+  transition: transform 0.3s ease;
+}
+
+.custom-pills .nav-link.active::after,
+.custom-pills .nav-link.show::after {
+  transform: translateY(-50%) rotate(-135deg);
+}
+
+.custom-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 10px;
+  height: 100px;
+  gap: 200px;
+  background-color: #ffffff;
+}
+
+.logo-img {
+  height: 300px;
+  width: auto;
+}
