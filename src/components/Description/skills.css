@@ -46,7 +46,7 @@
 
 .skill-pill:hover {
     background-color: #B7BABC;
-    color: #333;
+    color: black;
     cursor: pointer;
 }
 
