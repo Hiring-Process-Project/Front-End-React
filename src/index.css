@@ -84,44 +84,6 @@ code {
 }
 
 
-.custom-dropdown>.dropdown-toggle:focus,
-.custom-dropdown>.dropdown-toggle {
-  background-color: #F6F6F6 !important;
-  color: black !important;
-  border: hsl(0, 0%, 96%) !important;
-  width: 225px !important;
-
-}
-
-.custom-dropdown>.dropdown-toggle:hover,
-.custom-dropdown>.dropdown-toggle:active {
-  color: black !important;
-  background-color: #B7BABC !important;
-  border: #B7BABC !important;
-  width: 225px !important;
-
-}
-
-/* Dropdown items */
-.custom-dropdown .dropdown-menu .dropdown-item {
-  font-size: 14px;
-  color: black;
-  width: 225px !important;
-
-}
-
-.custom-dropdown .dropdown-menu .dropdown-item:hover {
-  background-color: #B7BABC;
-  color: black;
-  width: 225px !important;
-}
-
-.custom-dropdown {
-  margin-top: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 
 .boxStyle {
   height: 300px;
