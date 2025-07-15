@@ -7,8 +7,7 @@ function Skills({ requiredskills, onSkillClick, selectedSkill }) {
             style={{
                 display: 'flex',
                 flexWrap: 'wrap',
-                gap: '8px',
-                paddingTop: '5px',
+                gap: '5px',
                 justifyContent: 'center'
             }}
         >
