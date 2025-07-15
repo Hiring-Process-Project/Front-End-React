@@ -4,7 +4,7 @@ import { useState } from "react";
 
 function InterviewSteps({ interviewsteps, category }) {
     const [selectedIndex, setSelectedIndex] = useState(null);
-    const [hoveredIndex, setHoveredIndex] = useState(null); // 👈
+    const [hoveredIndex, setHoveredIndex] = useState(null);
 
     const handleStepSelect = (index) => {
         setSelectedIndex(index);
@@ -23,7 +23,7 @@ function InterviewSteps({ interviewsteps, category }) {
                         selectedIndex={selectedIndex}
                         hoveredIndex={hoveredIndex}
                         onSelect={handleStepSelect}
-                        onHover={setHoveredIndex} // 👈
+                        onHover={setHoveredIndex}
                     />
                 </Col>
                 <Col md='6'>
@@ -32,7 +32,7 @@ function InterviewSteps({ interviewsteps, category }) {
                         selectedIndex={selectedIndex}
                         hoveredIndex={hoveredIndex}
                         onSelect={handleStepSelect}
-                        onHover={setHoveredIndex} // 👈
+                        onHover={setHoveredIndex}
                     />
                 </Col>
             </Row>

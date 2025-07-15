@@ -32,7 +32,7 @@ export default function MyGridLayout() {
     };
 
 
-    // Προσθέτει skill στα Required και το αφαιρεί από τα All
+
     const addSkillToRequired = (skill) =>
         moveSkill(skill, allskills, requiredskills, setAllSkills, setRequiredSkills);
 

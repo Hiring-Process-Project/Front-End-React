@@ -24,8 +24,8 @@ function Steps({ steps, selectedIndex, hoveredIndex, onSelect, onHover }) {
                         `}
                         size="sm"
                         onClick={() => onSelect(index)}
-                        onMouseEnter={() => onHover(index)} // 👈
-                        onMouseLeave={() => onHover(null)}   // 👈
+                        onMouseEnter={() => onHover(index)}
+                        onMouseLeave={() => onHover(null)}
                     >
                         {step}
                     </Button>

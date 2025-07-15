@@ -6,7 +6,7 @@ import OccupationDropdown from './OccupationDropDown';
 function OccupationSelector({ occupations }) {
     const [searchText, setSearchText] = useState('');
 
-    // Φιλτράρισμα occupations
+
     const filteredOccupations = useMemo(() => {
         return occupations.filter((occ) =>
             occ.toLowerCase().includes(searchText.toLowerCase())
