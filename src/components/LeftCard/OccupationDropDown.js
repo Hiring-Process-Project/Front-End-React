@@ -9,7 +9,7 @@ function OccupationDropdown({ occupations }) {
             {occupations.map((occupation, index) => (
                 <DropdownButton
                     key={index}
-                    id={`dropdown-button-${index}`}
+                    id={`dropdown-button-${index}`} // ✅ ΔΙΟΡΘΩΣΗ εδώ: Template literal σωστό
                     title={occupation}
                     className="custom-dropdown"
                     variant="secondary"
@@ -24,4 +24,3 @@ function OccupationDropdown({ occupations }) {
 }
 
 export default OccupationDropdown;
-
