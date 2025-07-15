@@ -82,7 +82,7 @@ export default function MyGridLayout() {
 
 
                                 {selectedTab === 'interview' && (
-                                    <Row className="g-2">
+                                    <Row className="g-3">
                                         <Col md="4">
                                             <label className="description-labels" style={{ paddingLeft: '10px', marginBottom: '14px' }}>{"Interview Steps"}</label>
                                             <div className="boxStyle" style={{ minHeight: '370px', overflow: 'hidden' }}>
@@ -90,12 +90,12 @@ export default function MyGridLayout() {
                                             </div>
                                         </Col>
                                         <Col md="8">
-                                            <Row className="g-2">
+                                            <Row className="g-3">
                                                 <Col md="4">
                                                     <Description description={interviewdescription} />
                                                 </Col>
                                                 <Col md="8">
-                                                    <Row className="g-2" >
+                                                    <Row className="g-3" >
                                                         <RequiredSkills requiredskills={requiredstepskills} onSkillRemove={removestepSkillFromRequired} />
                                                         <SearchSkills allskills={allstepskills} onSkillClick={addstepSkillToRequired} />
 
