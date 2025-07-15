@@ -18,13 +18,27 @@
 
 
 .skill-pill:active,
-.skill-pill:focus,
-.skill-pill.selected:active,
-.skill-pill.selected:focus {
+.skill-pill:focus {
     background-color: #B7BABC !important;
     color: #333 !important;
     border: none !important;
     box-shadow: none !important;
+}
+
+.skill-pill.selected {
+    background-color: #B7BABC;
+    color: #333;
+}
+
+.skill-pill.selected:focus,
+.skill-pill.selected:active {
+    background-color: #B7BABC !important;
+    color: #333 !important;
+}
+
+.skill-pill.hovered {
+    background-color: #B7BABC;
+    color: #333;
 }
 
 

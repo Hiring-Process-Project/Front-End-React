@@ -1,7 +1,7 @@
 import { Row, Button } from 'reactstrap';
 import './Description/skills.css';
 
-function Steps({ steps }) {
+function Steps({ steps, selectedIndex, hoveredIndex, onSelect, onHover }) {
     return (
         <Row
             style={{
@@ -18,9 +18,14 @@ function Steps({ steps }) {
                         key={index}
                         id={`skills-button-${index}`}
                         title={step}
-                        className={`skill-pill `}
-
+                        className={`skill-pill 
+                            ${selectedIndex === index ? 'selected' : ''}
+                            ${hoveredIndex === index ? 'hovered' : ''}
+                        `}
                         size="sm"
+                        onClick={() => onSelect(index)}
+                        onMouseEnter={() => onHover(index)} // 👈
+                        onMouseLeave={() => onHover(null)}   // 👈
                     >
                         {step}
                     </Button>
