@@ -1,0 +1,24 @@
+[
+  {
+    "name": "Web Developer",
+    "jobTitles": [
+      "Frontend",
+      "Backend",
+      "Fullstack"
+    ]
+  },
+  {
+    "name": "Android Developer",
+    "jobTitles": [
+      "Junior Android",
+      "Senior Android"
+    ]
+  },
+  {
+    "name": "Data Scientist",
+    "jobTitles": [
+      "ML Engineer",
+      "AI Specialist"
+    ]
+  }
+]

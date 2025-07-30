@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardBody, Col, Row, Button } from 'reactstrap';
 import OccupationSelector from './OccupationSelector';
 import ActiveAd from './ActiveAd';
+import occupationsData from '../../data/occupations.json'; // 👈 import το JSON
 
-const SidebarCard = ({ occupations }) => {
-    const [activeads] = React.useState(["1", "3", "1", "2"]);
+const SidebarCard = () => {
+    const [activeads] = useState(["1", "3", "1", "2"]);
+
     return (
         <Col md="4">
             <Card className="shadow-sm" style={{ backgroundColor: '#F6F6F6', height: '450px' }}>
                 <CardBody>
                     <Row>
-                        <OccupationSelector occupations={occupations} />
+                        <OccupationSelector occupations={occupationsData} />
                         <ActiveAd activeads={activeads} />
                     </Row>
 

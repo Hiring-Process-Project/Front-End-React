@@ -1,23 +1,36 @@
-import Dropdown from 'react-bootstrap/Dropdown';
-import DropdownButton from 'react-bootstrap/DropdownButton';
+import React, { useState } from 'react';
+import { Collapse, Button } from 'reactstrap';
+import './OccupationDropdown.css';
 
-function OccupationDropdown({ occupations }) {
-    if (!occupations || occupations.length === 0) return null;
+function OccupationDropdown({ occupations = [] }) {
+    const [openIndex, setOpenIndex] = useState(null);
+
+    const toggle = (index) => {
+        setOpenIndex(openIndex === index ? null : index);
+    };
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div className="occupation-container">
             {occupations.map((occupation, index) => (
-                <DropdownButton
-                    key={index}
-                    id={`dropdown-button-${index}`}
-                    title={occupation}
-                    className="custom-dropdown"
-                    variant="secondary"
-                >
-                    <Dropdown.Item as="button">Job Title 1</Dropdown.Item>
-                    <Dropdown.Item as="button">Job Title 2</Dropdown.Item>
-                    <Dropdown.Item as="button">Job Title 3</Dropdown.Item>
-                </DropdownButton>
+                <div key={index} className="occupation-box">
+                    <Button
+                        onClick={() => toggle(index)}
+                        className="occupation-btn"
+                        block
+                    >
+                        {occupation.name}
+                    </Button>
+
+                    <Collapse isOpen={openIndex === index}>
+                        <div className="job-title-box">
+                            {(occupation.jobTitles || []).map((title, i) => (
+                                <div key={i} className="job-title-item">
+                                    {title}
+                                </div>
+                            ))}
+                        </div>
+                    </Collapse>
+                </div>
             ))}
         </div>
     );

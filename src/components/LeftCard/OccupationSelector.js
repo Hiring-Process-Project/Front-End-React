@@ -6,12 +6,15 @@ import OccupationDropdown from './OccupationDropDown';
 function OccupationSelector({ occupations }) {
     const [searchText, setSearchText] = useState('');
 
-
     const filteredOccupations = useMemo(() => {
-        return occupations.filter((occ) =>
-            occ.toLowerCase().includes(searchText.toLowerCase())
+        if (!occupations || !Array.isArray(occupations)) return [];
+        return occupations.filter(
+            (occ) =>
+                typeof occ.name === 'string' &&
+                occ.name.toLowerCase().includes(searchText.toLowerCase())
         );
     }, [occupations, searchText]);
+
 
     return (
         <Col

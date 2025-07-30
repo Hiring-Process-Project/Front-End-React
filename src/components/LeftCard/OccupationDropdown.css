@@ -1,0 +1,43 @@
+.occupation-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.occupation-box {
+    background-color: #f1f2f3;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    padding: 8px;
+}
+
+.occupation-btn {
+    background-color: #dfe1e3 !important;
+    color: black;
+    font-weight: 500;
+    border: none;
+    border-radius: 8px !important;
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 14px;
+}
+
+.occupation-btn:hover {
+    background-color: #cfd1d2 !important;
+}
+
+.job-title-box {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.job-title-item {
+    background-color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #333;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}

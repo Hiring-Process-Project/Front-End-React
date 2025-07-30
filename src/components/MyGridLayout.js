@@ -7,20 +7,25 @@ import SearchSkills from './Description/SearchSkills';
 import DescriptionButtons from './Description/DescriptionButtons';
 import Header from './Header/Header';
 import InterviewSteps from './InterviewSteps'
+import SkillSelector from './Description/SkillSelector';
+
+
+
 
 export default function MyGridLayout() {
     const [occupations] = React.useState([
         "Back-End Developer:", "Web Developer:", "Mobile Developer:", "Android Developer:"
     ]);
 
+    const [requiredSkills, setRequiredSkills] = React.useState([]);
 
     const [allskills, setAllSkills] = React.useState(["JavaScript", "CSS", "React"]);
-    const [requiredskills, setRequiredSkills] = React.useState(["Java", "Python", "SQL"]);
+    // const [requiredskills, setRequiredSkills] = React.useState(["Java", "Python", "SQL"]);
     const [selectedTab, setSelectedTab] = React.useState('description');
     const [interviewdescription] = React.useState(["Interview Description"]);
     const [allstepskills, setAllstepSkills] = React.useState(["HTML", "CSS"]);
     const [requiredstepskills, setRequiredstepSkills] = React.useState(["Git"]);
-    const [interviewsteps] = React.useState(["Step 1", "Step 2", "Step 3"]);
+    const [interviewsteps] = React.useState(["Step 1", "Step 2", "Step 3", "Step4"]);
     const [category] = React.useState(["Introduction", "Skill Assesment", "Team Leader"]);
 
 
@@ -33,11 +38,11 @@ export default function MyGridLayout() {
 
 
 
-    const addSkillToRequired = (skill) =>
-        moveSkill(skill, allskills, requiredskills, setAllSkills, setRequiredSkills);
+    // const addSkillToRequired = (skill) =>
+    //     moveSkill(skill, allskills, requiredskills, setAllSkills, setRequiredSkills);
 
-    const removeSkillFromRequired = (skill) =>
-        moveSkill(skill, requiredskills, allskills, setRequiredSkills, setAllSkills);
+    // const removeSkillFromRequired = (skill) =>
+    //     moveSkill(skill, requiredskills, allskills, setRequiredSkills, setAllSkills);
 
 
     const addstepSkillToRequired = (skill) => {
@@ -66,15 +71,21 @@ export default function MyGridLayout() {
                                             <Description description={["Job Description"]} />
                                         </Col>
                                         <Col md="6">
-                                            <Row className="g-3">
-                                                <RequiredSkills
-                                                    requiredskills={requiredskills} onSkillRemove={removeSkillFromRequired} />
+                                            <Row>
+                                                <Col md="6">
+                                                    <SkillSelector
+                                                        allskills={allskills}
+                                                        requiredskills={requiredSkills}
+                                                        setRequiredskills={setRequiredSkills}
+                                                    />
+                                                </Col>
 
-                                                <SearchSkills allskills={allskills} onSkillClick={addSkillToRequired} />
+                                                <Col md="6"> </Col>
                                             </Row>
                                             <Row>
                                                 <DescriptionButtons />
                                             </Row>
+
                                         </Col>
                                     </Row>
                                 )}
