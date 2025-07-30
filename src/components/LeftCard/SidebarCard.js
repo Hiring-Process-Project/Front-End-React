@@ -3,9 +3,10 @@ import { Card, CardBody, Col, Row, Button } from 'reactstrap';
 import OccupationSelector from './OccupationSelector';
 import ActiveAd from './ActiveAd';
 import occupationsData from '../../data/occupations.json'; // 👈 import το JSON
+import activeadsdata from '../../data/activeads.json';
 
 const SidebarCard = () => {
-    const [activeads] = useState(["1", "3", "1", "2"]);
+
 
     return (
         <Col md="4">
@@ -13,7 +14,7 @@ const SidebarCard = () => {
                 <CardBody>
                     <Row>
                         <OccupationSelector occupations={occupationsData} />
-                        <ActiveAd activeads={activeads} />
+                        <ActiveAd activeads={activeadsdata} />
                     </Row>
 
                     <Row className="mt-3">
