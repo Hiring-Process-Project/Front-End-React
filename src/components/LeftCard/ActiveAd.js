@@ -5,9 +5,9 @@ import OccupationDropdown from './OccupationDropDown';
 
 export default function ActiveAd({ activeads }) {
     return (
-        <Col xs="3" className="boxStyle" style={{
+        <Col xs="4" className="boxStyle" style={{
             height: '350px',
-            paddingLeft: '0.5rem', paddingRight: '0.5rem', overflow: 'hidden'
+            paddingLeft: '0rem', paddingRight: '0.5rem', overflow: 'hidden'
         }}>
             <Row style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid #B7BABC', paddingTop: '7px', paddingBottom: '9px' }}>
                 <label className="active-label">ActiveAd:</label>

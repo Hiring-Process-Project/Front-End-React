@@ -18,7 +18,7 @@ function OccupationSelector({ occupations }) {
 
     return (
         <Col
-            xs="8"
+            xs="7"
             className="boxStyle"
             style={{
                 height: '350px',

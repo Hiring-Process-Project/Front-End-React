@@ -13,9 +13,7 @@ import SkillSelector from './Description/SkillSelector';
 
 
 export default function MyGridLayout() {
-    const [occupations] = React.useState([
-        "Back-End Developer:", "Web Developer:", "Mobile Developer:", "Android Developer:"
-    ]);
+
 
     const [requiredSkills, setRequiredSkills] = React.useState([]);
 
@@ -60,7 +58,7 @@ export default function MyGridLayout() {
             <Header setSelectedTab={setSelectedTab} />
             <div style={{ padding: '2rem', paddingTop: "20px" }}>
                 <Row>
-                    <SidebarCard occupations={occupations} />
+                    <SidebarCard />
 
                     <Col md="8">
                         <Card className="shadow-sm" style={{ backgroundColor: '#F6F6F6', minHeight: '450px' }}>
