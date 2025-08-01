@@ -1,20 +1,22 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Collapse, Button } from 'reactstrap';
 import './OccupationDropdown.css';
 
-function OccupationDropdown({ occupations = [] }) {
-    const [openIndex, setOpenIndex] = useState(null);
-
-    const toggle = (index) => {
-        setOpenIndex(openIndex === index ? null : index);
-    };
-
+function OccupationDropdown({
+    occupations = [],
+    openIndex,
+    onToggle,
+    selectedItemIndex,
+    onSelectItem,
+    hoveredItemIndex,
+    onHoverItem
+}) {
     return (
         <div className="occupation-container">
             {occupations.map((occupation, index) => (
                 <div key={index} className="occupation-box">
                     <Button
-                        onClick={() => toggle(index)}
+                        onClick={() => onToggle(index)}
                         className="occupation-btn"
                         block
                     >
@@ -24,9 +26,18 @@ function OccupationDropdown({ occupations = [] }) {
                     <Collapse isOpen={openIndex === index}>
                         <div className="job-title-box">
                             {(occupation.jobTitles || []).map((title, i) => (
-                                <div key={i} className="job-title-item">
+                                <Button
+                                    key={i}
+                                    className={`job-title-item
+                                        ${selectedItemIndex?.occupationIndex === index && selectedItemIndex?.itemIndex === i ? 'selected' : ''}
+                                        ${hoveredItemIndex?.occupationIndex === index && hoveredItemIndex?.itemIndex === i ? 'hovered' : ''}
+                                    `}
+                                    onClick={() => onSelectItem(index, i)}
+                                    onMouseEnter={() => onHoverItem({ occupationIndex: index, itemIndex: i })}
+                                    onMouseLeave={() => onHoverItem(null)}
+                                >
                                     {title}
-                                </div>
+                                </Button>
                             ))}
                         </div>
                     </Collapse>

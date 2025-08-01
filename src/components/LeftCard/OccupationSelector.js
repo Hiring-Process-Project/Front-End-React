@@ -3,7 +3,15 @@ import { Col, Row } from 'reactstrap';
 import SearchBar from '../SearchBar';
 import OccupationDropdown from './OccupationDropDown';
 
-function OccupationSelector({ occupations }) {
+function OccupationSelector({
+    occupations,
+    openIndex,
+    onToggle,
+    selectedItemIndex,
+    onSelectItem,
+    hoveredItemIndex,
+    onHoverItem
+}) {
     const [searchText, setSearchText] = useState('');
 
     const filteredOccupations = useMemo(() => {
@@ -14,7 +22,6 @@ function OccupationSelector({ occupations }) {
                 occ.name.toLowerCase().includes(searchText.toLowerCase())
         );
     }, [occupations, searchText]);
-
 
     return (
         <Col
@@ -38,7 +45,15 @@ function OccupationSelector({ occupations }) {
                 </Col>
             </Row>
 
-            <OccupationDropdown occupations={filteredOccupations} />
+            <OccupationDropdown
+                occupations={filteredOccupations}
+                openIndex={openIndex}
+                onToggle={onToggle}
+                selectedItemIndex={selectedItemIndex}
+                onSelectItem={onSelectItem}
+                hoveredItemIndex={hoveredItemIndex}
+                onHoverItem={onHoverItem}
+            />
         </Col>
     );
 }
