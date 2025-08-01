@@ -36,13 +36,6 @@ export default function MyGridLayout() {
 
 
 
-    // const addSkillToRequired = (skill) =>
-    //     moveSkill(skill, allskills, requiredskills, setAllSkills, setRequiredSkills);
-
-    // const removeSkillFromRequired = (skill) =>
-    //     moveSkill(skill, requiredskills, allskills, setRequiredSkills, setAllSkills);
-
-
     const addstepSkillToRequired = (skill) => {
         moveSkill(skill, allstepskills, requiredstepskills, setAllstepSkills, setRequiredstepSkills);
     };
