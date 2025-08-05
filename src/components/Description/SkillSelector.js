@@ -48,11 +48,13 @@ function SkillSelector({ allskills, requiredskills, setRequiredskills }) {
                                     setSearchText(e.target.value);
                                     setDropdownVisible(true);
                                 }}
+                                onFocus={() => setDropdownVisible(true)}
                                 placeholder="Search and add skills..."
                                 onBlur={() => setTimeout(() => setDropdownVisible(false), 200)}
                             />
 
-                            {dropdownVisible && searchText && (
+
+                            {dropdownVisible && (
                                 <div className="dropdown-suggestions">
                                     {filteredSkills.length > 0 ? (
                                         filteredSkills.map((skill, index) => (

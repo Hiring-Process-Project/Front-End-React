@@ -50,7 +50,7 @@
 }
 
 .logo-img {
-  height: 300px;
+  height: 250px;
   width: auto;
 }
 
@@ -73,7 +73,6 @@
 
 }
 
-/* Dropdown items */
 .custom-dropdown .dropdown-menu .dropdown-item {
   font-size: 14px;
   color: black;

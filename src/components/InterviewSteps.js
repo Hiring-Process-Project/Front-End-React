@@ -11,8 +11,8 @@ function InterviewSteps({ interviewsteps, category }) {
     };
 
     return (
-        <Row>
-            <Row style={{ display: 'flex', borderBottom: '1px solid #B7BABC' }}>
+        <Row className="g-4">
+            <Row style={{ borderBottom: "1px solid rgb(183, 186, 188)" }}>
                 <Col md='6'><label className="active-label">Steps:</label></Col>
                 <Col md='6'><label className="active-label">Category:</label></Col>
             </Row>

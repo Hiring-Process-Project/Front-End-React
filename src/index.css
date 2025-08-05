@@ -39,11 +39,11 @@ code {
 
 
 .search-label {
-  font-size: 11px;
+  font-size: 14px;
   white-space: nowrap;
-  font-weight: bold;
   padding-bottom: 30px;
   color: black;
+  padding-left: 20px;
 }
 
 .desc-label {

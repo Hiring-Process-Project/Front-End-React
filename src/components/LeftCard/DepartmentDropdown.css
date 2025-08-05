@@ -1,0 +1,12 @@
+.department-btn {
+    text-align: center !important;
+    background-color: #E5E7EB !important;
+    color: #000 !important;
+    border: none !important;
+}
+
+.department-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}

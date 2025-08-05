@@ -1,24 +1,47 @@
 [
   {
-    "name": "Web Developer",
-    "jobTitles": [
-      "Frontend",
-      "Backend",
-      "Fullstack"
+    "department": "Development",
+    "occupations": [
+      {
+        "name": "Web Developer",
+        "jobTitles": [
+          {
+            "title": "Frontend",
+            "status": "Pending"
+          },
+          {
+            "title": "Fullstack",
+            "status": "Published"
+          }
+        ]
+      },
+      {
+        "name": "Android Developer",
+        "jobTitles": [
+          {
+            "title": "Junior Android",
+            "status": "Pending"
+          },
+          {
+            "title": "Senior Android",
+            "status": "Published"
+          }
+        ]
+      }
     ]
   },
   {
-    "name": "Android Developer",
-    "jobTitles": [
-      "Junior Android",
-      "Senior Android"
-    ]
-  },
-  {
-    "name": "Data Scientist",
-    "jobTitles": [
-      "ML Engineer",
-      "AI Specialist"
+    "department": "Design",
+    "occupations": [
+      {
+        "name": "UI/UX Designer",
+        "jobTitles": [
+          {
+            "title": "Product UI",
+            "status": "Published"
+          }
+        ]
+      }
     ]
   }
 ]

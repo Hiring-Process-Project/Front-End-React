@@ -1,42 +1,43 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Collapse, Button } from 'reactstrap';
 import './OccupationDropdown.css';
 
-function OccupationDropdown({
-    occupations = [],
-    openIndex,
-    onToggle,
-    selectedItemIndex,
-    onSelectItem,
-    hoveredItemIndex,
-    onHoverItem
-}) {
+function OccupationDropdown({ occupations }) {
+    const [openIndex, setOpenIndex] = useState(null);
+
+    const handleToggle = (index) => {
+        setOpenIndex(openIndex === index ? null : index);
+    };
+
     return (
         <div className="occupation-container">
             {occupations.map((occupation, index) => (
-                <div key={index} className="occupation-box">
+                <div key={index} className="job-title-box">
                     <Button
-                        onClick={() => onToggle(index)}
+                        onClick={() => handleToggle(index)}
                         className="occupation-btn"
                         block
                     >
-                        {occupation.name}
+                        <div className="occupation-header">
+                            <span style={{ color: "black" }}>{occupation.name}</span>
+                            <span className="badge">
+                                {
+                                    `${occupation.jobTitles.filter(j => j.status === 'Published').length}/${occupation.jobTitles.length}`
+                                }
+                            </span>
+
+                        </div>
                     </Button>
 
                     <Collapse isOpen={openIndex === index}>
-                        <div className="job-title-box">
-                            {(occupation.jobTitles || []).map((title, i) => (
-                                <Button
-                                    key={i}
-                                    className={`job-title-item
-                                        ${selectedItemIndex?.occupationIndex === index && selectedItemIndex?.itemIndex === i ? 'selected' : ''}
-                                        ${hoveredItemIndex?.occupationIndex === index && hoveredItemIndex?.itemIndex === i ? 'hovered' : ''}
-                                    `}
-                                    onClick={() => onSelectItem(index, i)}
-                                    onMouseEnter={() => onHoverItem({ occupationIndex: index, itemIndex: i })}
-                                    onMouseLeave={() => onHoverItem(null)}
-                                >
-                                    {title}
+                        <div >
+                            {occupation.jobTitles.map((job, i) => (
+                                <Button key={i} className="job-title-item">
+                                    <span className="job-title-name">{job.title}</span>
+                                    <span className={`status-label ${job.status?.toLowerCase?.() || 'unknown'}`}>
+
+                                        {job.status}
+                                    </span>
                                 </Button>
                             ))}
                         </div>

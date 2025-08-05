@@ -2,8 +2,6 @@ import React from 'react';
 import { Row, Col, Card, CardBody, Button } from 'reactstrap';
 import SidebarCard from './LeftCard/SidebarCard';
 import Description from './Description/Description';
-import RequiredSkills from './Description/RequiredSkills';
-import SearchSkills from './Description/SearchSkills';
 import DescriptionButtons from './Description/DescriptionButtons';
 import Header from './Header/Header';
 import InterviewSteps from './InterviewSteps'
@@ -18,30 +16,12 @@ export default function MyGridLayout() {
     const [requiredSkills, setRequiredSkills] = React.useState([]);
 
     const [allskills, setAllSkills] = React.useState(["JavaScript", "CSS", "React"]);
-    // const [requiredskills, setRequiredSkills] = React.useState(["Java", "Python", "SQL"]);
     const [selectedTab, setSelectedTab] = React.useState('description');
     const [interviewdescription] = React.useState(["Interview Description"]);
     const [allstepskills, setAllstepSkills] = React.useState(["HTML", "CSS"]);
     const [requiredstepskills, setRequiredstepSkills] = React.useState(["Git"]);
-    const [interviewsteps] = React.useState(["Step 1", "Step 2", "Step 3", "Step4"]);
+    const [interviewsteps] = React.useState(["Step 1", "Step 2", "Step 3"]);
     const [category] = React.useState(["Introduction", "Skill Assesment", "Team Leader"]);
-
-
-    const moveSkill = (skill, fromList, toList, setFromList, setToList) => {
-        if (!toList.includes(skill)) {
-            setToList([...toList, skill]);
-            setFromList(fromList.filter(s => s !== skill));
-        }
-    };
-
-
-
-    const addstepSkillToRequired = (skill) => {
-        moveSkill(skill, allstepskills, requiredstepskills, setAllstepSkills, setRequiredstepSkills);
-    };
-    const removestepSkillFromRequired = (skill) => {
-        moveSkill(skill, requiredstepskills, allstepskills, setRequiredstepSkills, setAllstepSkills);
-    };
 
 
 
@@ -63,7 +43,7 @@ export default function MyGridLayout() {
                                         </Col>
                                         <Col md="6">
                                             <Row>
-                                                <Col md="6">
+                                                <Col >
                                                     <SkillSelector
                                                         allskills={allskills}
                                                         requiredskills={requiredSkills}
@@ -71,7 +51,6 @@ export default function MyGridLayout() {
                                                     />
                                                 </Col>
 
-                                                <Col md="6"> </Col>
                                             </Row>
                                             <Row>
                                                 <DescriptionButtons />
@@ -85,22 +64,26 @@ export default function MyGridLayout() {
 
                                 {selectedTab === 'interview' && (
                                     <Row className="g-3">
-                                        <Col md="4">
+                                        <Col md="5">
                                             <label className="description-labels" style={{ paddingLeft: '10px', marginBottom: '14px' }}>{"Interview Steps"}</label>
                                             <div className="boxStyle" style={{ minHeight: '370px', overflow: 'hidden' }}>
                                                 <InterviewSteps interviewsteps={interviewsteps} category={category} />
                                             </div>
                                         </Col>
-                                        <Col md="8">
+                                        <Col md="7">
                                             <Row className="g-3">
-                                                <Col md="4">
+                                                <Col md="7">
                                                     <Description description={interviewdescription} />
                                                 </Col>
-                                                <Col md="8">
+                                                <Col md="5">
                                                     <Row className="g-3" >
-                                                        <RequiredSkills requiredskills={requiredstepskills} onSkillRemove={removestepSkillFromRequired} />
-                                                        <SearchSkills allskills={allstepskills} onSkillClick={addstepSkillToRequired} />
-
+                                                        <Col >
+                                                            <SkillSelector
+                                                                allskills={allstepskills}
+                                                                requiredskills={requiredstepskills}
+                                                                setRequiredskills={setRequiredstepSkills}
+                                                            />
+                                                        </Col>
                                                     </Row>
                                                     <Row>
                                                         <div className="d-flex justify-content-center">
