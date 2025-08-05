@@ -15,7 +15,6 @@ function DepartmentDropdown() {
         fetch('http://localhost:8087/api/v1/departments/names')
             .then(res => res.json())
             .then(data => {
-                // Κάνουμε mapping ώστε να προσθέσουμε κενό occupations array προσωρινά
                 const enriched = data.map(d => ({
                     department: d.name,
                     occupations: [], // placeholder
