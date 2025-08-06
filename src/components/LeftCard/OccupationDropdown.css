@@ -1,16 +1,26 @@
 .occupation-container {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 12px;
+    height: 100%;
+
 }
 
 .occupation-box {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
     background-color: #E5E7EB;
     border-radius: 12px;
     padding: 5px;
     color: black;
     border: 0.5px solid #bbbbbb;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15)
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+    margin-top: 15px;
+    overflow-y: auto;
 }
 
 .occupation-header {

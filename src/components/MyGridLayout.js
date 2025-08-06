@@ -6,6 +6,7 @@ import DescriptionButtons from './Description/DescriptionButtons';
 import Header from './Header/Header';
 import InterviewSteps from './InterviewSteps'
 import SkillSelector from './Description/SkillSelector';
+import Questions from './Questions/Questions';
 
 
 
@@ -58,6 +59,10 @@ export default function MyGridLayout() {
 
                                         </Col>
                                     </Row>
+                                )}
+
+                                {selectedTab === 'questions' && (
+                                    <Questions />
                                 )}
 
 

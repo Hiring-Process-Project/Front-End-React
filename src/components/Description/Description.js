@@ -14,7 +14,7 @@ function JobDescription({ description }) {
 
                     <Col>
                         <div className="boxStyle" style={{
-                            minHeight: '370px',
+                            minHeight: '372px',
                             overflow: 'hidden',
                             padding: '10px'
 

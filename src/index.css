@@ -17,8 +17,8 @@ code {
 
 
 .box-style {
+  height: 100vh;
   min-height: 300px;
-  max-height: 300px;
   background-color: #E5E7EB;
   border-radius: 15px;
   border: 1px solid #bbbbbb;
@@ -87,7 +87,8 @@ code {
 
 
 .boxStyle {
-  height: 300px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   background-color: #E5E7EB;
   border-radius: 15px;
