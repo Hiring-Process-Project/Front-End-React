@@ -2,11 +2,11 @@ import React from 'react';
 import { Row, Col, Card, CardBody, Button } from 'reactstrap';
 import SidebarCard from './LeftCard/SidebarCard';
 import Header from './Header/Header';
-import InterviewSteps from './InterviewSteps'
-import SkillSelector from './Description/SkillSelector';
 import Questions from './Questions/Questions';
 import Interview from './Interview/Interview';
 import DescriptionCard from './Description/DescriptionCard';
+import Candidates from './Candidates/Candidates'
+import Result from './Result/Result'
 
 
 export default function MyGridLayout() {
