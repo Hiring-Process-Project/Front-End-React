@@ -2,33 +2,17 @@ import React from 'react';
 import { Row, Col, Card, CardBody, Button } from 'reactstrap';
 import SidebarCard from './LeftCard/SidebarCard';
 import Header from './Header/Header';
-<<<<<<< HEAD
-import InterviewSteps from './InterviewSteps'
-import SkillSelector from './Description/SkillSelector';
 import Candidates from './Candidates/Candidates';
 import Result from './Result/Result';
-=======
->>>>>>> ea09377c76ba3eea69f794aeac4e30981081efa5
 import Questions from './Questions/Questions';
 import Interview from './Interview/Interview';
 import DescriptionCard from './Description/DescriptionCard';
-import Candidates from './Candidates/Candidates'
-import Result from './Result/Result'
 
-
-<<<<<<< HEAD
-
-
-=======
->>>>>>> ea09377c76ba3eea69f794aeac4e30981081efa5
 export default function MyGridLayout() {
-
-
 
     const [allskills, setAllSkills] = React.useState(["JavaScript", "CSS", "React"]);
     const [selectedTab, setSelectedTab] = React.useState('description');
     const [selectedJobAdId, setSelectedJobAdId] = React.useState(null);
-
 
     React.useEffect(() => {
         fetch('http://localhost:8087/skills')
@@ -45,8 +29,6 @@ export default function MyGridLayout() {
             });
     }, []);
 
-
-
     return (
         <div>
             <Header setSelectedTab={setSelectedTab} />
@@ -56,8 +38,6 @@ export default function MyGridLayout() {
                         onJobAdSelect={setSelectedJobAdId}
                         selectedJobAdId={selectedJobAdId}
                     />
-
-
 
                     <Col md="8">
                         <Card className="shadow-sm" style={{ backgroundColor: '#F6F6F6', minHeight: '450px' }}>
@@ -70,20 +50,15 @@ export default function MyGridLayout() {
                                     <Questions selectedJobAdId={selectedJobAdId} />
                                 )}
 
-
-
                                 {selectedTab === 'interview' && (
                                     <Interview selectedJobAdId={selectedJobAdId} />
-
                                 )}
 
                                 {selectedTab === 'candidates' && (
                                     <div>
                                         <Candidates />
-
                                     </div>
                                 )}
-
 
                                 {selectedTab === 'assessment' && (
                                     <Result />
