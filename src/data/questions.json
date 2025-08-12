@@ -1,0 +1,91 @@
+[
+    {
+        "question": "Tell us about yourself.",
+        "steps": [
+            {
+                "name": "Confidence",
+                "skills": [
+                    "Eye contact",
+                    "Voice projection",
+                    "Posture",
+                    "Pace control",
+                    "Calm presence"
+                ]
+            },
+            {
+                "name": "Storytelling",
+                "skills": [
+                    "Clear structure",
+                    "Compelling hook",
+                    "Concrete examples",
+                    "Conciseness",
+                    "Outcome emphasis"
+                ]
+            },
+            {
+                "name": "Relevance",
+                "skills": [
+                    "Role alignment",
+                    "Company alignment",
+                    "Highlighting strengths",
+                    "Connecting past to role"
+                ]
+            }
+        ]
+    },
+    {
+        "question": "Describe a difficult challenge.",
+        "steps": [
+            {
+                "name": "Problem Solving",
+                "skills": [
+                    "Root-cause analysis",
+                    "Prioritization",
+                    "Hypothesis testing",
+                    "Trade‑off decisions"
+                ]
+            },
+            {
+                "name": "Clarity",
+                "skills": [
+                    "Situation-Task-Action-Result (STAR)",
+                    "Crisp language",
+                    "Avoiding jargon",
+                    "Logical flow"
+                ]
+            },
+            {
+                "name": "Result Focus",
+                "skills": [
+                    "Quantified impact",
+                    "Lessons learned",
+                    "Follow‑up actions",
+                    "What you’d do differently"
+                ]
+            }
+        ]
+    },
+    {
+        "question": "Why do you want this role?",
+        "steps": [
+            {
+                "name": "Motivation",
+                "skills": [
+                    "Personal mission fit",
+                    "Career trajectory",
+                    "Intrinsic interest",
+                    "Recent initiative related"
+                ]
+            },
+            {
+                "name": "Company Fit",
+                "skills": [
+                    "Knowledge of products",
+                    "Market/competitors insight",
+                    "Values alignment",
+                    "Why now / timing"
+                ]
+            }
+        ]
+    }
+]

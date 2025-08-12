@@ -6,9 +6,8 @@ import DescriptionButtons from './Description/DescriptionButtons';
 import Header from './Header/Header';
 import InterviewSteps from './InterviewSteps'
 import SkillSelector from './Description/SkillSelector';
-
-
-
+import Candidates from './Candidates/Candidates';
+import Result from './Result/Result';
 
 export default function MyGridLayout() {
 
@@ -101,21 +100,15 @@ export default function MyGridLayout() {
                                 )}
 
                                 {selectedTab === 'candidates' && (
-                                    <Row>
-                                        <Col>
-                                            <h5>Candidates Section</h5>
-                                            <div className="boxStyle">List of candidates here...</div>
-                                        </Col>
-                                    </Row>
+                                    <div>
+                                        <Candidates />
+
+                                    </div>
                                 )}
 
+
                                 {selectedTab === 'assessment' && (
-                                    <Row>
-                                        <Col>
-                                            <h5>Assessment Section</h5>
-                                            <div className="boxStyle">Assessment content here...</div>
-                                        </Col>
-                                    </Row>
+                                    <Result />
                                 )}
                             </CardBody>
                         </Card>
