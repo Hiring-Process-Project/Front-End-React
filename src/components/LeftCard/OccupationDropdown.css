@@ -10,9 +10,6 @@
 }
 
 .occupation-box {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
     background-color: #E5E7EB;
     border-radius: 12px;
     padding: 5px;

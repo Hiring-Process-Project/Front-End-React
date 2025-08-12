@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Collapse, Button } from 'reactstrap';
 import OccupationDropdown from './OccupationDropDown';
 import './DepartmentDropdown.css';
 
-function DepartmentDropdown({ departments }) {
+function DepartmentDropdown({ departments, onJobAdSelect, selectedJobAdId }) {
     const [openDepartmentIndex, setOpenDepartmentIndex] = useState(null);
 
     const toggleDepartment = (index) => {
@@ -26,7 +26,12 @@ function DepartmentDropdown({ departments }) {
                         </Button>
 
                         <Collapse isOpen={openDepartmentIndex === index}>
-                            <OccupationDropdown occupations={dept.occupations} />
+                            <OccupationDropdown
+                                occupations={dept.occupations}
+                                onJobAdSelect={onJobAdSelect}
+                                selectedJobAdId={selectedJobAdId}
+                            />
+
                         </Collapse>
                     </div>
                 ))}

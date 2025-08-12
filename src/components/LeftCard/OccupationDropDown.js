@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Collapse, Button } from 'reactstrap';
 import './OccupationDropdown.css';
 
-function OccupationDropdown({ occupations }) {
+function OccupationDropdown({ occupations, onJobAdSelect, selectedJobAdId }) {
     const [openIndex, setOpenIndex] = useState(null);
 
     const handleToggle = (index) => {
@@ -25,17 +25,32 @@ function OccupationDropdown({ occupations }) {
                                     `${occupation.jobTitles.filter(j => j.status === 'Published').length}/${occupation.jobTitles.length}`
                                 }
                             </span>
-
                         </div>
                     </Button>
 
                     <Collapse isOpen={openIndex === index}>
-                        <div >
+                        <div>
                             {occupation.jobTitles.map((job, i) => (
-                                <Button key={i} className="job-title-item">
+                                <Button
+                                    key={i}
+                                    className="job-title-item"
+                                    onClick={() => {
+                                        console.log("Clicked Job:", job);
+                                        if (!job?.id) {
+                                            console.error("job.id is undefined or null");
+                                            return;
+                                        }
+                                        if (onJobAdSelect) {
+                                            console.log("Calling onJobAdSelect with ID:", job.id);
+                                            onJobAdSelect(job.id);
+                                        } else {
+                                            console.warn("onJobAdSelect is not defined");
+                                        }
+                                    }}
+
+                                >
                                     <span className="job-title-name">{job.title}</span>
                                     <span className={`status-label ${job.status?.toLowerCase?.() || 'unknown'}`}>
-
                                         {job.status}
                                     </span>
                                 </Button>

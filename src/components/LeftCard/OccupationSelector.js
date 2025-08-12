@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Col, Row } from 'reactstrap';
+import { Col, Row, Button } from 'reactstrap';
 import DepartmentDropdown from './DepartmentDropDown';
 
-function OccupationSelector({ Name, departments }) {
+function OccupationSelector({ Name, departments, onJobAdSelect, selectedJobAdId }) {
+
     const [searchText, setSearchText] = useState('');
 
     const filteredDepartments = useMemo(() => {
@@ -41,7 +42,15 @@ function OccupationSelector({ Name, departments }) {
                 </Col>
             </Row>
 
-            <DepartmentDropdown departments={filteredDepartments} />
+            <DepartmentDropdown
+                departments={filteredDepartments}
+                onJobAdSelect={onJobAdSelect}
+                selectedJobAdId={selectedJobAdId}
+            />
+            <Row className="text-center">
+                <Button color="secondary" >Create New</Button>
+            </Row>
+
         </Col>
     );
 }
