@@ -1,0 +1,57 @@
+[
+    {
+        "id": 1,
+        "name": "Nick Smith",
+        "email": "nick.smith@example.com",
+        "cv": "nick_smith_cv.pdf",
+        "status": "Rejected",
+        "skills": [
+            {
+                "name": "React",
+                "rating": 60
+            },
+            {
+                "name": "CSS",
+                "rating": 20
+            },
+            {
+                "name": "JavaScript",
+                "rating": 35
+            }
+        ]
+    },
+    {
+        "id": 2,
+        "name": "Anna Johnson",
+        "email": "anna.johnson@example.com",
+        "cv": "anna_johnson_cv.pdf",
+        "status": "Pending",
+        "skills": [
+            {
+                "name": "HTML",
+                "rating": 80
+            },
+            {
+                "name": "UX",
+                "rating": 50
+            }
+        ]
+    },
+    {
+        "id": 3,
+        "name": "George Brown",
+        "email": "george.brown@example.com",
+        "cv": "george_brown_cv.pdf",
+        "status": "Approved",
+        "skills": [
+            {
+                "name": "TypeScript",
+                "rating": 70
+            },
+            {
+                "name": "Node.js",
+                "rating": 60
+            }
+        ]
+    }
+]

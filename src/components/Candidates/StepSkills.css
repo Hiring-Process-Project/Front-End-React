@@ -1,0 +1,59 @@
+/* Ριζικό wrapper του component */
+.step-skills {
+    width: 100%;
+}
+
+/* Τίτλος */
+.step-skills__title {
+    margin-top: 0;
+}
+
+/* Κουμπί skill */
+.step-skills__btn {
+    font-size: 11px;
+    /* όπως το ήθελες */
+}
+
+/* Γραμμή μέσα στο collapse (Rate + Comments) */
+.step-skills__row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    /* σπάει όμορφα σε μικρές οθόνες */
+    width: 100%;
+    margin-top: 8px;
+}
+
+/* Wrapper για το textarea: κρίσιμο για να μην ξεφεύγει οριζόντια */
+.step-skills__comments-wrap {
+    flex: 1;
+    min-width: 0;
+    /* επιτρέπει στο flex item να μικρύνει */
+    max-width: 100%;
+}
+
+/* Textarea (reactstrap Input[type=textarea]) */
+.step-skills__comments {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    /* μόνο κάθετη αλλαγή μεγέθους */
+}
+
+/* Κάρτα μέσα στο collapse – ελαφρύ spacing */
+.step-skills__card {
+    margin-top: 8px;
+}
+
+/* Διαχωριστικό ανά skill */
+.step-skills__item {
+    margin-bottom: 8px;
+}
+
+/* Προαιρετικά: αν θέλεις να αποτρέπεις οποιοδήποτε overflow */
+.step-skills__card,
+.step-skills__card .card-body {
+    overflow: hidden;
+}

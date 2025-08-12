@@ -2,6 +2,8 @@ import React from 'react';
 import { Row, Col, Card, CardBody, Button } from 'reactstrap';
 import SidebarCard from './LeftCard/SidebarCard';
 import Header from './Header/Header';
+import InterviewSteps from './InterviewSteps'
+import SkillSelector from './Description/SkillSelector';
 import Questions from './Questions/Questions';
 import Interview from './Interview/Interview';
 import DescriptionCard from './Description/DescriptionCard';
@@ -64,21 +66,15 @@ export default function MyGridLayout() {
                                 )}
 
                                 {selectedTab === 'candidates' && (
-                                    <Row>
-                                        <Col>
-                                            <h5>Candidates Section</h5>
-                                            <div className="boxStyle">List of candidates here...</div>
-                                        </Col>
-                                    </Row>
+                                    <div>
+                                        <Candidates />
+
+                                    </div>
                                 )}
 
+
                                 {selectedTab === 'assessment' && (
-                                    <Row>
-                                        <Col>
-                                            <h5>Assessment Section</h5>
-                                            <div className="boxStyle">Assessment content here...</div>
-                                        </Col>
-                                    </Row>
+                                    <Result />
                                 )}
                             </CardBody>
                         </Card>
