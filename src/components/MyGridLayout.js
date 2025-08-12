@@ -6,15 +6,12 @@ import DescriptionButtons from './Description/DescriptionButtons';
 import Header from './Header/Header';
 import InterviewSteps from './InterviewSteps'
 import SkillSelector from './Description/SkillSelector';
-<<<<<<< HEAD
 import Candidates from './Candidates/Candidates';
 import Result from './Result/Result';
-=======
 import Questions from './Questions/Questions';
 
 
 
->>>>>>> 20f39ce6f9af82d34795c1979c4d7e70d3f3c143
 
 export default function MyGridLayout() {
 
