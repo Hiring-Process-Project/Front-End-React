@@ -55,12 +55,10 @@ export default function MyGridLayout() {
                                 )}
 
                                 {selectedTab === 'candidates' && (
-                                    <div>
-                                        <Candidates />
-                                    </div>
+                                    <Candidates />
                                 )}
 
-                                {selectedTab === 'assessment' && (
+                                {selectedTab === 'result' && (
                                     <Result />
                                 )}
                             </CardBody>

@@ -1,89 +1,54 @@
 [
     {
-        "question": "Tell us about yourself.",
-        "steps": [
+        "name": "Introduction",
+        "questions": [
             {
-                "name": "Confidence",
+                "question": "Tell us about yourself.",
                 "skills": [
                     "Eye contact",
-                    "Voice projection",
-                    "Posture",
-                    "Pace control",
-                    "Calm presence"
+                    "Confidence"
                 ]
             },
             {
-                "name": "Storytelling",
+                "question": "What motivated you to apply here?",
                 "skills": [
-                    "Clear structure",
-                    "Compelling hook",
-                    "Concrete examples",
-                    "Conciseness",
-                    "Outcome emphasis"
-                ]
-            },
-            {
-                "name": "Relevance",
-                "skills": [
-                    "Role alignment",
-                    "Company alignment",
-                    "Highlighting strengths",
-                    "Connecting past to role"
-                ]
-            }
-        ]
-    },
-    {
-        "question": "Describe a difficult challenge.",
-        "steps": [
-            {
-                "name": "Problem Solving",
-                "skills": [
-                    "Root-cause analysis",
-                    "Prioritization",
-                    "Hypothesis testing",
-                    "Trade‑off decisions"
-                ]
-            },
-            {
-                "name": "Clarity",
-                "skills": [
-                    "Situation-Task-Action-Result (STAR)",
-                    "Crisp language",
-                    "Avoiding jargon",
-                    "Logical flow"
-                ]
-            },
-            {
-                "name": "Result Focus",
-                "skills": [
-                    "Quantified impact",
-                    "Lessons learned",
-                    "Follow‑up actions",
-                    "What you’d do differently"
-                ]
-            }
-        ]
-    },
-    {
-        "question": "Why do you want this role?",
-        "steps": [
-            {
-                "name": "Motivation",
-                "skills": [
+                    "Company research",
                     "Personal mission fit",
-                    "Career trajectory",
-                    "Intrinsic interest",
-                    "Recent initiative related"
+                    "Values alignment"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "Technical Assessment",
+        "questions": [
+            {
+                "question": "Explain a challenging technical problem you solved.",
+                "skills": [
+                    "Root cause analysis",
+                    "Impact measurement",
+                    "Trade-off evaluation",
+                    "Structured explanation"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "Behavioral & Cultural Fit",
+        "questions": [
+            {
+                "question": "Describe a time you adapted quickly to change.",
+                "skills": [
+                    "Resilience",
+                    "Flexibility"
                 ]
             },
             {
-                "name": "Company Fit",
+                "question": "How do you handle tight deadlines?",
                 "skills": [
-                    "Knowledge of products",
-                    "Market/competitors insight",
-                    "Values alignment",
-                    "Why now / timing"
+                    "Time management",
+                    "Prioritization",
+                    "Stress management"
                 ]
             }
         ]

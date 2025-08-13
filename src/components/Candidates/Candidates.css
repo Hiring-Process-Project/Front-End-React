@@ -1,171 +1,213 @@
-.candidates-container {
-    padding: 1rem;
-    gap: 16px;
-}
-
-.job-title-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 1rem;
-    font-weight: 500;
-    padding: 0 10px;
-}
-
-.candidate-list {
-    background-color: #f6f6f6;
-    padding: 10px;
+.panel {
+    overflow-y: auto;
+    background-color: #E5E7EB;
     border-radius: 12px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    height: 410px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, .1);
 }
 
-.candidate-rows {
+.panel--short {
+    height: 280px;
+}
+
+.panel__header-row {
+    border-bottom: 1px solid rgb(183, 186, 188);
+}
+
+/* ========= ΚΟΙΝΑ =========== */
+.candidate-container {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 0 10px;
+    gap: 12px;
+    margin-top: 10px;
 }
 
-.candidate-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #e5e7eb;
-    border-radius: 8px;
-    padding: 8px 12px;
-    border: none;
+.question-box {
+    /* wrapper για κάθε accordion item */
+}
+
+/* βασικό “γκρι κουμπί” (Candidate/Question headers) */
+.candidate-btn,
+.question-btn {
+    background-color: #F6F6F6 !important;
+    color: black;
+    font-weight: 500;
+    border: none !important;
+    border-radius: 8px !important;
     font-size: 14px;
+    width: 100%;
+    padding: 10px 15px;
+    text-align: left;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.candidate-row:hover,
-.candidate-row:focus {
-    background-color: #b7babc;
+.candidate-btn:hover,
+.question-btn:hover {
+    background-color: #cfd1d2 !important;
+    color: black !important;
+}
+
+.candidate-btn.active,
+.question-btn.active {
+    background-color: #cfd1d2 !important;
+    color: black !important;
+}
+
+/* header τριών στηλών (index, name, status) */
+.candidate-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.candidate-index,
+.candidate-name,
+.candidate-status {
+    flex: 1;
+    white-space: nowrap;
+    font-size: 11px;
 }
 
 .candidate-index {
-    font-weight: bold;
-    margin-right: 8px;
+    text-align: left;
+}
+
+.candidate-name {
+    text-align: center;
 }
 
 .candidate-status {
-    background-color: #dfe1e3;
-    border-radius: 6px;
-    padding: 2px 8px;
-    font-size: 12px;
+    text-align: right;
 }
 
-.candidate-status.ok {
-    background-color: #a1e3b5;
-    color: #155724;
-}
-
-.candidate-status.rejected {
-    background-color: #f8d7da;
-    color: #721c24;
-}
-
-.candidate-status.pending {
-    background-color: #ffeeba;
-    color: #856404;
-}
-
-/* Middle column */
-.candidate-details .card {
-    background-color: #f6f6f6;
-    border-radius: 12px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.candidate-info p {
-    margin-bottom: 6px;
-    font-size: 14px;
-}
-
-.candidate-skills {
-    margin-top: 1rem;
-}
-
-.skills-header {
-    font-weight: bold;
-    margin-bottom: 10px;
-}
-
-.skill-row {
+/* row τίτλου ερωτήσεων ή step */
+.question-header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.question-text {
+    flex: 1;
+    min-width: 0;
+    font-size: 11px;
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
+}
+
+/* secondary buttons (steps/questions μέσα σε collapse) */
+.step-btn {
+    display: block;
+    width: 100%;
+    background-color: #dfe1e3;
+    color: black;
+    font-weight: 500;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 15px;
+    text-align: left;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    font-size: 11px;
+}
+
+.step-btn:hover {
+    background-color: #cfd1d2;
+}
+
+.steps-wrapper {
+    margin-top: 12px;
+}
+
+/* badges */
+.steps-badge {
+    background-color: #E5E7EB !important;
+    color: #111827 !important;
+    font-weight: 700;
+    border-radius: 9999px;
+    padding: 2px 10px;
+    line-height: 1.2;
+}
+
+.score-badge,
+.rated-badge {
+    background-color: #374151 !important;
+    color: #fff !important;
+    font-weight: 600;
+    border-radius: 9999px;
+    padding: 2px 10px;
+    line-height: 1.2;
+}
+
+/* candidate details (collapse) */
+.candidate-details {
+    background-color: #F6F6F6;
+    border-radius: 12px;
+    padding: 10px 15px;
+    margin-top: 10px;
+    font-size: 13px;
+    color: black;
+    border: 0.5px solid #bbbbbb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+/* status chips αν ποτέ τα χρησιμοποιήσεις με χρώμα */
+.status-label {
+    background-color: #dfe1e3;
+    border-radius: 8px;
+    padding: 2px 6px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* ===== StepSkills μικρές βοηθητικές ===== */
+.step-skills {
+    width: 100%;
+}
+
+.step-skills__title {
+    margin-top: 0;
+}
+
+.step-skills__btn {
+    font-size: 11px;
+}
+
+.step-skills__row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    width: 100%;
+    margin-top: 8px;
+}
+
+.step-skills__comments-wrap {
+    flex: 1;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.step-skills__comments {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+}
+
+.step-skills__card {
+    margin-top: 8px;
+}
+
+.step-skills__item {
     margin-bottom: 8px;
 }
 
-.skill-bar {
-    background-color: #e0e0e0;
-    height: 20px;
-    border-radius: 10px;
+.step-skills__card,
+.step-skills__card .card-body {
     overflow: hidden;
-    flex-grow: 1;
-}
-
-.filled {
-    background-color: #6b7280;
-    height: 100%;
-    text-align: right;
-    padding-right: 5px;
-    color: white;
-    font-size: 12px;
-    border-radius: 10px;
-}
-
-.skill-buttons {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 1rem;
-}
-
-.add-btn,
-.delete-btn {
-    background-color: #4b5563;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 14px;
-}
-
-.add-btn:hover,
-.delete-btn:hover {
-    background-color: #374151;
-}
-
-/* Right column */
-.candidate-comments .card {
-    background-color: #f6f6f6;
-    border-radius: 12px;
-    height: 100%;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-textarea.form-control {
-    height: 150px;
-    resize: none;
-    margin-top: 5px;
-    border-radius: 8px;
-}
-
-/* Action buttons */
-.action-buttons-row {
-    margin-top: 20px;
-}
-
-.reject,
-.approve {
-    background-color: #4b5563;
-    color: white;
-    padding: 8px 20px;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-}
-
-.reject:hover,
-.approve:hover {
-    background-color: #374151;
 }

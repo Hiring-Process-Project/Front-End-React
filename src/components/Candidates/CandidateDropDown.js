@@ -1,27 +1,31 @@
 import React, { useState } from 'react';
 import { Collapse, Button } from 'reactstrap';
-import './CandidateDropDown.css';
+import './Candidates.css';
 
-function CandidateDropdown({ candidates }) {
+function CandidateDropdown({ candidates, onSelect }) {
     const [openIndex, setOpenIndex] = useState(null);
 
-    const handleToggle = (index) => {
-        setOpenIndex(openIndex === index ? null : index);
+    const handleToggle = (index, cand) => {
+        const next = openIndex === index ? null : index;
+        setOpenIndex(next);
+        onSelect?.(next === null ? null : cand);
     };
 
     return (
         <div className="candidate-container">
             {candidates.map((candidate, index) => (
-                <div key={index} >
+                <div key={index}>
                     <Button
-                        onClick={() => handleToggle(index)}
+                        onClick={() => handleToggle(index, candidate)}
                         className={`candidate-btn ${openIndex === index ? 'active' : ''}`}
                         block
                     >
                         <div className="candidate-header">
                             <span className="candidate-index">{index + 1}</span>
                             <span className="candidate-name">{candidate.name}</span>
-                            <span className={`candidate-status ${candidate.status?.toLowerCase?.() || 'unknown'}`}>{candidate.status}</span>
+                            <span className={`candidate-status ${candidate.status?.toLowerCase?.() || 'unknown'}`}>
+                                {candidate.status}
+                            </span>
                         </div>
                     </Button>
 
@@ -32,7 +36,6 @@ function CandidateDropdown({ candidates }) {
                             <p><strong>CV:</strong> {candidate.cv}</p>
                         </div>
                     </Collapse>
-
                 </div>
             ))}
         </div>
