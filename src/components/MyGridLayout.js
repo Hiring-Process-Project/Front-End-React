@@ -7,6 +7,8 @@ import Result from './Result/Result';
 import Questions from './Questions/Questions';
 import Interview from './Interview/Interview';
 import DescriptionCard from './Description/DescriptionCard';
+import Hire from './Hire/Hire';
+import Statistics from './Statistics/Statistics';
 
 export default function MyGridLayout() {
 
@@ -60,6 +62,14 @@ export default function MyGridLayout() {
 
                                 {selectedTab === 'result' && (
                                     <Result />
+                                )}
+
+                                {selectedTab === 'statistics' && (
+                                    <Statistics />
+                                )}
+
+                                {selectedTab === 'hire' && (
+                                    <Hire />
                                 )}
                             </CardBody>
                         </Card>

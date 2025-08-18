@@ -211,3 +211,24 @@
 .step-skills__card .card-body {
     overflow: hidden;
 }
+
+/* μικρό κενό πάνω από τη γραμμή με buttons+comments */
+.bottom-controls {
+    margin-top: 16px;
+    /* όσο θέλεις: 12–24px */
+}
+
+/* κεντράρισμα των κουμπιών και απόσταση μεταξύ τους */
+.btn-row {
+    display: flex;
+    justify-content: center;
+    /* <-- κέντρο */
+    gap: 12px;
+    /* απόσταση μεταξύ κουμπιών */
+}
+
+/* προαιρετικό: λίγο κενό επιπλέον πριν το textarea */
+.comments-card {
+    margin-top: 8px;
+    /* μικρό buffer από πάνω */
+}
