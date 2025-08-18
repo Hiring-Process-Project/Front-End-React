@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Row, Col } from "reactstrap";
 import Description from "./Description";
-import SkillSelector from "./SkillSelector";
 import DescriptionButtons from "./DescriptionButtons";
+import SkillSelectorReadOnly from "./SkillSelectorReadOnly";
 
 const baseUrl = "http://localhost:8087";
 
-export default function DescriptionPanel({
+export default function DescriptionCars({
     selectedJobAdId,
     allskills = [],
     reloadSidebar,
@@ -18,6 +18,10 @@ export default function DescriptionPanel({
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
 
+    // ΝΕΟ: status για να ελέγχουμε αν δείχνουμε κουμπιά
+    const [status, setStatus] = useState("Pending");
+    const isPending = (status || "").toLowerCase() === "pending";
+
     useEffect(() => {
         if (!selectedJobAdId) return;
         setLoading(true);
@@ -25,11 +29,14 @@ export default function DescriptionPanel({
 
         Promise.all([
             fetch(`${baseUrl}/jobAds/details?jobAdId=${selectedJobAdId}`)
-                .then(r => (r.ok ? r.json() : Promise.reject()))
-                .then(d => d?.description ?? ""),
+                .then((r) => (r.ok ? r.json() : Promise.reject()))
+                .then((d) => {
+                    setStatus(String(d?.status ?? "Pending"));
+                    return d?.description ?? "";
+                }),
             fetch(`${baseUrl}/jobAds/jobAds/${selectedJobAdId}/interview-skills`)
-                .then(r => (r.ok ? r.json() : Promise.reject()))
-                .then(list => (Array.isArray(list) ? list.map(x => x.name) : [])),
+                .then((r) => (r.ok ? r.json() : Promise.reject()))
+                .then((list) => (Array.isArray(list) ? list.map((x) => x.name) : [])),
         ])
             .then(([desc, skills]) => {
                 setDescription(desc || "");
@@ -64,12 +71,15 @@ export default function DescriptionPanel({
     };
 
     const handlePublish = async () => {
+        // πρώτα σώσε τυχόν αλλαγές
         await handleUpdate();
         try {
             const r = await fetch(`${baseUrl}/jobAds/${selectedJobAdId}/publish`, {
                 method: "POST",
             });
             if (!r.ok) throw new Error();
+            // ΚΛΕΙΔΩΜΑ ΑΜΕΣΑ ΧΩΡΙΣ REFRESH
+            setStatus("Published");
             await reloadSidebar?.();
         } catch {
             setError("Αποτυχία δημοσίευσης.");
@@ -114,21 +124,20 @@ export default function DescriptionPanel({
             <Col md="6">
                 <Row>
                     <Col>
-                        <SkillSelector
-                            allskills={allskills}
-                            requiredskills={requiredSkills}
-                            setRequiredskills={setRequiredSkills}
-                        />
+                        <SkillSelectorReadOnly requiredskills={requiredSkills} />
                     </Col>
                 </Row>
 
-                <Row>
-                    <DescriptionButtons
-                        onUpdate={handleUpdate}
-                        onPublish={handlePublish}
-                        onDelete={handleDelete}
-                    />
-                </Row>
+                {/* ΔΕΙΧΝΕ ΤΑ ΚΟΥΜΠΙΑ ΜΟΝΟ ΑΝ status === Pending */}
+                {isPending && (
+                    <Row>
+                        <DescriptionButtons
+                            onUpdate={handleUpdate}
+                            onPublish={handlePublish}
+                            onDelete={handleDelete}
+                        />
+                    </Row>
+                )}
 
                 {error && (
                     <div className="mt-3 text-danger text-center" style={{ fontSize: 14 }}>

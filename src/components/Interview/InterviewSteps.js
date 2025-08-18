@@ -1,68 +1,89 @@
-import React, { useState } from "react";
-import Steps from "../Steps";
+import React, { useState, useEffect } from "react";
+import StepsDnd from "./StepsDnd";
 
-function InterviewSteps({
-    interviewsteps,
-    category,
-    onSelect,
+const API = "http://localhost:8087/api/v1/step";
+
+export default function InterviewSteps({
+    interviewsteps,               // [{ id, title, description }]
+    onSelect,                     // (index, stepId, stepObj)
     selectedIndex: controlledSelectedIndex,
+    interviewId,
+    reloadSteps,
+    onLocalReorder,               // (from, to) => void
 }) {
     const [internalSelectedIndex, setInternalSelectedIndex] = useState(null);
-    const [hoveredIndex, setHoveredIndex] = useState(null);
-
     const selectedIndex = controlledSelectedIndex ?? internalSelectedIndex;
 
-    const handleStepSelect = (index) => {
-        if (controlledSelectedIndex == null) {
-            setInternalSelectedIndex(index);
+    useEffect(() => {
+        if (selectedIndex != null && interviewsteps?.length > 0 && selectedIndex >= interviewsteps.length) {
+            const safe = interviewsteps.length - 1;
+            setInternalSelectedIndex(safe);
+            const step = interviewsteps[safe];
+            onSelect?.(safe, step?.id ?? null, step ?? null);
         }
-        if (onSelect) onSelect(index);
+    }, [interviewsteps, selectedIndex, onSelect]);
+
+    const handleSelect = (index) => {
+        if (controlledSelectedIndex == null) setInternalSelectedIndex(index);
+        const step = interviewsteps?.[index];
+        onSelect?.(index, step?.id ?? null, step ?? null);
+    };
+
+    // batch reorder στο backend
+    const applyServerReorder = async (_stepId, from, to) => {
+        if (from === to) return;
+        if (!interviewId) throw new Error("Missing interviewId for reorder");
+
+        const orderedIds = interviewsteps.map((s) => s.id);
+        const [moved] = orderedIds.splice(from, 1);
+        orderedIds.splice(to, 0, moved);
+
+        const r = await fetch(`${API}/interviews/${interviewId}/steps/reorder`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ stepIds: orderedIds }),
+        });
+        if (!r.ok) throw new Error("reorder-failed");
+
+        await reloadSteps?.();
+    };
+
+    // update description (PUT /step/{id})
+    const updateDescription = async (stepId, description) => {
+        const r = await fetch(`${API}/${stepId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ description }),
+        });
+        if (!r.ok) throw new Error("failed-to-update-step");
+        await reloadSteps?.();
     };
 
     return (
-        // Συμμετρικά paddings και μικρότερο πάνω κενό
-        <div style={{ padding: "4px 0 0", boxSizing: "border-box" }}>
-            {/* Header με ίσο χώρο αριστερά/δεξιά */}
+        <div style={{ padding: 0, overflow: "hidden" }}>
             <div
                 style={{
-                    display: "flex",
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
                     gap: 12,
-                    padding: "0 10px 6px",
-                    borderBottom: "1px solid rgb(183, 186, 188)",
-                    boxSizing: "border-box",
+                    padding: "8px 10px",
+                    borderBottom: "1px solid rgb(183,186,188)",
                 }}
             >
-                <div style={{ flex: 1 }}>
-                    <label className="active-label">Steps:</label>
-                </div>
-                <div style={{ flex: 1 }}>
-                    <label className="active-label">Category:</label>
-                </div>
+                <label className="active-label" style={{ margin: 0 }}>Steps:</label>
+                <label className="active-label" style={{ margin: 0 }}>Category:</label>
             </div>
 
-            {/* Περιεχόμενο σε δύο στήλες με ίσο “αέρα” */}
-            <div style={{ display: "flex", gap: 12, padding: "8px 10px 0", boxSizing: "border-box" }}>
-                <div style={{ flex: 1 }}>
-                    <Steps
-                        steps={interviewsteps}
-                        selectedIndex={selectedIndex}
-                        hoveredIndex={hoveredIndex}
-                        onSelect={handleStepSelect}
-                        onHover={setHoveredIndex}
-                    />
-                </div>
-                <div style={{ flex: 1 }}>
-                    <Steps
-                        steps={category}
-                        selectedIndex={selectedIndex}
-                        hoveredIndex={hoveredIndex}
-                        onSelect={handleStepSelect}
-                        onHover={setHoveredIndex}
-                    />
-                </div>
+            <div style={{ padding: "8px 10px", overflow: "auto" }}>
+                <StepsDnd
+                    steps={interviewsteps}
+                    selectedIndex={selectedIndex ?? 0}
+                    onSelect={handleSelect}
+                    onReorder={onLocalReorder}
+                    onApplyServerReorder={applyServerReorder}
+                    onUpdateDescription={updateDescription}
+                />
             </div>
         </div>
     );
 }
-
-export default InterviewSteps;

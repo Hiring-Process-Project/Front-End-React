@@ -4,12 +4,16 @@ import StepsTree from './StepsTree';
 import Description from '../Description/Description';
 import SkillSelector from '../Description/SkillSelector';
 
+const isPublished = (s) => String(s ?? '').trim().toLowerCase() === 'published';
 
 const Questions = ({ selectedJobAdId }) => {
     const [allSkills, setAllSkills] = React.useState([]);
     const [requiredSkills, setRequiredSkills] = React.useState([]);
     const [questionDesc, setQuestionDesc] = React.useState('');
     const [selectedQuestionId, setSelectedQuestionId] = React.useState(null);
+    const [status, setStatus] = React.useState('Pending');
+
+    const published = isPublished(status);
 
     React.useEffect(() => {
         fetch('http://localhost:8087/skills')
@@ -40,6 +44,15 @@ const Questions = ({ selectedJobAdId }) => {
             });
     }, [selectedQuestionId]);
 
+    // φέρε status του job ad (για κλείδωμα)
+    React.useEffect(() => {
+        if (!selectedJobAdId) return;
+        fetch(`http://localhost:8087/jobAds/details?jobAdId=${selectedJobAdId}`)
+            .then(r => (r.ok ? r.json() : Promise.reject()))
+            .then(d => setStatus(String(d?.status ?? 'Pending')))
+            .catch(() => setStatus('Pending'));
+    }, [selectedJobAdId]);
+
     const handleSave = async () => {
         if (!selectedQuestionId) return;
 
@@ -53,19 +66,18 @@ const Questions = ({ selectedJobAdId }) => {
                 })
             });
             if (!resp.ok) throw new Error("update failed");
-
         } catch (e) {
             console.error(e);
             alert("Αποτυχία ενημέρωσης.");
         }
     };
+
     if (!selectedJobAdId) {
         return <p style={{ padding: "1rem" }}>Επέλεξε ένα Job Ad για να δεις τα Questions.</p>;
     }
 
     return (
         <Row className="g-3 align-items-stretch">
-
             <Col md="5" className="d-flex flex-column">
                 <Row className="mb-2" style={{ paddingLeft: '10px' }}>
                     <Col>
@@ -102,17 +114,20 @@ const Questions = ({ selectedJobAdId }) => {
                             </Col>
                         </Row>
 
-                        <div className="mt-auto d-flex justify-content-center">
-                            <Button
-                                color="secondary"
-                                className="delete-btn-req"
-                                style={{ marginTop: '30px' }}
-                                onClick={handleSave}
-                                disabled={!selectedQuestionId}
-                            >
-                                Update
-                            </Button>
-                        </div>
+                        {/* Κουμπί update να ΜΗ φαίνεται όταν είναι published */}
+                        {!published && (
+                            <div className="mt-auto d-flex justify-content-center">
+                                <Button
+                                    color="secondary"
+                                    className="delete-btn-req"
+                                    style={{ marginTop: '30px' }}
+                                    onClick={handleSave}
+                                    disabled={!selectedQuestionId}
+                                >
+                                    Update
+                                </Button>
+                            </div>
+                        )}
                     </Col>
                 </Row>
             </Col>
