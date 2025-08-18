@@ -4,29 +4,89 @@ import { Button, Collapse, Input, Card, CardBody, Badge } from 'reactstrap';
 function StepSkills({ step, onRate, ratings = {}, mode = 'edit' }) {
     const [openIndex, setOpenIndex] = useState(null);
     const [values, setValues] = useState({});
+    const [toast, setToast] = useState({ show: false, message: '' });
+
     if (!step) return <div style={{ opacity: .6 }}>Select a step to see skills…</div>;
 
     const FONT_SIZE = 12;
     const title = step.name || step;
     const skills = step.skills || [];
     const toggleSkill = (i) => setOpenIndex(prev => (prev === i ? null : i));
-    const handleRatingChange = (i, val) => setValues(p => ({ ...p, [i]: { ...(p[i] || {}), rating: val } }));
-    const handleCommentChange = (i, val) => setValues(p => ({ ...p, [i]: { ...(p[i] || {}), comment: val } }));
+
+    const showToast = (message) => {
+        setToast({ show: true, message });
+        setTimeout(() => setToast({ show: false, message: '' }), 2200);
+    };
+
+    const handleRatingChange = (i, val) => {
+        const n = Number(val);
+        if (!Number.isFinite(n)) {
+            setValues(p => ({ ...p, [i]: { ...(p[i] || {}), rating: '' } }));
+            return;
+        }
+        if (n > 100) {
+            showToast('Maximum allowed rating is 100.');
+            setValues(p => ({ ...p, [i]: { ...(p[i] || {}), rating: 100 } }));
+            return;
+        }
+        if (n < 0) {
+            setValues(p => ({ ...p, [i]: { ...(p[i] || {}), rating: 0 } }));
+            return;
+        }
+        setValues(p => ({ ...p, [i]: { ...(p[i] || {}), rating: n } }));
+    };
+
+    const handleCommentChange = (i, val) =>
+        setValues(p => ({ ...p, [i]: { ...(p[i] || {}), comment: val } }));
 
     const handleSave = (i, e) => {
         e?.stopPropagation();
         const s = skills[i];
         const rating = Number(values[i]?.rating);
-        if (!Number.isFinite(rating) || rating < 0 || rating > 100) return alert('0–100');
-        const payload = { skill: typeof s === 'string' ? { name: s } : s, rating, comment: values[i]?.comment || '' };
+        if (!Number.isFinite(rating)) {
+            showToast('Please enter a rating first.');
+            return;
+        }
+        if (rating < 0 || rating > 100) {
+            showToast('Rating must be between 0 and 100.');
+            return;
+        }
+        const payload = {
+            skill: typeof s === 'string' ? { name: s } : s,
+            rating,
+            comment: values[i]?.comment || ''
+        };
         onRate?.(payload);
+        showToast('Saved!');
     };
 
     const getSkillId = (s) => (s && s.id) || `${title}::${typeof s === 'string' ? s : s.name}`;
     const readOnlyFor = (s) => ratings[getSkillId(s)] || null;
 
     return (
-        <div className="candidate-container">
+        <div className="candidate-container" style={{ position: 'relative' }}>
+            {/* mini toast */}
+            {toast.show && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: -6,
+                        right: 0,
+                        background: '#1f2937',
+                        color: '#fff',
+                        padding: '8px 12px',
+                        borderRadius: 8,
+                        fontSize: 12,
+                        boxShadow: '0 6px 20px rgba(0,0,0,.2)',
+                        zIndex: 5
+                    }}
+                    role="status"
+                    aria-live="polite"
+                >
+                    {toast.message}
+                </div>
+            )}
+
             <h6 style={{ marginTop: 0, fontSize: `${FONT_SIZE}px`, lineHeight: 1.25 }}>{title}</h6>
 
             {skills.map((s, i) => {
@@ -74,39 +134,45 @@ function StepSkills({ step, onRate, ratings = {}, mode = 'edit' }) {
                             </div>
 
                             <Collapse isOpen={openIndex === i} id={`skill-collapse-${i}`}>
-                                <Card style={{ marginTop: 8, overflow: 'hidden', backgroundColor: '#f6f6f6' }}
-                                    onClick={(e) => e.stopPropagation()}>
-                                    <CardBody>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                            <Input
-                                                id={`rating-${i}`} type="number" min={0} max={100}
-                                                placeholder="Rate this skill (0–100)"
-                                                value={values[i]?.rating ?? ''}
-                                                onChange={(e) => handleRatingChange(i, e.target.value)}
-                                                onClick={(e) => e.stopPropagation()}
-                                                onFocus={(e) => e.stopPropagation()}
-                                            />
-                                            <Input
-                                                id={`comment-${i}`} type="textarea" rows={3}
-                                                placeholder="Write your comments…"
-                                                value={values[i]?.comment ?? ''}
-                                                onChange={(e) => handleCommentChange(i, e.target.value)}
-                                                onClick={(e) => e.stopPropagation()}
-                                                onFocus={(e) => e.stopPropagation()}
-                                                style={{ resize: 'vertical' }}
-                                            />
-                                            <div className="d-flex justify-content-end">
-                                                <Button
-                                                    color="success" size="sm"
-                                                    onClick={(e) => handleSave(i, e)}
-                                                    disabled={values[i]?.rating === '' || values[i]?.rating == null}
-                                                >
-                                                    Save
-                                                </Button>
-                                            </div>
+                                {/* Μόνο τα άσπρα inputs */}
+                                <div style={{ marginTop: 8, padding: 8 }} onClick={(e) => e.stopPropagation()}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                        <Input
+                                            id={`rating-${i}`}
+                                            type="number"
+                                            min={0}
+                                            max={100}
+                                            step={10}             // ↑/↓ ανά 10
+                                            inputMode="numeric"
+                                            placeholder="Rate this skill (0–100)"
+                                            value={values[i]?.rating ?? ''}
+                                            onChange={(e) => handleRatingChange(i, e.target.value)}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onFocus={(e) => e.stopPropagation()}
+                                        />
+                                        <Input
+                                            id={`comment-${i}`}
+                                            type="textarea"
+                                            rows={3}
+                                            placeholder="Write your comments…"
+                                            value={values[i]?.comment ?? ''}
+                                            onChange={(e) => handleCommentChange(i, e.target.value)}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onFocus={(e) => e.stopPropagation()}
+                                            style={{ resize: 'vertical' }}
+                                        />
+                                        <div className="d-flex justify-content-end">
+                                            <Button
+                                                color="success"
+                                                size="sm"
+                                                onClick={(e) => handleSave(i, e)}
+                                                disabled={values[i]?.rating === '' || values[i]?.rating == null}
+                                            >
+                                                Save
+                                            </Button>
                                         </div>
-                                    </CardBody>
-                                </Card>
+                                    </div>
+                                </div>
                             </Collapse>
                         </Button>
                     </div>

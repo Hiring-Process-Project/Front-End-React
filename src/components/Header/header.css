@@ -54,14 +54,12 @@
   width: auto;
 }
 
-
 .custom-dropdown>.dropdown-toggle:focus,
 .custom-dropdown>.dropdown-toggle {
   background-color: #F6F6F6 !important;
   color: black !important;
   border: hsl(0, 0%, 96%) !important;
   width: 225px !important;
-
 }
 
 .custom-dropdown>.dropdown-toggle:hover,
@@ -70,14 +68,12 @@
   background-color: #B7BABC !important;
   border: #B7BABC !important;
   width: 225px !important;
-
 }
 
 .custom-dropdown .dropdown-menu .dropdown-item {
   font-size: 14px;
   color: black;
   width: 225px !important;
-
 }
 
 .custom-dropdown .dropdown-menu .dropdown-item:hover {
@@ -91,4 +87,33 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* ✅ Custom tooltip */
+.tooltip-tab {
+  position: relative;
+  cursor: pointer;
+}
+
+.tooltip-tab::after {
+  content: attr(data-tip);
+  /* Χρησιμοποιούμε data-tip αντί για data-tooltip */
+  position: absolute;
+  bottom: -35px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 1000;
+}
+
+.tooltip-tab:hover::after {
+  opacity: 1;
 }

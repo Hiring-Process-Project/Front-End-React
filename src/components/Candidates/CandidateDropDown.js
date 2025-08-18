@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { Collapse, Button } from 'reactstrap';
+import { FaDownload } from 'react-icons/fa'; // εικονίδιο download
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import './Candidates.css';
 
 function CandidateDropdown({ candidates, onSelect }) {
@@ -9,6 +12,19 @@ function CandidateDropdown({ candidates, onSelect }) {
         const next = openIndex === index ? null : index;
         setOpenIndex(next);
         onSelect?.(next === null ? null : cand);
+    };
+
+    const handleDownload = (cvFileName) => {
+        // Εδώ βάζεις την πραγματική διαδρομή του CV
+        const fileUrl = `/cv/${cvFileName}`;
+        const link = document.createElement('a');
+        link.href = fileUrl;
+        link.download = cvFileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast.success(`Το αρχείο ${cvFileName} κατέβηκε με επιτυχία!`);
     };
 
     return (
@@ -33,11 +49,22 @@ function CandidateDropdown({ candidates, onSelect }) {
                         <div className="candidate-details">
                             <p><strong>Name:</strong> {candidate.name}</p>
                             <p><strong>Email:</strong> {candidate.email}</p>
-                            <p><strong>CV:</strong> {candidate.cv}</p>
+                            <p>
+                                <strong>CV:</strong> {candidate.cv}
+                                <Button
+                                    color="link"
+                                    style={{ padding: '0 5px' }}
+                                    onClick={() => handleDownload(candidate.cv)}
+                                >
+                                    <FaDownload size={16} />
+                                </Button>
+                            </p>
                         </div>
                     </Collapse>
                 </div>
             ))}
+
+            <ToastContainer position="bottom-right" autoClose={3000} />
         </div>
     );
 }
