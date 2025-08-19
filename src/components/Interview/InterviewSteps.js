@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from "react";
 import StepsDnd from "./StepsDnd";
 
-const API = "http://localhost:8087/api/v1/step";
+/**
+ * Backends που χρησιμοποιούμε:
+ * - PUT  /api/v1/step/{stepId}/description         (body: { description })
+ * - PATCH /api/v1/step/interviews/{interviewId}/steps/reorder  (body: { stepIds: number[] })
+ */
+const API_STEP = "http://localhost:8087/api/v1/step";
 
 export default function InterviewSteps({
-    interviewsteps,               // [{ id, title, description }]
-    onSelect,                     // (index, stepId, stepObj)
+    interviewsteps = [],           // [{ id, title, description }]
+    onSelect,                      // (index, stepId, stepObj)
     selectedIndex: controlledSelectedIndex,
     interviewId,
     reloadSteps,
-    onLocalReorder,               // (from, to) => void
+    onLocalReorder,                // (from, to) => void
 }) {
     const [internalSelectedIndex, setInternalSelectedIndex] = useState(null);
     const selectedIndex = controlledSelectedIndex ?? internalSelectedIndex;
@@ -29,7 +34,7 @@ export default function InterviewSteps({
         onSelect?.(index, step?.id ?? null, step ?? null);
     };
 
-    // batch reorder στο backend
+    // === Server reorder (PATCH) ===
     const applyServerReorder = async (_stepId, from, to) => {
         if (from === to) return;
         if (!interviewId) throw new Error("Missing interviewId for reorder");
@@ -38,24 +43,30 @@ export default function InterviewSteps({
         const [moved] = orderedIds.splice(from, 1);
         orderedIds.splice(to, 0, moved);
 
-        const r = await fetch(`${API}/interviews/${interviewId}/steps/reorder`, {
+        const r = await fetch(`${API_STEP}/interviews/${interviewId}/steps/reorder`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ stepIds: orderedIds }),
         });
-        if (!r.ok) throw new Error("reorder-failed");
+        if (!r.ok) {
+            const txt = await r.text().catch(() => "");
+            throw new Error(`reorder-failed (${r.status}) ${txt}`);
+        }
 
         await reloadSteps?.();
     };
 
-    // update description (PUT /step/{id})
+    // === Update description (PUT) ===
     const updateDescription = async (stepId, description) => {
-        const r = await fetch(`${API}/${stepId}`, {
+        const r = await fetch(`${API_STEP}/${stepId}/description`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ description }),
+            body: JSON.stringify({ description: description ?? "" }),
         });
-        if (!r.ok) throw new Error("failed-to-update-step");
+        if (!r.ok) {
+            const txt = await r.text().catch(() => "");
+            throw new Error(`failed-to-update-step (${r.status}) ${txt}`);
+        }
         await reloadSteps?.();
     };
 

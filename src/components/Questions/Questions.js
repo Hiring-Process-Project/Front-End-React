@@ -15,16 +15,20 @@ const Questions = ({ selectedJobAdId }) => {
 
     const published = isPublished(status);
 
+    // --- φέρε όλα τα skills ---
     React.useEffect(() => {
         fetch('http://localhost:8087/skills')
             .then((r) => (r.ok ? r.json() : Promise.reject('Failed to fetch skills')))
-            .then((data) => setAllSkills((data || []).map((s) => s.name)))
+            .then((data) =>
+                setAllSkills((data || []).map((s) => s?.title).filter(Boolean))
+            )
             .catch((e) => {
                 console.error(e);
                 setAllSkills([]);
             });
     }, []);
 
+    // --- φέρε details για συγκεκριμένη ερώτηση ---
     React.useEffect(() => {
         if (!selectedQuestionId) {
             setQuestionDesc('');
@@ -35,7 +39,7 @@ const Questions = ({ selectedJobAdId }) => {
             .then((r) => (r.ok ? r.json() : Promise.reject('Failed to fetch question details')))
             .then((d) => {
                 setQuestionDesc(d?.description || '');
-                setRequiredSkills(((d?.skills) || []).map((s) => s.name).filter(Boolean));
+                setRequiredSkills(((d?.skills) || []).map((s) => s?.title).filter(Boolean));
             })
             .catch((e) => {
                 console.error(e);
@@ -44,15 +48,16 @@ const Questions = ({ selectedJobAdId }) => {
             });
     }, [selectedQuestionId]);
 
-    // φέρε status του job ad (για κλείδωμα)
+    // --- φέρε status του job ad (για publish lock) ---
     React.useEffect(() => {
         if (!selectedJobAdId) return;
         fetch(`http://localhost:8087/jobAds/details?jobAdId=${selectedJobAdId}`)
-            .then(r => (r.ok ? r.json() : Promise.reject()))
-            .then(d => setStatus(String(d?.status ?? 'Pending')))
+            .then((r) => (r.ok ? r.json() : Promise.reject()))
+            .then((d) => setStatus(String(d?.status ?? 'Pending')))
             .catch(() => setStatus('Pending'));
     }, [selectedJobAdId]);
 
+    // --- save update ---
     const handleSave = async () => {
         if (!selectedQuestionId) return;
 
@@ -62,7 +67,7 @@ const Questions = ({ selectedJobAdId }) => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     description: questionDesc || "",
-                    skillNames: requiredSkills || []
+                    skillNames: requiredSkills || []   // <--- array από titles
                 })
             });
             if (!resp.ok) throw new Error("update failed");

@@ -6,6 +6,21 @@ import SkillSelectorReadOnly from "./SkillSelectorReadOnly";
 
 const baseUrl = "http://localhost:8087";
 
+// μικρό helper: προσπαθεί διαδοχικά λίστα από URLs μέχρι να πάρει κανονικό JSON array
+async function tryFetchArray(urls) {
+    for (const url of urls) {
+        try {
+            const res = await fetch(url);
+            if (!res.ok) continue;
+            const data = await res.json();
+            if (Array.isArray(data)) return data;
+        } catch {
+            // δοκιμάζουμε το επόμενο
+        }
+    }
+    return null; // καμία επιτυχία
+}
+
 export default function DescriptionCars({
     selectedJobAdId,
     allskills = [],
@@ -18,32 +33,58 @@ export default function DescriptionCars({
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
 
-    // ΝΕΟ: status για να ελέγχουμε αν δείχνουμε κουμπιά
     const [status, setStatus] = useState("Pending");
     const isPending = (status || "").toLowerCase() === "pending";
 
     useEffect(() => {
         if (!selectedJobAdId) return;
+
         setLoading(true);
         setError("");
 
-        Promise.all([
-            fetch(`${baseUrl}/jobAds/details?jobAdId=${selectedJobAdId}`)
-                .then((r) => (r.ok ? r.json() : Promise.reject()))
-                .then((d) => {
-                    setStatus(String(d?.status ?? "Pending"));
-                    return d?.description ?? "";
-                }),
-            fetch(`${baseUrl}/jobAds/jobAds/${selectedJobAdId}/interview-skills`)
-                .then((r) => (r.ok ? r.json() : Promise.reject()))
-                .then((list) => (Array.isArray(list) ? list.map((x) => x.name) : [])),
-        ])
-            .then(([desc, skills]) => {
-                setDescription(desc || "");
-                setRequiredSkills(skills || []);
-            })
-            .catch(() => setError("Δεν ήταν δυνατή η φόρτωση των δεδομένων."))
-            .finally(() => setLoading(false));
+        // 1) Details (description / status)
+        const detailsUrl = `${baseUrl}/jobAds/details?jobAdId=${selectedJobAdId}`;
+
+        // 2) Πιθανοί δρόμοι για skills (δοκιμάζονται με αυτή τη σειρά)
+        const skillUrls = [
+            `${baseUrl}/jobAds/jobAds/${selectedJobAdId}/interview-skills`,
+            `${baseUrl}/jobAds/${selectedJobAdId}/skills`,
+            `${baseUrl}/jobAds/${selectedJobAdId}/required-skills`,
+        ];
+
+        (async () => {
+            let detailsOk = false;
+
+            // --- DETAILS ---
+            try {
+                const r = await fetch(detailsUrl);
+                if (!r.ok) throw new Error();
+                const d = await r.json();
+                setStatus(String(d?.status ?? "Pending"));
+                setDescription(d?.description ?? "");
+                detailsOk = true;
+            } catch {
+                setError("Δεν ήταν δυνατή η φόρτωση των δεδομένων.");
+            }
+
+            // --- SKILLS ---
+            const skillsArr = await tryFetchArray(skillUrls);
+            if (skillsArr) {
+                // δεχόμαστε title ή name ή σκέτο string
+                const titles = skillsArr
+                    .map((x) =>
+                        typeof x === "string" ? x : x?.title ?? x?.name ?? ""
+                    )
+                    .filter(Boolean);
+                setRequiredSkills(titles);
+            } else {
+                // αν απέτυχαν τα skills αλλά τα details ήρθαν, ΜΗ δείχνεις κόκκινο error·
+                // απλώς άφησε τα skills κενά.
+                if (!detailsOk) setError("Δεν ήταν δυνατή η φόρτωση των δεδομένων.");
+            }
+
+            setLoading(false);
+        })();
     }, [selectedJobAdId]);
 
     const canSave = useMemo(() => !!selectedJobAdId, [selectedJobAdId]);
@@ -58,6 +99,7 @@ export default function DescriptionCars({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     description,
+                    // ο server μπορεί να περιμένει τίτλους/ονόματα — στέλνουμε array από strings
                     skills: requiredSkills,
                 }),
             });
@@ -71,15 +113,13 @@ export default function DescriptionCars({
     };
 
     const handlePublish = async () => {
-        // πρώτα σώσε τυχόν αλλαγές
         await handleUpdate();
         try {
             const r = await fetch(`${baseUrl}/jobAds/${selectedJobAdId}/publish`, {
                 method: "POST",
             });
             if (!r.ok) throw new Error();
-            // ΚΛΕΙΔΩΜΑ ΑΜΕΣΑ ΧΩΡΙΣ REFRESH
-            setStatus("Published");
+            setStatus("Published"); // κλείδωσε άμεσα
             await reloadSidebar?.();
         } catch {
             setError("Αποτυχία δημοσίευσης.");
@@ -104,7 +144,11 @@ export default function DescriptionCars({
     };
 
     if (!selectedJobAdId) {
-        return <p style={{ padding: "1rem" }}>Επέλεξε ένα Job Ad για να δεις το Description.</p>;
+        return (
+            <p style={{ padding: "1rem" }}>
+                Επέλεξε ένα Job Ad για να δεις το Description.
+            </p>
+        );
     }
 
     if (loading) {
@@ -128,7 +172,6 @@ export default function DescriptionCars({
                     </Col>
                 </Row>
 
-                {/* ΔΕΙΧΝΕ ΤΑ ΚΟΥΜΠΙΑ ΜΟΝΟ ΑΝ status === Pending */}
                 {isPending && (
                     <Row>
                         <DescriptionButtons

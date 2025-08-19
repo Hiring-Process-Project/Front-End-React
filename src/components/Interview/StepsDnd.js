@@ -3,7 +3,7 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Input, Button } from "reactstrap";
 
 export default function StepsDnd({
-    steps,
+    steps = [],
     selectedIndex = 0,
     onSelect,
     onReorder,
@@ -48,10 +48,17 @@ export default function StepsDnd({
     };
 
     const commitEdit = async (stepId) => {
+        if (!onUpdateDescription) return;
         const text = draft[stepId] ?? "";
+        // μην ξαναστείλεις αν ήδη κάνεις save το ίδιο step
+        if (savingId === stepId) return;
+
         setSavingId(stepId);
         try {
-            await onUpdateDescription?.(stepId, text);
+            await onUpdateDescription(stepId, text);
+        } catch (e) {
+            console.error(e);
+            // optional: toast/alert
         } finally {
             setSavingId(null);
         }
@@ -80,27 +87,26 @@ export default function StepsDnd({
                                                 ...dragProvided.draggableProps.style,
                                             }}
                                         >
-                                            {/* ROW HEADER — 2 στήλες μόνο (Steps | Category), ΧΩΡΙΣ chevron */}
+                                            {/* HEADER: Steps | Category */}
                                             <div
                                                 className="step-row-header"
                                                 onClick={() => toggleOpen(idx)}
                                                 style={{
                                                     display: "grid",
-                                                    gridTemplateColumns: "1fr 1fr",   // <-- ΜΟΝΟ 2 στήλες
+                                                    gridTemplateColumns: "1fr 1fr",
                                                     alignItems: "center",
                                                     gap: 12,
                                                     padding: "10px 12px",
                                                     cursor: "pointer",
                                                 }}
                                             >
-                                                {/* Steps column */}
                                                 <div
                                                     style={{
                                                         display: "flex",
                                                         alignItems: "center",
                                                         gap: 10,
                                                         minHeight: 24,
-                                                        paddingLeft: "12px",   // <--- ΝΕΟ
+                                                        paddingLeft: "12px",
                                                     }}
                                                 >
                                                     <span
@@ -127,18 +133,16 @@ export default function StepsDnd({
                                                     </span>
                                                 </div>
 
-                                                {/* Category column */}
                                                 <div
                                                     style={{
                                                         fontSize: 14,
                                                         color: "#2b2b2b",
-                                                        textAlign: "left",     // <--- ευθυγράμμιση αριστερά
+                                                        textAlign: "left",
                                                         paddingLeft: "25px",
                                                     }}
                                                 >
                                                     {s.title || "—"}
                                                 </div>
-
                                             </div>
 
                                             {isOpen && (
@@ -158,7 +162,7 @@ export default function StepsDnd({
                                                         rows={3}
                                                         value={draft[s.id] ?? s.description ?? ""}
                                                         onChange={(e) => startEdit(s.id, e.target.value)}
-                                                        onBlur={() => commitEdit(s.id)}
+                                                        onBlur={() => commitEdit(s.id)}  // μπορείς να το βγάλεις αν θες μόνο με κουμπί
                                                         placeholder="Write a short description for this step…"
                                                     />
                                                     <div className="d-flex justify-content-end" style={{ gap: 8, marginTop: 8 }}>

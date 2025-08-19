@@ -7,10 +7,17 @@ function SkillSelector({ allskills, requiredskills, setRequiredskills }) {
     const [dropdownVisible, setDropdownVisible] = useState(false);
 
     const filteredSkills = useMemo(() => {
-        const lower = searchText.toLowerCase();
-        return allskills.filter(skill =>
-            skill.toLowerCase().includes(lower) && !requiredskills.includes(skill)
-        );
+        const lower = (searchText ?? "").toLowerCase();
+        return allskills.filter(skill => {
+            const skillName = typeof skill === "string" ? skill : skill?.title ?? "";
+            return (
+                skillName.toLowerCase().includes(lower) &&
+                !requiredskills.some(s => {
+                    const reqName = typeof s === "string" ? s : s?.title ?? "";
+                    return reqName === skillName;
+                })
+            );
+        });
     }, [searchText, allskills, requiredskills]);
 
     const handleSelect = (skill) => {
@@ -20,7 +27,11 @@ function SkillSelector({ allskills, requiredskills, setRequiredskills }) {
     };
 
     const handleRemove = (skill) => {
-        setRequiredskills(requiredskills.filter(s => s !== skill));
+        setRequiredskills(requiredskills.filter(s => {
+            const nameS = typeof s === "string" ? s : s?.title ?? "";
+            const nameSkill = typeof skill === "string" ? skill : skill?.title ?? "";
+            return nameS !== nameSkill;
+        }));
     };
 
     return (
@@ -34,7 +45,8 @@ function SkillSelector({ allskills, requiredskills, setRequiredskills }) {
 
                 <Row>
                     <Col>
-                        <div className="boxStyle"
+                        <div
+                            className="boxStyle"
                             style={{
                                 minHeight: '280px',
                                 overflow: 'hidden',
@@ -53,36 +65,50 @@ function SkillSelector({ allskills, requiredskills, setRequiredskills }) {
                                 onBlur={() => setTimeout(() => setDropdownVisible(false), 200)}
                             />
 
-
                             {dropdownVisible && (
                                 <div className="dropdown-suggestions">
                                     {filteredSkills.length > 0 ? (
-                                        filteredSkills.map((skill, index) => (
-                                            <div
-                                                key={index}
-                                                className="dropdown-item-skill"
-                                                onClick={() => handleSelect(skill)}
-                                            >
-                                                {skill}
-                                            </div>
-                                        ))
+                                        filteredSkills.map((skill, index) => {
+                                            const skillName =
+                                                typeof skill === "string" ? skill : skill?.title ?? "";
+                                            return (
+                                                <div
+                                                    key={index}
+                                                    className="dropdown-item-skill"
+                                                    onClick={() => handleSelect(skill)}
+                                                >
+                                                    {skillName}
+                                                </div>
+                                            );
+                                        })
                                     ) : (
-                                        <div className="dropdown-item-skill no-match">No match</div>
+                                        <div className="dropdown-item-skill no-match">
+                                            No match
+                                        </div>
                                     )}
                                 </div>
                             )}
 
                             <div className="selected-skills-container mt-3">
-                                {requiredskills.map((skill, index) => (
-                                    <Badge key={index} color="info" pill className="skill-badge">
-                                        {skill}
-                                        <Button
-                                            close
-                                            className="badge-close"
-                                            onClick={() => handleRemove(skill)}
-                                        />
-                                    </Badge>
-                                ))}
+                                {requiredskills.map((skill, index) => {
+                                    const skillName =
+                                        typeof skill === "string" ? skill : skill?.title ?? "";
+                                    return (
+                                        <Badge
+                                            key={index}
+                                            color="info"
+                                            pill
+                                            className="skill-badge"
+                                        >
+                                            {skillName}
+                                            <Button
+                                                close
+                                                className="badge-close"
+                                                onClick={() => handleRemove(skill)}
+                                            />
+                                        </Badge>
+                                    );
+                                })}
                             </div>
                         </div>
                     </Col>
