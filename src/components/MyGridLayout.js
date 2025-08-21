@@ -1,5 +1,5 @@
 import React from 'react';
-import { Row, Col, Card, CardBody, Button } from 'reactstrap';
+import { Row, Col, Card, CardBody } from 'reactstrap';
 import SidebarCard from './LeftCard/SidebarCard';
 import Header from './Header/Header';
 import Candidates from './Candidates/Candidates';
@@ -11,10 +11,11 @@ import Hire from './Hire/Hire';
 import Statistics from './Statistics/Statistics';
 
 export default function MyGridLayout() {
-
     const [allskills, setAllSkills] = React.useState(["JavaScript", "CSS", "React"]);
     const [selectedTab, setSelectedTab] = React.useState('description');
     const [selectedJobAdId, setSelectedJobAdId] = React.useState(null);
+    const [reloadKey, setReloadKey] = React.useState(0);
+
 
     React.useEffect(() => {
         fetch('http://localhost:8087/skills')
@@ -31,6 +32,13 @@ export default function MyGridLayout() {
             });
     }, []);
 
+    // Όταν διαγραφεί ένα Job Ad, καθαρίζουμε την επιλογή
+    const handleJobAdDeleted = () => {
+        setSelectedJobAdId(null);   // για να δείξει το “Επέλεξε ένα Job Ad…”
+        setReloadKey(k => k + 1);   // για να φρεσκάρει το sidebar
+    };
+
+
     return (
         <div>
             <Header setSelectedTab={setSelectedTab} />
@@ -39,13 +47,18 @@ export default function MyGridLayout() {
                     <SidebarCard
                         onJobAdSelect={setSelectedJobAdId}
                         selectedJobAdId={selectedJobAdId}
+                        reloadKey={reloadKey}
                     />
 
                     <Col md="8">
                         <Card className="shadow-sm" style={{ backgroundColor: '#F6F6F6', minHeight: '450px' }}>
                             <CardBody>
                                 {selectedTab === 'description' && (
-                                    <DescriptionCard selectedJobAdId={selectedJobAdId} allskills={allskills} />
+                                    <DescriptionCard
+                                        selectedJobAdId={selectedJobAdId}
+                                        allskills={allskills}
+                                        onDeleted={handleJobAdDeleted}
+                                    />
                                 )}
 
                                 {selectedTab === 'questions' && (
@@ -56,21 +69,13 @@ export default function MyGridLayout() {
                                     <Interview selectedJobAdId={selectedJobAdId} />
                                 )}
 
-                                {selectedTab === 'candidates' && (
-                                    <Candidates />
-                                )}
+                                {selectedTab === 'candidates' && <Candidates />}
 
-                                {selectedTab === 'result' && (
-                                    <Result />
-                                )}
+                                {selectedTab === 'result' && <Result />}
 
-                                {selectedTab === 'statistics' && (
-                                    <Statistics />
-                                )}
+                                {selectedTab === 'statistics' && <Statistics />}
 
-                                {selectedTab === 'hire' && (
-                                    <Hire />
-                                )}
+                                {selectedTab === 'hire' && <Hire />}
                             </CardBody>
                         </Card>
                     </Col>
@@ -79,4 +84,3 @@ export default function MyGridLayout() {
         </div>
     );
 }
-
