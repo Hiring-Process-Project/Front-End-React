@@ -1,9 +1,8 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
     Modal, ModalHeader, ModalBody, ModalFooter,
     Form, FormGroup, Label, Input, Button, Alert, Spinner
 } from "reactstrap";
-
 
 export default function AddQuestionModal({
     isOpen,
@@ -12,26 +11,27 @@ export default function AddQuestionModal({
     defaultStepId,
     onCreated
 }) {
-    const [stepId, setStepId] = useState(defaultStepId ?? steps[0]?.id ?? null);
+    const options = useMemo(() => steps.filter(s => s?.id != null), [steps]);
+
+    const [stepId, setStepId] = useState(null);
     const [name, setName] = useState("");
-    const [description, setDescription] = useState("");
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
 
-    const options = useMemo(() => steps.filter((s) => s?.id != null), [steps]);
-
-    const reset = () => {
+    // Κάθε φορά που ανοίγει το modal (ή αλλάξουν τα steps/default),
+    // επίλεξε ΠΡΩΤΟ step ως default (ή το defaultStepId αν υπάρχει).
+    useEffect(() => {
+        if (!isOpen) return;
+        const initial = (defaultStepId ?? options[0]?.id) ?? null;
+        setStepId(initial);
         setName("");
-        setDescription("");
         setError("");
         setSaving(false);
-        setStepId(defaultStepId ?? steps[0]?.id ?? null);
-    };
+    }, [isOpen, defaultStepId, options]);
 
     const handleClose = () => {
         if (saving) return;
-        reset();
-        toggle && toggle();
+        toggle?.();
     };
 
     const handleSave = async (e) => {
@@ -41,7 +41,7 @@ export default function AddQuestionModal({
             return;
         }
         if (!name.trim()) {
-            setError("Γράψε το κείμενο της ερώτησης.");
+            setError("Γράψε την ερώτηση.");
             return;
         }
 
@@ -51,18 +51,19 @@ export default function AddQuestionModal({
             const r = await fetch(`http://localhost:8087/api/v1/step/${stepId}/questions`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name: name.trim(), description: description.trim() }),
+                // Στέλνουμε ΜΟΝΟ name (χωρίς description)
+                body: JSON.stringify({ name: name.trim() }),
             });
             if (!r.ok) throw new Error("create-question-failed");
+
             const data = await r.json().catch(() => ({}));
             const created = {
                 id: data?.id ?? null,
                 name: data?.name ?? name.trim(),
-                description: data?.description ?? description.trim(),
             };
-            onCreated && onCreated({ stepId, question: created });
-            reset();
-            toggle && toggle();
+
+            onCreated?.({ stepId, question: created });
+            toggle?.();
         } catch (err) {
             console.error(err);
             setError("Αποτυχία δημιουργίας question.");
@@ -83,7 +84,7 @@ export default function AddQuestionModal({
                         <Input
                             type="select"
                             value={stepId ?? ""}
-                            onChange={(e) => setStepId(Number(e.target.value))}
+                            onChange={(e) => setStepId(Number(e.target.value) || null)}
                             disabled={saving || options.length === 0}
                         >
                             {options.length === 0 && <option value="">— κανένα step —</option>}
@@ -104,25 +105,13 @@ export default function AddQuestionModal({
                             disabled={saving}
                         />
                     </FormGroup>
-
-                    <FormGroup>
-                        <Label>Περιγραφή (προαιρετική)</Label>
-                        <Input
-                            type="textarea"
-                            rows={4}
-                            placeholder="Λεπτομέρειες / σημειώσεις…"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            disabled={saving}
-                        />
-                    </FormGroup>
                 </ModalBody>
 
                 <ModalFooter>
                     <Button type="button" color="secondary" onClick={handleClose} disabled={saving}>
                         Άκυρο
                     </Button>
-                    <Button type="submit" color="primary" disabled={saving || options.length === 0}>
+                    <Button type="submit" color="primary" disabled={saving || options.length === 0 || !name.trim()}>
                         {saving ? <Spinner size="sm" /> : "Δημιουργία"}
                     </Button>
                 </ModalFooter>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Row, Col, Button } from "reactstrap";
 import InterviewSteps from "./InterviewSteps";
 import JobDescription from "../Description/Description";
@@ -6,7 +6,19 @@ import AddStepModal from "./AddStepModal";
 import SkillSelectorReadOnly from "../Description/SkillSelectorReadOnly";
 
 const API = "http://localhost:8087";
-const isPublished = (s) => String(s ?? '').trim().toLowerCase() === 'published';
+
+// helpers για status
+const normalizeStatus = (s) =>
+    String(s ?? "")
+        .replace(/\u00A0/g, " ")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "");
+
+const isEditableStatus = (raw) => {
+    const norm = normalizeStatus(raw);
+    return norm === "pending" || norm === "pedding" || norm === "draft";
+};
 
 function Interview({ selectedJobAdId }) {
     const [interviewId, setInterviewId] = useState(null);
@@ -17,9 +29,11 @@ function Interview({ selectedJobAdId }) {
     const [error, setError] = useState(null);
     const [saving, setSaving] = useState(false);
     const [showAddStep, setShowAddStep] = useState(false);
-    const [status, setStatus] = useState("Pending");
 
-    const published = isPublished(status);
+    // status από backend (ΔΕΝ βάζουμε default “Pending” για να μην μπερδεύει)
+    const [status, setStatus] = useState(null);
+    const canEdit = useMemo(() => isEditableStatus(status), [status]);
+
     const actionBtnStyle = { minWidth: 104, height: 34, padding: "4px 10px", fontSize: 13.5 };
 
     // Φόρτωση interview details + job status
@@ -32,7 +46,9 @@ function Interview({ selectedJobAdId }) {
         setSteps([]);
         setStepSkills([]);
         setSelectedStepIndex(0);
+        setStatus(null);
 
+        // 1) interview details
         fetch(`${API}/jobAds/${selectedJobAdId}/interview-details`)
             .then((r) => {
                 if (!r.ok) throw new Error("Failed to fetch interview details");
@@ -45,10 +61,11 @@ function Interview({ selectedJobAdId }) {
             })
             .catch(() => setError("Δεν ήταν δυνατή η φόρτωση των στοιχείων interview."));
 
+        // 2) job status για lock κουμπιών
         fetch(`${API}/jobAds/details?jobAdId=${selectedJobAdId}`)
-            .then(r => (r.ok ? r.json() : Promise.reject()))
-            .then(d => setStatus(String(d?.status ?? 'Pending')))
-            .catch(() => setStatus("Pending"));
+            .then((r) => (r.ok ? r.json() : Promise.reject()))
+            .then((d) => setStatus(d?.status ?? null))
+            .catch(() => setStatus(null));
     }, [selectedJobAdId]);
 
     // Φόρτωσε ταξινομημένα steps (position ASC)
@@ -65,8 +82,10 @@ function Interview({ selectedJobAdId }) {
             }));
             setSteps(safe);
 
+            // κρατά τον δείκτη εντός ορίων
             const idx = Math.min(selectedStepIndex, Math.max(0, safe.length - 1));
             setSelectedStepIndex(idx);
+
             const currentId = safe[idx]?.id ?? null;
             if (currentId != null) fetchStepSkills(currentId);
             else setStepSkills([]);
@@ -142,7 +161,9 @@ function Interview({ selectedJobAdId }) {
                     body: JSON.stringify({ description }),
                 });
                 if (r.ok) descOk = true;
-            } catch { /* ignore */ }
+            } catch {
+                /* noop */
+            }
 
             if (!descOk) {
                 const r2 = await fetch(`${API}/interviews/${interviewId}`, {
@@ -157,19 +178,47 @@ function Interview({ selectedJobAdId }) {
         }
     };
 
+    // ===== Delete Step (αισιόδοξο) =====
     const handleDeleteCurrentStep = async () => {
         const stepId = getCurrentStepId();
         if (!stepId) return;
         const ok = window.confirm("Σίγουρα θέλεις να διαγράψεις αυτό το βήμα;");
         if (!ok) return;
+
+        // αισιόδοξη ενημέρωση UI
+        const prevSteps = steps;
+        const currentIndex = selectedStepIndex;
+        const nextSteps = prevSteps.filter((s) => s.id !== stepId);
+
+        // νέο επιλεγμένο index: ίδιο αν γίνεται, αλλιώς το αμέσως προηγούμενο
+        const newIndex = Math.max(0, Math.min(currentIndex, nextSteps.length - 1));
+
+        setSteps(nextSteps);
+        setSelectedStepIndex(newIndex);
+
+        // φέρνουμε skills για το νέο επιλεγμένο step (ή καθαρίζουμε αν δεν υπάρχει)
+        const nextSelectedId = nextSteps[newIndex]?.id ?? null;
+        if (nextSelectedId != null) {
+            fetchStepSkills(nextSelectedId);
+        } else {
+            setStepSkills([]); // ΔΕΝ έχει άλλα steps → φεύγουν και τα skills
+        }
+
         try {
             const res = await fetch(`${API}/api/v1/step/${stepId}`, { method: "DELETE" });
             if (!res.ok) throw new Error("Failed to delete step");
-            await reloadSteps();
+            // optional: reloadSteps() για full sync
         } catch (e) {
             console.error(e);
+            // rollback αν αποτύχει το API
+            setSteps(prevSteps);
+            setSelectedStepIndex(currentIndex);
+            const rollbackId = prevSteps[currentIndex]?.id ?? null;
+            if (rollbackId != null) fetchStepSkills(rollbackId);
+            else setStepSkills([]);
         }
     };
+
 
     const handleStepCreated = async () => {
         await reloadSteps();
@@ -204,8 +253,8 @@ function Interview({ selectedJobAdId }) {
                         />
                     </div>
 
-                    {/* ΔΕΝ δείχνουμε actions αν είναι published */}
-                    {!published && (
+                    {/* Δείξε actions ΜΟΝΟ όταν το status είναι Pending/Pedding/Draft */}
+                    {canEdit && (
                         <div className="boxFooter" style={{ padding: "8px 10px", display: "flex", justifyContent: "center", gap: 15 }}>
                             <Button color="secondary" style={actionBtnStyle} onClick={() => setShowAddStep(true)}>
                                 Create New
@@ -221,19 +270,15 @@ function Interview({ selectedJobAdId }) {
             <Col md="7">
                 <Row className="g-3">
                     <Col md="7">
-                        <JobDescription
-                            name="Interview Description"
-                            description={description}
-                            onDescriptionChange={setDescription}
-                        />
+                        <JobDescription name="Interview Description" description={description} onDescriptionChange={setDescription} />
                     </Col>
 
                     <Col md="5">
                         <Row className="g-3">
                             <Col>
                                 <SkillSelectorReadOnly requiredskills={stepSkills} />
-                                {/* ΔΕΝ δείχνουμε Update αν είναι published */}
-                                {!published && (
+                                {/* Δείξε Update ΜΟΝΟ όταν είναι editable */}
+                                {canEdit && (
                                     <Row>
                                         <div className="d-flex justify-content-center">
                                             <Button

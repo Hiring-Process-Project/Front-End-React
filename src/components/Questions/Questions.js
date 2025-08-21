@@ -4,20 +4,34 @@ import StepsTree from './StepsTree';
 import Description from '../Description/Description';
 import SkillSelector from '../Description/SkillSelector';
 
-const isPublished = (s) => String(s ?? '').trim().toLowerCase() === 'published';
+const API = "http://localhost:8087";
+
+// helpers για status
+const normalizeStatus = (s) =>
+    String(s ?? "")
+        .replace(/\u00A0/g, " ")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "");
+
+const isEditableStatus = (raw) => {
+    const norm = normalizeStatus(raw);
+    return norm === "pending" || norm === "pedding" || norm === "draft";
+};
 
 const Questions = ({ selectedJobAdId }) => {
     const [allSkills, setAllSkills] = React.useState([]);
     const [requiredSkills, setRequiredSkills] = React.useState([]);
     const [questionDesc, setQuestionDesc] = React.useState('');
     const [selectedQuestionId, setSelectedQuestionId] = React.useState(null);
-    const [status, setStatus] = React.useState('Pending');
 
-    const published = isPublished(status);
+    // status του job ad για lock στα actions
+    const [status, setStatus] = React.useState(null);
+    const canEdit = React.useMemo(() => isEditableStatus(status), [status]);
 
-    // --- φέρε όλα τα skills ---
+    // --- όλα τα skills (για picker) ---
     React.useEffect(() => {
-        fetch('http://localhost:8087/skills')
+        fetch(`${API}/skills`)
             .then((r) => (r.ok ? r.json() : Promise.reject('Failed to fetch skills')))
             .then((data) =>
                 setAllSkills((data || []).map((s) => s?.title).filter(Boolean))
@@ -28,14 +42,14 @@ const Questions = ({ selectedJobAdId }) => {
             });
     }, []);
 
-    // --- φέρε details για συγκεκριμένη ερώτηση ---
+    // --- details για συγκεκριμένη ερώτηση ---
     React.useEffect(() => {
         if (!selectedQuestionId) {
             setQuestionDesc('');
             setRequiredSkills([]);
             return;
         }
-        fetch(`http://localhost:8087/api/v1/question/${selectedQuestionId}/details`)
+        fetch(`${API}/api/v1/question/${selectedQuestionId}/details`)
             .then((r) => (r.ok ? r.json() : Promise.reject('Failed to fetch question details')))
             .then((d) => {
                 setQuestionDesc(d?.description || '');
@@ -48,13 +62,16 @@ const Questions = ({ selectedJobAdId }) => {
             });
     }, [selectedQuestionId]);
 
-    // --- φέρε status του job ad (για publish lock) ---
+    // --- jobAd status για lock κουμπιών ---
     React.useEffect(() => {
-        if (!selectedJobAdId) return;
-        fetch(`http://localhost:8087/jobAds/details?jobAdId=${selectedJobAdId}`)
+        if (!selectedJobAdId) {
+            setStatus(null);
+            return;
+        }
+        fetch(`${API}/jobAds/details?jobAdId=${selectedJobAdId}`)
             .then((r) => (r.ok ? r.json() : Promise.reject()))
-            .then((d) => setStatus(String(d?.status ?? 'Pending')))
-            .catch(() => setStatus('Pending'));
+            .then((d) => setStatus(d?.status ?? null))
+            .catch(() => setStatus(null));
     }, [selectedJobAdId]);
 
     // --- save update ---
@@ -62,12 +79,12 @@ const Questions = ({ selectedJobAdId }) => {
         if (!selectedQuestionId) return;
 
         try {
-            const resp = await fetch(`http://localhost:8087/api/v1/question/${selectedQuestionId}`, {
+            const resp = await fetch(`${API}/api/v1/question/${selectedQuestionId}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     description: questionDesc || "",
-                    skillNames: requiredSkills || []   // <--- array από titles
+                    skillNames: requiredSkills || []   // array από titles
                 })
             });
             if (!resp.ok) throw new Error("update failed");
@@ -94,6 +111,7 @@ const Questions = ({ selectedJobAdId }) => {
                     <StepsTree
                         selectedJobAdId={selectedJobAdId}
                         onSelectQuestion={setSelectedQuestionId}
+                        canEdit={canEdit}         // 👈 περνάμε το lock στα actions του tree
                     />
                 </div>
             </Col>
@@ -102,8 +120,8 @@ const Questions = ({ selectedJobAdId }) => {
                 <Row className="g-3 flex-grow-1">
                     <Col md="7" className="d-flex flex-column">
                         <Description
-                            name={['Question Description']}
-                            description={[questionDesc]}
+                            name={'Question Description'}
+                            description={questionDesc}
                             onDescriptionChange={(val) => setQuestionDesc(val)}
                         />
                     </Col>
@@ -119,8 +137,8 @@ const Questions = ({ selectedJobAdId }) => {
                             </Col>
                         </Row>
 
-                        {/* Κουμπί update να ΜΗ φαίνεται όταν είναι published */}
-                        {!published && (
+                        {/* Κουμπί Update να φαίνεται ΜΟΝΟ όταν επιτρέπεται edit */}
+                        {canEdit && (
                             <div className="mt-auto d-flex justify-content-center">
                                 <Button
                                     color="secondary"
