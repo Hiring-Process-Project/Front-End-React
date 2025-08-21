@@ -118,7 +118,7 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
             await ensureDepartmentHasOccupation(deptId, occId);
 
             const payload = {
-                tittle: name.trim(),
+                title: name.trim(),
                 description: "",
                 status: "Pending",
                 publishDate: new Date().toISOString().split("T")[0],
