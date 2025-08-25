@@ -94,3 +94,17 @@
     color: black !important;
     background-color: #dfe1e3 !important;
 }
+
+/* Κράτα ΟΛΑ τα υπάρχοντα styles σου. Πρόσθεσε μόνο τα παρακάτω: */
+
+.job-title-item.selected {
+    background-color: #B7BABC !important;
+    /* απαλό γκρι όπως ζήτησες */
+    border-color: #d4d6da !important;
+}
+
+/* προαιρετικά, για να φαίνεται "πατημένο" */
+.job-title-item.selected .job-title-name {
+    font-weight: 600;
+
+}

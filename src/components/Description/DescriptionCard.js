@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Row, Col } from "reactstrap";
 import Description from "./Description";
 import DescriptionButtons from "./DescriptionButtons";
@@ -18,7 +18,7 @@ export default function DescriptionCars({
     selectedJobAdId,
     allskills = [],
     reloadSidebar,
-    onDeleted, // <-- FIXED
+    onDeleted,
 }) {
     const [description, setDescription] = useState("");
     const [requiredSkills, setRequiredSkills] = useState([]);
@@ -27,64 +27,71 @@ export default function DescriptionCars({
     const [error, setError] = useState("");
 
     const [status, setStatus] = useState(null);
+
     const canEdit = useMemo(() => {
         const norm = normalizeStatus(status);
         return norm === "pending" || norm === "pedding" || norm === "draft";
     }, [status]);
 
-    useEffect(() => {
+    const statusLabel = status ?? "—";
+
+    // 🔹 Helper function για να φορτώνει τα details (description + status + skills)
+    const fetchJobAdDetails = useCallback(async () => {
         if (!selectedJobAdId) return;
 
         setLoading(true);
         setError("");
 
         const detailsUrl = `${baseUrl}/jobAds/details?jobAdId=${selectedJobAdId}`;
-
-        // μόνο τα σωστά endpoints για να μη σκάει 404 στο console
         const skillUrlsInPriority = [
             `${baseUrl}/jobAds/${selectedJobAdId}/interview-skills`,
             `${baseUrl}/jobAds/${selectedJobAdId}/skills`,
             `${baseUrl}/jobAds/${selectedJobAdId}/required-skills`,
         ];
 
-        (async () => {
-            try {
-                // --- DETAILS ---
-                const r = await fetch(detailsUrl);
-                if (!r.ok) throw new Error();
-                const d = await r.json();
-                setDescription(d?.description ?? "");
-                setStatus(d?.status ?? null);
+        try {
+            // --- DETAILS ---
+            const r = await fetch(detailsUrl);
+            if (!r.ok) throw new Error();
+            const d = await r.json();
+            setDescription(d?.description ?? "");
+            setStatus(d?.status ?? null);
 
-                // --- SKILLS ---
-                let found = false;
-                for (const url of skillUrlsInPriority) {
-                    try {
-                        const res = await fetch(url);
-                        if (!res.ok) continue;
-                        const arr = await res.json();
-                        if (Array.isArray(arr) && arr.length > 0) {
-                            const titles = arr
-                                .map((x) => (typeof x === "string" ? x : x?.title ?? x?.name ?? ""))
-                                .filter(Boolean);
-                            if (titles.length > 0) {
-                                setRequiredSkills(titles);
-                                found = true;
-                                break;
-                            }
+            // --- SKILLS ---
+            let found = false;
+            for (const url of skillUrlsInPriority) {
+                try {
+                    const res = await fetch(url);
+                    if (!res.ok) continue;
+                    const arr = await res.json();
+                    if (Array.isArray(arr) && arr.length > 0) {
+                        const titles = arr
+                            .map((x) =>
+                                typeof x === "string" ? x : x?.title ?? x?.name ?? ""
+                            )
+                            .filter(Boolean);
+                        if (titles.length > 0) {
+                            setRequiredSkills(titles);
+                            found = true;
+                            break;
                         }
-                    } catch {
-                        /* try next */
                     }
+                } catch {
+                    /* try next */
                 }
-                if (!found) setRequiredSkills([]);
-            } catch {
-                setError("Δεν ήταν δυνατή η φόρτωση των δεδομένων.");
-            } finally {
-                setLoading(false);
             }
-        })();
+            if (!found) setRequiredSkills([]);
+        } catch {
+            setError("Δεν ήταν δυνατή η φόρτωση των δεδομένων.");
+        } finally {
+            setLoading(false);
+        }
     }, [selectedJobAdId]);
+
+    // Φόρτωσε αρχικά όταν αλλάζει το selectedJobAdId
+    useEffect(() => {
+        fetchJobAdDetails();
+    }, [selectedJobAdId, fetchJobAdDetails]);
 
     const handleUpdate = async () => {
         if (!selectedJobAdId) return;
@@ -115,7 +122,10 @@ export default function DescriptionCars({
                 method: "POST",
             });
             if (!r.ok) throw new Error();
-            setStatus("Published");
+
+            // 🔹 mini refresh: ξαναφόρτωσε τα details για να δείξει το νέο status
+            await fetchJobAdDetails();
+
             await reloadSidebar?.();
         } catch {
             setError("Αποτυχία δημοσίευσης.");
@@ -124,7 +134,9 @@ export default function DescriptionCars({
 
     const handleDelete = async () => {
         if (!selectedJobAdId) return;
-        const ok = window.confirm("Σίγουρα θέλεις να διαγράψεις αυτό το Job Ad;");
+        const ok = window.confirm(
+            "Σίγουρα θέλεις να διαγράψεις αυτό το Job Ad;"
+        );
         if (!ok) return;
         try {
             const r = await fetch(`${baseUrl}/jobAds/${selectedJobAdId}`, {
@@ -132,13 +144,12 @@ export default function DescriptionCars({
             });
             if (!r.ok) throw new Error();
 
-            // καθάρισε άμεσα το local state για να αδειάσει το panel
             setDescription("");
             setRequiredSkills([]);
             setStatus(null);
 
             await reloadSidebar?.();
-            onDeleted?.(); // ο parent θα κάνει setSelectedJobAdId(null)
+            onDeleted?.();
         } catch {
             setError("Αποτυχία διαγραφής.");
         }
@@ -146,13 +157,23 @@ export default function DescriptionCars({
 
     // --- UI ---
     if (!selectedJobAdId)
-        return <p style={{ padding: "1rem" }}>Επέλεξε ένα Job Ad για να δεις το Description.</p>;
+        return (
+            <p style={{ padding: "1rem" }}>
+                Επέλεξε ένα Job Ad για να δεις το Description.
+            </p>
+        );
     if (loading) return <p style={{ padding: "1rem" }}>Φόρτωση…</p>;
 
     return (
         <Row className="g-3">
             <Col md="6">
-                <Description name="Description" description={description} onDescriptionChange={setDescription} />
+                <Description
+                    name="Description"
+                    description={description}
+                    onDescriptionChange={setDescription}
+                    readOnly={!canEdit}
+                    disabled={!canEdit}
+                />
             </Col>
 
             <Col md="6">
@@ -162,7 +183,7 @@ export default function DescriptionCars({
                     </Col>
                 </Row>
 
-                {canEdit && (
+                {canEdit ? (
                     <Row>
                         <DescriptionButtons
                             onUpdate={handleUpdate}
@@ -171,10 +192,56 @@ export default function DescriptionCars({
                             saving={saving}
                         />
                     </Row>
+                ) : (
+                    <Row className="mt-3">
+                        <Col>
+                            <div
+                                style={{
+                                    padding: "8px 8px",
+                                    borderRadius: 12,
+                                    background: "#E5E7EB",
+                                    border: "1px solid #bbbbbb",
+                                    color: "#374151",
+                                    display: "flex",
+                                    boxShadow: "0 4px 6px rgba(0, 0, 0, 0.15)",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    textAlign: "center",
+                                    gap: 8,
+                                    minHeight: 60,
+                                    fontSize: 11,
+                                    fontWeight: 500,
+                                }}
+                            >
+                                <div>
+                                    <span role="img" aria-label="lock">
+                                        🔒
+                                    </span>{" "}
+                                    Το συγκεκριμένο Job Ad είναι σε κατάσταση
+                                </div>
+
+                                <div
+                                    style={{
+                                        fontSize: 12,
+                                        fontWeight: "bold",
+                                        color: "#111827",
+                                    }}
+                                >
+                                    {statusLabel}
+                                </div>
+
+                                <div>και δεν μπορεί να επεξεργαστεί.</div>
+                            </div>
+                        </Col>
+                    </Row>
                 )}
 
                 {error && (
-                    <div className="mt-3 text-danger text-center" style={{ fontSize: 14 }}>
+                    <div
+                        className="mt-3 text-danger text-center"
+                        style={{ fontSize: 14 }}
+                    >
                         {error}
                     </div>
                 )}
