@@ -16,7 +16,6 @@ export default function MyGridLayout() {
     const [selectedJobAdId, setSelectedJobAdId] = React.useState(null);
     const [reloadKey, setReloadKey] = React.useState(0);
 
-
     React.useEffect(() => {
         fetch('http://localhost:8087/skills')
             .then(res => {
@@ -27,17 +26,19 @@ export default function MyGridLayout() {
                 const skillNames = data.map(skill => skill.name);
                 setAllSkills(skillNames);
             })
-            .catch(err => {
-                console.error(err);
-            });
+            .catch(console.error);
     }, []);
+
+    // Optional log για debug
+    React.useEffect(() => {
+        console.log('[PARENT] selectedJobAdId:', selectedJobAdId);
+    }, [selectedJobAdId]);
 
     // Όταν διαγραφεί ένα Job Ad, καθαρίζουμε την επιλογή
     const handleJobAdDeleted = () => {
-        setSelectedJobAdId(null);   // για να δείξει το “Επέλεξε ένα Job Ad…”
-        setReloadKey(k => k + 1);   // για να φρεσκάρει το sidebar
+        setSelectedJobAdId(null);   // δείχνει "Επέλεξε ένα Job Ad…"
+        setReloadKey(k => k + 1);   // φρεσκάρει το sidebar
     };
-
 
     return (
         <div>
@@ -69,13 +70,15 @@ export default function MyGridLayout() {
                                     <Interview selectedJobAdId={selectedJobAdId} />
                                 )}
 
-                                {selectedTab === 'candidates' && <Candidates />}
-
-                                {selectedTab === 'result' && <Result />}
+                                {selectedTab === 'candidates' && (
+                                    <Candidates key={selectedJobAdId ?? 'no-job'} jobAdId={selectedJobAdId} />
+                                )}
 
                                 {selectedTab === 'statistics' && <Statistics />}
 
-                                {selectedTab === 'hire' && <Hire />}
+                                {selectedTab === 'hire' && (
+                                    <Hire key={selectedJobAdId ?? 'no-job'} jobAdId={selectedJobAdId} />
+                                )}
                             </CardBody>
                         </Card>
                     </Col>
