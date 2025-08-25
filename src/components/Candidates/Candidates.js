@@ -1,53 +1,52 @@
-// src/components/Candidates/Candidates.jsx
-import React, { useEffect, useState } from "react";
-import { Row, Col, Card, CardBody } from "reactstrap";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { Row, Col, Card, CardBody, Button } from "reactstrap";
 import CandidateDropdown from "./CandidateDropDown";
-import StepsAccordion from "./StepsDropDown";
+import StepsDropDown from "./StepsDropDown";
 import StepSkills from "./StepSkills";
-import questionsData from "../../data/questions.json";
 import "./Candidates.css";
 
-// Βάση API για το backend
-// Προσπαθεί πρώτα από .env (Vite/CRA), αλλιώς πέφτει στο 8087.
 const API_BASE =
-    import.meta?.env?.VITE_API_BASE ||
+    (import.meta?.env?.VITE_API_BASE) ||
     process.env.REACT_APP_API_BASE ||
     "http://localhost:8087";
 
-function Candidates({ jobAdId }) {
-    // Επιλογές UI
+export default function Candidates({ jobAdId }) {
+    // selections
     const [selectedCandidate, setSelectedCandidate] = useState(null);
     const [selectedStep, setSelectedStep] = useState(null);
     const [selectedQuestion, setSelectedQuestion] = useState(null);
 
-    // Δεδομένα & κατάσταση φόρτωσης
+    // data
     const [candidates, setCandidates] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [err, setErr] = useState(null);
+    const [steps, setSteps] = useState([]);
+    const [interviewId, setInterviewId] = useState(null);
 
-    // Αν έχεις ratings/σκοράρισμα
-    const [ratings] = useState({});
+    // loading states
+    const [loadingCandidates, setLoadingCandidates] = useState(false);
+    const [errCandidates, setErrCandidates] = useState(null);
+    const [loadingSteps, setLoadingSteps] = useState(false);
+    const [errSteps, setErrSteps] = useState(null);
+    const [loadingAssess, setLoadingAssess] = useState(false);
 
-    // Τα steps/ερωτήσεις από το JSON σου
-    const stepsData = Array.isArray(questionsData) ? questionsData : [];
-
-    // Κάθε φορά που αλλάζει αγγελία → καθάρισε επιλογές
+    // reset on job change
     useEffect(() => {
         setSelectedCandidate(null);
         setSelectedStep(null);
         setSelectedQuestion(null);
+        setCandidates([]);
+        setSteps([]);
+        setInterviewId(null);
     }, [jobAdId]);
 
-    // Φόρτωση υποψηφίων για συγκεκριμένο jobAdId
+    /* 1) candidates */
     useEffect(() => {
         if (!jobAdId) {
             setCandidates([]);
             return;
         }
-
         const ac = new AbortController();
-        setLoading(true);
-        setErr(null);
+        setLoadingCandidates(true);
+        setErrCandidates(null);
 
         (async () => {
             try {
@@ -55,7 +54,6 @@ function Candidates({ jobAdId }) {
                 const res = await fetch(url, { signal: ac.signal });
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
-
                 const mapped = (Array.isArray(data) ? data : []).map((c) => ({
                     id: c.id,
                     name: `${c.firstName} ${c.lastName}`.trim(),
@@ -63,34 +61,215 @@ function Candidates({ jobAdId }) {
                     status: c.status,
                     cv: c.cvPath,
                 }));
-
                 setCandidates(mapped);
             } catch (e) {
-                if (e.name !== "AbortError") setErr(e.message || "Load error");
+                if (e.name !== "AbortError")
+                    setErrCandidates(e.message || "Load error");
             } finally {
-                setLoading(false);
+                setLoadingCandidates(false);
             }
         })();
 
         return () => ac.abort();
     }, [jobAdId]);
 
-    // Δεξί pane: αντικείμενο για skills της επιλεγμένης ερώτησης
-    const rightPaneStepObj =
-        selectedStep && selectedQuestion
-            ? {
-                name: `${selectedStep.name} — ${selectedQuestion.question}`,
-                skills: selectedQuestion.skills || [],
+    /* 2) interview + steps + questions */
+    useEffect(() => {
+        if (!jobAdId) return;
+        const ac = new AbortController();
+
+        (async () => {
+            try {
+                setLoadingSteps(true);
+                setErrSteps(null);
+
+                const detailsRes = await fetch(
+                    `${API_BASE}/jobAds/${jobAdId}/interview-details`,
+                    { signal: ac.signal }
+                );
+                if (!detailsRes.ok) throw new Error("Failed to fetch interview-details");
+                const d = await detailsRes.json();
+
+                const iid = d?.id ?? null;
+                setInterviewId(iid);
+
+                const baseSteps = (Array.isArray(d?.steps) ? d.steps : [])
+                    .map((s) => ({
+                        id: s.id ?? s.stepId ?? null,
+                        name: s.title ?? s.tittle ?? "",
+                        questions: [],
+                    }))
+                    .filter((s) => s.id != null);
+
+                const withQuestions = [];
+                for (const st of baseSteps) {
+                    try {
+                        const qsRes = await fetch(
+                            `${API_BASE}/api/v1/step/${st.id}/questions`,
+                            { signal: ac.signal }
+                        );
+                        const qs = qsRes.ok ? await qsRes.json() : [];
+                        const mappedQs = (Array.isArray(qs) ? qs : []).map((q) => ({
+                            id: q.id,
+                            question: q.name ?? q.title ?? "",
+                        }));
+                        withQuestions.push({ ...st, questions: mappedQs });
+                    } catch {
+                        withQuestions.push({ ...st, questions: [] });
+                    }
+                }
+
+                setSteps(withQuestions);
+            } catch (e) {
+                if (e.name !== "AbortError") setErrSteps(e.message || "Load error");
+            } finally {
+                setLoadingSteps(false);
             }
-            : null;
+        })();
 
-    useEffect(() => console.log("Candidates got jobAdId:", jobAdId), [jobAdId]);
+        return () => ac.abort();
+    }, [jobAdId]);
 
+    /* 3) assessments per candidate */
+    useEffect(() => {
+        if (!interviewId || !selectedCandidate?.id) {
+            setSteps((prev) => prev.map((s) => ({ ...s, __metrics: undefined })));
+            return;
+        }
+        const ac = new AbortController();
+        setLoadingAssess(true);
+
+        (async () => {
+            try {
+                const url = `${API_BASE}/api/v1/assessment/interviews/${interviewId}/candidates/${selectedCandidate.id}/steps`;
+                const r = await fetch(url, { signal: ac.signal });
+                const data = r.ok ? await r.json() : [];
+
+                const byId = new Map(
+                    (Array.isArray(data) ? data : []).map((a) => [a.stepId, a])
+                );
+                setSteps((prev) =>
+                    prev.map((s) => {
+                        const a = byId.get(s.id);
+                        return a
+                            ? {
+                                ...s,
+                                __metrics: {
+                                    totalQuestions: a.totalQuestions ?? 0,
+                                    ratedQuestions: a.ratedQuestions ?? 0,
+                                    averageScore: a.averageScore ?? null,
+                                },
+                            }
+                            : { ...s, __metrics: undefined };
+                    })
+                );
+            } catch {
+                setSteps((prev) => prev.map((s) => ({ ...s, __metrics: undefined })));
+            } finally {
+                setLoadingAssess(false);
+            }
+        })();
+
+        return () => ac.abort();
+    }, [interviewId, selectedCandidate?.id]);
+
+    /* 4) right pane: skills (κρατάμε και IDs) */
+    const [rightPane, setRightPane] = useState(null);
+
+    const handleSelectQ = useCallback(
+        async (step, q) => {
+            setSelectedStep(step);
+            setSelectedQuestion(q);
+
+            if (!q?.id) {
+                setRightPane(null);
+                return;
+            }
+            try {
+                const r = await fetch(`${API_BASE}/api/v1/question/${q.id}/details`);
+                if (!r.ok) throw new Error();
+                const d = await r.json();
+                const skills = (Array.isArray(d?.skills) ? d.skills : [])
+                    .map((s) => ({
+                        id: s?.id,
+                        name: s?.title || s?.name || "",
+                    }))
+                    .filter((s) => s.id && s.name);
+
+                setRightPane({
+                    name: `${step?.name ?? ""} — ${q?.question ?? ""}`,
+                    skills,
+                    context: {
+                        candidateId: selectedCandidate?.id ?? null,
+                        questionId: q.id,
+                    },
+                });
+            } catch {
+                setRightPane({
+                    name: `${step?.name ?? ""} — ${q?.question ?? ""}`,
+                    skills: [],
+                    context: {
+                        candidateId: selectedCandidate?.id ?? null,
+                        questionId: q.id,
+                    },
+                });
+            }
+        },
+        [selectedCandidate?.id]
+    );
+
+    const rightPaneStepObj = useMemo(() => rightPane, [rightPane]);
+
+    // === Κλείδωμα επεξεργασίας με βάση status ===
+    const isLocked = !!selectedCandidate && ["APPROVED", "REJECTED"]
+        .includes((selectedCandidate.status || "").toUpperCase());
+    const canEdit = !!selectedCandidate && !isLocked;
+
+    // === Update status στη βάση + refresh τοπικού state ===
+    async function updateCandidateStatus(newStatus) {
+        if (!selectedCandidate) return;
+        try {
+            const resp = await fetch(
+                `${API_BASE}/api/v1/candidates/${selectedCandidate.id}/status`,
+                {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ status: newStatus }),
+                }
+            );
+            if (!resp.ok) throw new Error("Failed to update status");
+            // ανανέωση local state ώστε να κλειδώσει αμέσως το UI
+            setSelectedCandidate((prev) => prev ? { ...prev, status: newStatus } : prev);
+            // ανανέωση λίστας υποψηφίων
+            setCandidates((prev) =>
+                prev.map(c => c.id === selectedCandidate.id ? { ...c, status: newStatus } : c)
+            );
+            // “αγγίζουμε” τα steps
+            setSteps((prev) => [...prev]);
+        } catch (e) {
+            console.error(e);
+            alert("Αποτυχία ενημέρωσης status");
+        }
+    }
+
+    // (προαιρετικό) καθάρισε drafts όταν κλειδώνει (χρησιμοποιούμε localStorage)
+    useEffect(() => {
+        if (!rightPane?.context || !isLocked) return;
+        const { candidateId, questionId } = rightPane.context;
+        try {
+            const raw = localStorage.getItem("hf_skill_drafts");
+            if (!raw) return;
+            const all = JSON.parse(raw);
+            const key = `cand:${candidateId}|q:${questionId}`;
+            delete all[key];
+            localStorage.setItem("hf_skill_drafts", JSON.stringify(all));
+        } catch { }
+    }, [isLocked, rightPane?.context]);
 
     return (
         <Row>
-            {/* ΑΡΙΣΤΕΡΑ: Λίστα υποψηφίων */}
-            <Col md="4">
+            {/* LEFT: candidates */}
+            <Col md="4" className="d-flex flex-column align-items-stretch">
                 <Card className="panel">
                     <CardBody>
                         <Row className="panel__header-row">
@@ -107,12 +286,12 @@ function Candidates({ jobAdId }) {
 
                         {!jobAdId ? (
                             <div style={{ opacity: 0.7 }}>
-                                Επίλεξε μία αγγελία για να δεις υποψηφίους.
+                                Select a job ad to view its candidates.
                             </div>
-                        ) : loading ? (
-                            <div>Φόρτωση...</div>
-                        ) : err ? (
-                            <div style={{ color: "crimson" }}>Σφάλμα: {err}</div>
+                        ) : loadingCandidates ? (
+                            <div>Loading candidates…</div>
+                        ) : errCandidates ? (
+                            <div style={{ color: "crimson" }}>Error: {errCandidates}</div>
                         ) : (
                             <CandidateDropdown
                                 candidates={candidates}
@@ -120,26 +299,59 @@ function Candidates({ jobAdId }) {
                                     setSelectedCandidate(cand);
                                     setSelectedStep(null);
                                     setSelectedQuestion(null);
+                                    setRightPane(null);
                                 }}
                             />
                         )}
                     </CardBody>
                 </Card>
+
+                {/* Approve / Reject */}
+                <div
+                    style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        gap: 12,
+                        marginTop: 16,
+                    }}
+                >
+                    <Button
+                        color="success"
+                        style={{ minWidth: 120, height: 40 }}
+                        disabled={!selectedCandidate || isLocked}
+                        onClick={() => updateCandidateStatus("APPROVED")}
+                    >
+                        Approve
+                    </Button>
+                    <Button
+                        color="danger"
+                        style={{ minWidth: 120, height: 40 }}
+                        disabled={!selectedCandidate || isLocked}
+                        onClick={() => updateCandidateStatus("REJECTED")}
+                    >
+                        Reject
+                    </Button>
+                </div>
             </Col>
 
-            {/* ΜΕΣΗ ΣΤΗΛΗ: Βήματα & Ερωτήσεις */}
+            {/* MIDDLE: steps */}
             <Col md="4">
                 <label className="description-labels">Interview Steps:</label>
                 <Card className="panel panel--short">
                     <CardBody>
-                        {selectedCandidate ? (
-                            <StepsAccordion
-                                steps={stepsData}
-                                ratings={ratings}
-                                onSelect={(step, q) => {
-                                    setSelectedStep(step);
-                                    setSelectedQuestion(q);
-                                }}
+                        {!jobAdId ? (
+                            <div style={{ opacity: 0.6 }}>
+                                Select a job ad to see its steps…
+                            </div>
+                        ) : loadingSteps ? (
+                            <div>Loading steps…</div>
+                        ) : errSteps ? (
+                            <div style={{ color: "crimson" }}>Error: {errSteps}</div>
+                        ) : selectedCandidate ? (
+                            <StepsDropDown
+                                steps={steps}
+                                ratings={{}}
+                                onSelect={handleSelectQ}
                                 showScore={true}
                             />
                         ) : (
@@ -147,17 +359,29 @@ function Candidates({ jobAdId }) {
                                 Select a candidate to see steps…
                             </div>
                         )}
+                        {loadingAssess && selectedCandidate && (
+                            <div style={{ fontSize: 12, opacity: 0.7, marginTop: 8 }}>
+                                Loading ratings…
+                            </div>
+                        )}
                     </CardBody>
                 </Card>
             </Col>
 
-            {/* ΔΕΞΙΑ ΣΤΗΛΗ: Skills της ερώτησης */}
+            {/* RIGHT: skills */}
             <Col md="4">
                 <label className="description-labels">Skills for this question:</label>
                 <Card className="panel panel--short">
                     <CardBody>
                         {selectedCandidate ? (
-                            <StepSkills step={rightPaneStepObj} onRate={() => { }} />
+                            <>
+                                <StepSkills step={rightPaneStepObj} mode={canEdit ? "edit" : "view"} />
+                                {isLocked && (
+                                    <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
+                                        Ο υποψήφιος είναι {String(selectedCandidate.status).toUpperCase()}. Οι βαθμολογίες έχουν κλειδώσει.
+                                    </div>
+                                )}
+                            </>
                         ) : (
                             <div style={{ opacity: 0.6 }}>
                                 Select a candidate to see skills…
@@ -169,5 +393,3 @@ function Candidates({ jobAdId }) {
         </Row>
     );
 }
-
-export default Candidates;
