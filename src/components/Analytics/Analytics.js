@@ -17,6 +17,8 @@ export default function Analytics({
     departmentData,
     occupationData,
     jobAdData,
+    /** ΝΕΟ: handler για «Όλος ο Οργανισμός» */
+    onGoToOrganization,
 }) {
     const isJobAd = hasAnyId(jobAdData, ['id', 'jobAdId']);
     const isOccupation = hasAnyId(occupationData, ['id', 'occupationId']);
@@ -46,9 +48,21 @@ export default function Analytics({
     const [selectedStepId, setSelectedStepId] = useState(null);
     const [selectedQuestionId, setSelectedQuestionId] = useState(null);
 
+    const steps = useMemo(() => (level === 'jobAd' ? (scope?.steps ?? []) : []), [level, scope]);
+
+    const selectedStep = useMemo(
+        () => (level === 'jobAd' ? steps.find(s => s.id === selectedStepId) || null : null),
+        [level, steps, selectedStepId]
+    );
+
+    const selectedQuestion = useMemo(() => {
+        if (!selectedStep) return null;
+        return (selectedStep.questions || []).find(q => q.id === selectedQuestionId) || null;
+    }, [selectedStep, selectedQuestionId]);
+
     const handleSelectStep = (id) => {
         setSelectedStepId(id);
-        setSelectedQuestionId(null); // reset ερώτησης όταν αλλάζει step
+        setSelectedQuestionId(null);
     };
 
     const handleSelectQuestion = (id) => {
@@ -63,9 +77,7 @@ export default function Analytics({
             jobAd: 'Job Ad',
         }[level];
 
-    const showScopeHeader = level !== 'organization' || activeTab === 'overview';
-
-    // Reset όταν φεύγουμε από jobAd scope
+    // reset όταν αλλάζει scope και δεν είναι jobAd
     useEffect(() => {
         if (level !== 'jobAd') {
             setSelectedStepId(null);
@@ -73,21 +85,28 @@ export default function Analytics({
         }
     }, [level]);
 
-    // Reset όταν αλλάζει το συγκεκριμένο job ad
-    useEffect(() => {
-        if (level === 'jobAd') {
-            setSelectedStepId(null);
-            setSelectedQuestionId(null);
-        }
-    }, [level, jobAdId]);
-
     return (
         <>
-            {showScopeHeader && (
-                <div style={{ marginBottom: 12, fontWeight: 600 }}>Scope: {scopeLabel}</div>
-            )}
-
+            {/* Tabs */}
             <AnalyticsTabsHeader activeTab={activeTab} setActiveTab={setActiveTab} />
+
+            {/* Scope header να φαίνεται ΜΟΝΟ στο Overview */}
+            {activeTab === 'overview' && (
+                <div className="d-flex align-items-center justify-content-between mb-2" style={{ marginTop: 8 }}>
+                    <div style={{ fontWeight: 600 }}>Scope: {scopeLabel}</div>
+
+                    {/* Κουμπί: Όλος ο Οργανισμός */}
+                    <button
+                        type="button"
+                        className="btn btn-outline-secondary btn-sm"
+                        onClick={() => onGoToOrganization && onGoToOrganization()}
+                        disabled={level === 'organization'}
+                        title="Εμφάνιση στατιστικών για όλο τον οργανισμό"
+                    >
+                        Organization
+                    </button>
+                </div>
+            )}
 
             <TabContent activeTab={activeTab} className="pt-3">
                 <TabPane tabId="overview">
@@ -107,6 +126,7 @@ export default function Analytics({
                         <StepsTab
                             apiBase={apiBase}
                             jobAdId={jobAdId}
+                            steps={steps}
                             selectedStepId={selectedStepId}
                             onSelectStep={handleSelectStep}
                         />
@@ -117,11 +137,11 @@ export default function Analytics({
 
                 <TabPane tabId="questions">
                     {isJobAd ? (
-                        selectedStepId ? (
+                        selectedStep ? (
                             <QuestionsTab
                                 apiBase={apiBase}
                                 jobAdId={jobAdId}
-                                stepId={selectedStepId}              // <-- περνάμε ΜΟΝΟ το stepId
+                                stepId={selectedStepId}
                                 selectedQuestionId={selectedQuestionId}
                                 onSelectQuestion={handleSelectQuestion}
                             />
@@ -135,7 +155,7 @@ export default function Analytics({
 
                 <TabPane tabId="skills">
                     {isJobAd ? (
-                        selectedQuestionId ? (
+                        selectedQuestion ? (
                             <SkillsTab questionId={selectedQuestionId} />
                         ) : (
                             <div className="text-muted">Pick a question to see its skills.</div>
@@ -144,7 +164,6 @@ export default function Analytics({
                         <div className="text-muted">Select a Job Ad to view skills.</div>
                     )}
                 </TabPane>
-
             </TabContent>
         </>
     );

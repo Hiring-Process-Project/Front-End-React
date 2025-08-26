@@ -32,7 +32,7 @@ const SidebarCard = ({
 
     // Department scope
     onDepartmentSelect = noop,
-    onClearOrganization = noop,
+    onClearOrganization = noop,   // πλέον δεν χρησιμοποιείται στο header
     selectedDepartmentId = null,
 
     // Occupation scope
@@ -68,7 +68,6 @@ const SidebarCard = ({
                 const occRes = await fetch(`${baseUrl}/occupations`);
                 if (occRes.ok) {
                     const occList = await occRes.json(); // [{id, title/name}, ...]
-                    // Χειρίσου και 'title' και 'name' για συμβατότητα
                     occNameToId = new Map(
                         occList.map((o) => [(o.title ?? o.name), o.id])
                     );
@@ -99,12 +98,12 @@ const SidebarCard = ({
                 return acc;
             }, {});
 
-            // 4) Μετατροπή σε format για το UI (DepartmentDropdown/OccupationDropdown)
+            // 4) Μετατροπή σε format για το UI
             const final = Object.entries(grouped).map(([deptName, v]) => ({
                 department: deptName,
-                departmentId: v.id, // πλέον ΠΑΝΤΑ έχει πιθανότητα να είναι γεμισμένο
+                departmentId: v.id,
                 occupations: Object.entries(v.occupations).map(([name, info]) => ({
-                    id: info.id,      // επίσης γεμισμένο από mapping
+                    id: info.id,
                     name,
                     jobTitles: info.jobTitles,
                 })),
@@ -134,18 +133,8 @@ const SidebarCard = ({
         <Col md="4">
             <Card className="shadow-sm" style={{ backgroundColor: "#F6F6F6", height: "450px" }}>
                 <CardBody>
-                    <div className="d-flex justify-content-between align-items-center mb-2">
-                        <div style={{ fontWeight: 600 }}>Departments</div>
-                        <Button
-                            color="link"
-                            size="sm"
-                            className="p-0"
-                            onClick={onClearOrganization}
-                            title="Back to Organization overview"
-                        >
-                            All Org
-                        </Button>
-                    </div>
+
+                    {/* ΑΦΑΙΡΕΘΗΚΕ το header με Departments / All Org */}
 
                     <Row>
                         {error ? (
@@ -157,7 +146,7 @@ const SidebarCard = ({
                             </div>
                         ) : (
                             <OccupationSelector
-                                Name="Departments"
+                                Name="Departments"                 // εμφανίζεται σαν λεζάντα πάνω από το search (αν θες να φύγει, άλλαξέ το σε null/"" ή πείραξε το component)
                                 departments={departments}
                                 onJobAdSelect={onJobAdSelect}
                                 selectedJobAdId={selectedJobAdId}

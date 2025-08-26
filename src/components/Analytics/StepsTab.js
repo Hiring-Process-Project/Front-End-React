@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Row, Col, Card, CardBody, ListGroup, ListGroupItem, Spinner } from 'reactstrap';
+import { Row, Col, Card, CardBody, ListGroup, ListGroupItem, Spinner, Button } from 'reactstrap';
 
 const Kpi = ({ title, value, sub }) => (
     <Card className="shadow-sm h-100">
@@ -29,14 +29,16 @@ export default function StepsTab({
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState('');
 
-    // list of steps
+    // Fetch steps
     useEffect(() => {
         if (!jobAdId) {
             setSteps([]); setSelectedStepId(null); setStepsErr(''); setStepsLoading(false);
+            onSelectStep?.(null);
             return;
         }
         const ac = new AbortController();
-        setStepsLoading(true); setStepsErr('');
+        setStepsLoading(true);
+        setStepsErr('');
 
         (async () => {
             const endpoints = [
@@ -51,25 +53,27 @@ export default function StepsTab({
                     const norm = (Array.isArray(data) ? data : [])
                         .map(s => ({ id: s.id ?? s.stepId ?? s.step_id, title: s.title ?? s.name ?? `Step ${s.id ?? ''}` }))
                         .filter(x => x.id != null);
+
                     setSteps(norm);
                     setStepsLoading(false);
-                    const first = norm[0]?.id ?? null;
-                    setSelectedStepId(prev => norm.some(s => s.id === prev) ? prev : first);
+                    setSelectedStepId(null);
+                    onSelectStep?.(null);
+                    setStepsErr('');                // ✅ 1) καθάρισε error αν ήρθε επιτυχία
                     return;
-                } catch (_) { }
+                } catch { /* try next endpoint */ }
             }
-            setSteps([]); setSelectedStepId(null); setStepsErr('No steps.'); setStepsLoading(false);
+            setSteps([]); setSelectedStepId(null);
+            setStepsErr('No steps.');
+            setStepsLoading(false);
+            onSelectStep?.(null);
         })();
 
         return () => ac.abort();
     }, [apiBase, jobAdId]);
 
-    // stats
+    // Fetch step analytics
     useEffect(() => {
-        if (!jobAdId || !selectedStepId) {
-            setStats(null); setErr(''); setLoading(false);
-            return;
-        }
+        if (!jobAdId || !selectedStepId) { setStats(null); setErr(''); setLoading(false); return; }
         const ac = new AbortController();
         setLoading(true); setErr('');
 
@@ -83,8 +87,9 @@ export default function StepsTab({
                     const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: ac.signal });
                     if (!res.ok) continue;
                     const json = await res.json();
-                    setStats(json); setLoading(false); return;
-                } catch (_) { }
+                    setStats(json); setLoading(false);
+                    return;
+                } catch { }
             }
             setStats(null); setErr('No analytics for this step.'); setLoading(false);
         })();
@@ -98,39 +103,62 @@ export default function StepsTab({
         <Row className="g-3">
             <Col lg="4">
                 <Card className="shadow-sm h-100">
-                    <CardBody>
-                        <div style={{ fontWeight: 600, marginBottom: 8 }}>Steps</div>
-                        {stepsLoading && <div className="d-flex align-items-center" style={{ gap: 8 }}>
-                            <Spinner size="sm" /> <span>Loading steps…</span>
-                        </div>}
-                        {!stepsLoading && steps.length === 0 && (
-                            <div className="text-muted" style={{ fontSize: 12 }}>{stepsErr || 'No steps.'}</div>
-                        )}
-                        <ListGroup flush style={{ maxHeight: 260, overflow: 'auto' }}>
-                            {steps.map(s => (
-                                <ListGroupItem
-                                    key={s.id}
-                                    active={s.id === selectedStepId}
-                                    tag="button" action
-                                    onClick={() => { setSelectedStepId(s.id); onSelectStep?.(s.id); }}
-                                    className="d-flex align-items-center justify-content-between"
-                                >
-                                    <span>{s.title}</span>
-                                </ListGroupItem>
-                            ))}
-                        </ListGroup>
+                    <CardBody style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div style={{ fontWeight: 600, marginBottom: 4 }}>Steps</div>
+
+                        <div style={{ maxHeight: 220, overflow: 'auto', border: '1px solid #e9ecef', borderRadius: 8, padding: 8 }}>
+                            {stepsLoading && (
+                                <div className="d-flex align-items-center" style={{ gap: 8 }}>
+                                    <Spinner size="sm" /> <span>Loading steps…</span>
+                                </div>
+                            )}
+
+                            {/* ✅ 2) δείξε error μόνο αν δεν υπάρχουν steps */}
+                            {!stepsLoading && stepsErr && steps.length === 0 && (
+                                <div className="text-danger" style={{ fontSize: 12 }}>{stepsErr}</div>
+                            )}
+
+                            {!stepsLoading && !stepsErr && steps.length === 0 && (
+                                <div className="text-muted" style={{ fontSize: 12 }}>No steps.</div>
+                            )}
+
+                            {steps.map(s => {
+                                const active = s.id === selectedStepId;
+                                return (
+                                    <Button
+                                        key={s.id}
+                                        onClick={() => { setSelectedStepId(s.id); onSelectStep?.(s.id); }}
+                                        className={`w-100 text-start ${active ? 'btn-secondary' : 'btn-light'}`}
+                                        style={{ marginBottom: 6, borderRadius: 8 }}
+                                    >
+                                        <div className="d-flex align-items-center justify-content-between">
+                                            <span style={{ fontWeight: active ? 600 : 500 }}>{s.title}</span>
+                                        </div>
+                                    </Button>
+                                );
+                            })}
+                        </div>
                     </CardBody>
                 </Card>
             </Col>
 
             <Col lg="8">
-                {!selectedStepId && <div className="text-muted">Select a step to see analytics.</div>}
+                {!selectedStepId && (
+                    <Card className="shadow-sm">
+                        <CardBody>
+                            <div className="text-muted">Select a step to see analytics.</div>
+                        </CardBody>
+                    </Card>
+                )}
+
                 {selectedStepId && (
                     <Card className="shadow-sm">
                         <CardBody>
-                            {loading && <div className="d-flex align-items-center" style={{ gap: 8 }}>
-                                <Spinner size="sm" /> <span>Loading step analytics…</span>
-                            </div>}
+                            {loading && (
+                                <div className="d-flex align-items-center" style={{ gap: 8 }}>
+                                    <Spinner size="sm" /> <span>Loading step analytics…</span>
+                                </div>
+                            )}
                             {err && <div className="text-danger">Error: {err}</div>}
 
                             {stats && (
