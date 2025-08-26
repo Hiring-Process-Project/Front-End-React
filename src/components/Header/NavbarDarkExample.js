@@ -24,7 +24,7 @@ function NavbarDarkExample({ onSelect }) {
                 <Nav.Link eventKey="candidates">Candidates</Nav.Link>
             </Nav.Item>
             <Nav.Item>
-                <Nav.Link eventKey="statistics">Statistics</Nav.Link>
+                <Nav.Link eventKey="analytics">Analytics</Nav.Link>
             </Nav.Item>
             <Nav.Item>
                 <Nav.Link eventKey="hire">Hire</Nav.Link>

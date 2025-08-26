@@ -2,9 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Button, Input } from "reactstrap";
 
 const API_BASE =
-    (import.meta?.env?.VITE_API_BASE) ||
-    process.env.REACT_APP_API_BASE ||
-    "http://localhost:8087";
+    process.env.REACT_APP_API_BASE || "http://localhost:8087";
 
 /** Μικρό toast χωρίς libs */
 function TinyToast({ show, text, type = "info", onHide }) {
@@ -254,6 +252,39 @@ export default function StepSkills({ step, mode = "edit" }) {
         }
     };
 
+    // ====== Placeholder όταν δεν υπάρχουν skills ======
+    const showPlaceholder = skills.length === 0;
+    const placeholderText = readOnly
+        ? "Select a skill to see the evaluation…"
+        : "Select a skill to make an evaluation…";
+
+    if (showPlaceholder) {
+        return (
+            <div style={{ background: "#e5e7eb", borderRadius: 12, padding: 12, minHeight: 220 }}>
+                <div style={{ fontWeight: 700, marginBottom: 8, color: "#374151" }}>
+                    {step?.name || "—"}
+                </div>
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        height: 160,
+                        border: "1px dashed #cbd5e1",
+                        borderRadius: 10,
+                        background: "#f8fafc",
+                        color: "#64748b",
+                        fontWeight: 600
+                    }}
+                >
+                    {placeholderText}
+                </div>
+                <TinyToast show={toast.show} text={toast.text} type={toast.type} onHide={hideToast} />
+            </div>
+        );
+    }
+
+    // ====== Κανονικό UI ======
     return (
         <div style={{ background: "#e5e7eb", borderRadius: 12, padding: 12, minHeight: 220 }}>
             <div style={{ fontWeight: 700, marginBottom: 8, color: "#374151" }}>
@@ -357,8 +388,8 @@ export default function StepSkills({ step, mode = "edit" }) {
                 })}
             </div>
 
-            {/* Save μόνο σε edit mode */}
-            {!readOnly && (
+            {/* Save μόνο σε edit mode και μόνο αν υπάρχουν skills */}
+            {!readOnly && skills.length > 0 && (
                 <div style={{ display: "flex", justifyContent: "center", marginTop: 14 }}>
                     <Button
                         color="success"

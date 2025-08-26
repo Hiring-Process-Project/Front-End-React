@@ -43,9 +43,7 @@ function TinyToast({ show, text, type = "info", onHide }) {
 }
 
 const API_BASE =
-    import.meta?.env?.VITE_API_BASE ||
-    process.env.REACT_APP_API_BASE ||
-    "http://localhost:8087";
+    process.env.REACT_APP_API_BASE || "http://localhost:8087";
 
 export default function Hire({ jobAdId }) {
     const [selectedCandidate, setSelectedCandidate] = useState(null);

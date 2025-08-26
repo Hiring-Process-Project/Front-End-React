@@ -3,39 +3,111 @@ import { Card, CardBody, Col, Row, Button } from "reactstrap";
 import OccupationSelector from "./OccupationSelector";
 import CreateJobAd from "./CreateJobAd";
 
+const noop = () => { };
+
+// Fallbacks για τα seed data σου (αν λείπουν endpoints /departments και /occupations)
+const FALLBACK_DEPT_NAME_TO_ID = new Map([
+    ["Engineering", 4],
+    ["HR", 5],
+    ["Data Science", 6],
+]);
+
+const FALLBACK_OCC_NAME_TO_ID = new Map([
+    ["Software Engineer", 6],
+    ["HR Specialist", 7],
+    ["Data Analyst", 8],
+    ["Frontend Developer", 9],
+    ["Recruiter", 10],
+    ["Data Engineer", 11],
+    ["DevOps Engineer", 12],
+    ["Training Coordinator", 13],
+    ["Machine Learning Engineer", 14],
+]);
+
 const SidebarCard = ({
     onJobAdSelect,
     selectedJobAdId,
     baseUrl = "http://localhost:8087",
-    reloadKey = 0,             // <-- ΝΕΟ: trigger για refresh από parent
+    reloadKey = 0,
+
+    // Department scope
+    onDepartmentSelect = noop,
+    onClearOrganization = noop,
+    selectedDepartmentId = null,
+
+    // Occupation scope
+    onOccupationSelect = noop,
+    selectedOccupationId = null,
 }) => {
     const [departments, setDepartments] = useState([]);
     const [error, setError] = useState(null);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-    const toggleCreate = () => setIsCreateOpen(v => !v);
+    const toggleCreate = () => setIsCreateOpen((v) => !v);
 
     const loadDepartments = async () => {
         try {
-            const res = await fetch(`${baseUrl}/jobAds`);
-            if (!res.ok) throw new Error("Failed to fetch job ads");
-            const data = await res.json();
+            // 1) Φέρε ΟΛΑ τα job ads (κύρια πηγή για να γεμίσει το sidebar)
+            const jobsRes = await fetch(`${baseUrl}/jobAds`);
+            if (!jobsRes.ok) throw new Error("Failed to fetch job ads");
+            const jobs = await jobsRes.json();
 
-            // Ομαδοποίηση: προφύλαξη σε null department/occupation
-            const grouped = data.reduce((acc, item) => {
-                const { departmentName, occupationName, jobTitle, id, status } = item;
-                const dept = departmentName || "Unassigned";
-                const occ = occupationName || "Other";
+            // 2) Προσπάθησε να φέρεις departments & occupations για mapping name -> id
+            let deptNameToId = new Map(FALLBACK_DEPT_NAME_TO_ID);
+            let occNameToId = new Map(FALLBACK_OCC_NAME_TO_ID);
 
-                if (!acc[dept]) acc[dept] = {};
-                if (!acc[dept][occ]) acc[dept][occ] = [];
-                acc[dept][occ].push({ id, title: jobTitle, status });
+            try {
+                const depRes = await fetch(`${baseUrl}/departments`);
+                if (depRes.ok) {
+                    const depList = await depRes.json(); // [{id, name}, ...]
+                    deptNameToId = new Map(depList.map((d) => [d.name, d.id]));
+                }
+            } catch (ignored) { }
+
+            try {
+                const occRes = await fetch(`${baseUrl}/occupations`);
+                if (occRes.ok) {
+                    const occList = await occRes.json(); // [{id, title/name}, ...]
+                    // Χειρίσου και 'title' και 'name' για συμβατότητα
+                    occNameToId = new Map(
+                        occList.map((o) => [(o.title ?? o.name), o.id])
+                    );
+                }
+            } catch (ignored) { }
+
+            // 3) Ομαδοποίηση job ads σε Department -> Occupation -> JobTitles
+            const grouped = jobs.reduce((acc, item) => {
+                const deptName = item.departmentName || "Unassigned";
+                const deptId =
+                    item.departmentId ?? deptNameToId.get(deptName) ?? null;
+
+                const occName = item.occupationName || "Other";
+                const occId =
+                    item.occupationId ?? occNameToId.get(occName) ?? null;
+
+                if (!acc[deptName]) {
+                    acc[deptName] = { id: deptId, occupations: {} };
+                }
+                if (!acc[deptName].occupations[occName]) {
+                    acc[deptName].occupations[occName] = { id: occId, jobTitles: [] };
+                }
+                acc[deptName].occupations[occName].jobTitles.push({
+                    id: item.id,
+                    title: item.jobTitle,
+                    status: item.status,
+                });
                 return acc;
             }, {});
 
-            const final = Object.entries(grouped).map(([department, occs]) => ({
-                department,
-                occupations: Object.entries(occs).map(([name, jobTitles]) => ({ name, jobTitles })),
+            // 4) Μετατροπή σε format για το UI (DepartmentDropdown/OccupationDropdown)
+            const final = Object.entries(grouped).map(([deptName, v]) => ({
+                department: deptName,
+                departmentId: v.id, // πλέον ΠΑΝΤΑ έχει πιθανότητα να είναι γεμισμένο
+                occupations: Object.entries(v.occupations).map(([name, info]) => ({
+                    id: info.id,      // επίσης γεμισμένο από mapping
+                    name,
+                    jobTitles: info.jobTitles,
+                })),
             }));
 
             setDepartments(final);
@@ -47,7 +119,6 @@ const SidebarCard = ({
         }
     };
 
-    // αρχικό load + κάθε φορά που αλλάζει το reloadKey
     useEffect(() => {
         loadDepartments();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -55,7 +126,7 @@ const SidebarCard = ({
 
     const handleCreated = async (created) => {
         await loadDepartments();
-        if (created?.id) onJobAdSelect(created.id);
+        if (created?.id) onJobAdSelect?.(created.id);
         setIsCreateOpen(false);
     };
 
@@ -63,11 +134,26 @@ const SidebarCard = ({
         <Col md="4">
             <Card className="shadow-sm" style={{ backgroundColor: "#F6F6F6", height: "450px" }}>
                 <CardBody>
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                        <div style={{ fontWeight: 600 }}>Departments</div>
+                        <Button
+                            color="link"
+                            size="sm"
+                            className="p-0"
+                            onClick={onClearOrganization}
+                            title="Back to Organization overview"
+                        >
+                            All Org
+                        </Button>
+                    </div>
+
                     <Row>
                         {error ? (
                             <div className="text-center" style={{ width: "100%" }}>
                                 <p>Σφάλμα φόρτωσης.</p>
-                                <Button size="sm" color="secondary" onClick={loadDepartments}>Retry</Button>
+                                <Button size="sm" color="secondary" onClick={loadDepartments}>
+                                    Retry
+                                </Button>
                             </div>
                         ) : (
                             <OccupationSelector
@@ -75,13 +161,21 @@ const SidebarCard = ({
                                 departments={departments}
                                 onJobAdSelect={onJobAdSelect}
                                 selectedJobAdId={selectedJobAdId}
+                                // Department forwards
+                                onDepartmentSelect={onDepartmentSelect}
+                                selectedDepartmentId={selectedDepartmentId}
+                                // Occupation forwards
+                                onOccupationSelect={onOccupationSelect}
+                                selectedOccupationId={selectedOccupationId}
                             />
                         )}
                     </Row>
 
                     <Row className="mt-3">
                         <Col className="text-center">
-                            <Button color="secondary" onClick={toggleCreate}>Create New</Button>
+                            <Button color="secondary" onClick={toggleCreate}>
+                                Create New
+                            </Button>
                         </Col>
                     </Row>
 
