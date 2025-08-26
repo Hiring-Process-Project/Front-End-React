@@ -233,8 +233,7 @@ export default function StepsTree({ selectedJobAdId, onSelectQuestion, canEdit =
                                                                 {(dragProvided, snapshot) => (
                                                                     <div
                                                                         ref={dragProvided.innerRef}
-                                                                        {...dragProvided.draggableProps}
-                                                                        {...dragProvided.dragHandleProps}
+                                                                        {...dragProvided.draggableProps}   // ⬅️ ΜΟΝΟ αυτά στο container
                                                                         onClick={() => {
                                                                             setSelectedQuestionId(q.id);
                                                                             setSelectedQuestionStepId(step.id);
@@ -242,7 +241,6 @@ export default function StepsTree({ selectedJobAdId, onSelectQuestion, canEdit =
                                                                         }}
                                                                         title={label}
                                                                         style={{
-                                                                            cursor: canEdit ? "grab" : "default",
                                                                             background: isSelected
                                                                                 ? "#eef4ff"
                                                                                 : snapshot.isDragging
@@ -255,14 +253,50 @@ export default function StepsTree({ selectedJobAdId, onSelectQuestion, canEdit =
                                                                             userSelect: "none",
                                                                             width: "100%",
                                                                             boxSizing: "border-box",
-                                                                            whiteSpace: "nowrap",
-                                                                            overflow: "hidden",
-                                                                            textOverflow: "ellipsis",
                                                                             minHeight: 34,
                                                                             ...dragProvided.draggableProps.style,
                                                                         }}
                                                                     >
-                                                                        {label}
+                                                                        {/* row: handle + text */}
+                                                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                                            {/* ⠿ Χερούλι: μόνο εδώ τα dragHandleProps */}
+                                                                            <span
+                                                                                {...dragProvided.dragHandleProps}
+                                                                                onClick={(e) => e.stopPropagation()}
+                                                                                title={canEdit ? "Drag to reorder" : ""}
+                                                                                style={{
+                                                                                    width: 16,
+                                                                                    height: 16,
+                                                                                    display: "inline-flex",
+                                                                                    alignItems: "center",
+                                                                                    justifyContent: "center",
+                                                                                    cursor: canEdit ? "grab" : "default",
+                                                                                    opacity: 0.7,
+                                                                                    userSelect: "none",
+                                                                                }}
+                                                                            >
+                                                                                {/* SVG grip (φαίνεται σε όλες τις γραμματοσειρές) */}
+                                                                                <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                                                                                    <circle cx="3" cy="3" r="1.4"></circle>
+                                                                                    <circle cx="9" cy="3" r="1.4"></circle>
+                                                                                    <circle cx="3" cy="9" r="1.4"></circle>
+                                                                                    <circle cx="9" cy="9" r="1.4"></circle>
+                                                                                </svg>
+                                                                            </span>
+
+                                                                            <span
+                                                                                style={{
+                                                                                    flex: 1,
+                                                                                    whiteSpace: "nowrap",
+                                                                                    overflow: "hidden",
+                                                                                    textOverflow: "ellipsis",
+                                                                                    color: "#2b2b2b",
+                                                                                    fontSize: 14,
+                                                                                }}
+                                                                            >
+                                                                                {label}
+                                                                            </span>
+                                                                        </div>
                                                                     </div>
                                                                 )}
                                                             </Draggable>

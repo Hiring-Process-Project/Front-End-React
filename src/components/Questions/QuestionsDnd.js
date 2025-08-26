@@ -4,17 +4,16 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 export default function QuestionsDnd({
   stepId,
-  questions = [],              // [{id, name}]
+  questions = [],
   selectedQuestionId,
-  onSelectQuestion,            // (qId) => void
-  onReorderInStep,             // (stepId, fromIdx, toIdx) => Promise|void (optimistic supported)
-  onMoveToAnotherStep,         // optional: (fromStepId, toStepId, questionId, toIndex) => Promise|void
+  onSelectQuestion,
+  onReorderInStep,
+  onMoveToAnotherStep,
 }) {
   const handleDragEnd = async (result) => {
     const { source, destination, draggableId } = result || {};
     if (!destination) return;
 
-    // ίδια λίστα (reorder)
     if (destination.droppableId === source.droppableId) {
       const from = source.index;
       const to = destination.index;
@@ -23,7 +22,6 @@ export default function QuestionsDnd({
       return;
     }
 
-    // cross-list move (ανάμεσα σε steps)
     if (onMoveToAnotherStep) {
       const fromStep = parseInt(source.droppableId.replace("step-", ""), 10);
       const toStep = parseInt(destination.droppableId.replace("step-", ""), 10);
@@ -44,12 +42,10 @@ export default function QuestionsDnd({
                   {(dragProvided, snapshot) => (
                     <div
                       ref={dragProvided.innerRef}
-                      {...dragProvided.draggableProps}
-                      {...dragProvided.dragHandleProps}
+                      {...dragProvided.draggableProps}   // ⬅️ μόνο draggableProps στο root
                       onClick={() => onSelectQuestion?.(q.id)}
                       title={q.name}
                       style={{
-                        cursor: "pointer",
                         background: isSelected ? "#eef4ff" : "#f9f9f9",
                         border: isSelected ? "1px solid #9db7ff" : "1px solid #eee",
                         borderRadius: 8,
@@ -59,15 +55,53 @@ export default function QuestionsDnd({
                         ...dragProvided.draggableProps.style,
                       }}
                     >
-                      {q.name}
+                      {/* row layout: handle + text */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        {/* ⠿ drag handle */}
+                        <span
+                          {...dragProvided.dragHandleProps}     // ⬅️ το χερούλι
+                          title="Drag to reorder"
+                          onClick={(e) => e.stopPropagation()}  // μην κάνει select
+                          style={{
+                            cursor: "grab",
+                            fontSize: 14,
+                            opacity: 0.7,
+                            lineHeight: 1,
+                            userSelect: "none",
+                          }}
+                        >
+                          ⠿
+                        </span>
+
+                        <span
+                          style={{
+                            flex: 1,
+                            cursor: "pointer",
+                            color: "#2b2b2b",
+                            fontSize: 14,
+                          }}
+                        >
+                          {q.name}
+                        </span>
+                      </div>
                     </div>
                   )}
                 </Draggable>
               );
             })}
+
             {provided.placeholder}
+
             {(!questions || questions.length === 0) && (
-              <div style={{ fontSize: 12, opacity: 0.6, paddingLeft: 4 }}>No questions</div>
+              <div style={{ fontSize: 12, opacity: 0.6, paddingLeft: 4 }}>
+                No questions
+              </div>
             )}
           </div>
         )}

@@ -5,27 +5,67 @@ import { Row, Col, Card, CardBody } from 'reactstrap';
 import SidebarCard from './LeftCard/SidebarCard';
 import Header from './Header/Header';
 import Candidates from './Candidates/Candidates';
-import Result from './Result/Result';            // αν δεν το χρησιμοποιείς, μπορείς να το αφαιρέσεις
-import Questions from './Questions/Questions';   // top-level διαχείριση ερωτήσεων (όχι analytics)
+import Result from './Result/Result';
+import Questions from './Questions/Questions';
 import Interview from './Interview/Interview';
 import DescriptionCard from './Description/DescriptionCard';
 import Hire from './Hire/Hire';
 import Analytics from './Analytics/Analytics';
 
-export default function YGrid() {
+const baseUrl = 'http://localhost:8087';
+
+const normalizeStatus = (s) =>
+    String(s ?? '')
+        .replace(/\u00A0/g, ' ')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '');
+
+const LOCKED_TABS = ['candidates', 'analytics', 'hire'];
+
+function LockNotice({ statusLabel = 'Pending' }) {
+    return (
+        <div
+            style={{
+                padding: 16,
+                borderRadius: 12,
+                background: '#E5E7EB',
+                border: '1px solid #bbbbbb',
+                color: '#374151',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                gap: 8,
+            }}
+        >
+            <div>🔒 Το συγκεκριμένο Job Ad είναι σε κατάσταση</div>
+            <div style={{ fontWeight: 700, color: '#111827' }}>{statusLabel}</div>
+            <div>και οι ενότητες αυτές δεν είναι διαθέσιμες.</div>
+        </div>
+    );
+}
+
+export default function MyGridLayout() {
     const [allskills, setAllSkills] = React.useState(['JavaScript', 'CSS', 'React']);
     const [selectedTab, setSelectedTab] = React.useState('description');
-
     const [selectedJobAdId, setSelectedJobAdId] = React.useState(null);
 
-    // Department & Occupation scope
-    const [selectedDepartment, setSelectedDepartment] = React.useState(null); // { id, name }
-    const [selectedOccupation, setSelectedOccupation] = React.useState(null); // { id, name, departmentId }
+    const [selectedDepartment, setSelectedDepartment] = React.useState(null);
+    const [selectedOccupation, setSelectedOccupation] = React.useState(null);
 
     const [reloadKey, setReloadKey] = React.useState(0);
 
+    // 🔹 status για το επιλεγμένο Job Ad
+    const [jobStatus, setJobStatus] = React.useState(null);
+    const statusLabel = jobStatus ?? '—';
+    const isPending = React.useMemo(() => {
+        const n = normalizeStatus(jobStatus);
+        return n === 'pending' || n === 'pedding' || n === 'draft';
+    }, [jobStatus]);
+
     React.useEffect(() => {
-        fetch('http://localhost:8087/skills')
+        fetch(`${baseUrl}/skills`)
             .then((res) => {
                 if (!res.ok) throw new Error('Failed to fetch all skills');
                 return res.json();
@@ -37,16 +77,40 @@ export default function YGrid() {
             .catch(console.error);
     }, []);
 
-    // Debug (optional)
+    // Φέρε status όταν αλλάζει JobAd
     React.useEffect(() => {
-        console.log('[YGRID] selectedJobAdId:', selectedJobAdId);
-        console.log('[YGRID] selectedDepartment:', selectedDepartment);
-        console.log('[YGRID] selectedOccupation:', selectedOccupation);
-    }, [selectedJobAdId, selectedDepartment, selectedOccupation]);
+        if (!selectedJobAdId) {
+            setJobStatus(null);
+            return;
+        }
+        const load = async () => {
+            try {
+                const r = await fetch(`${baseUrl}/jobAds/details?jobAdId=${selectedJobAdId}`, {
+                    cache: 'no-store',
+                    headers: { 'Cache-Control': 'no-cache' },
+                });
+                if (!r.ok) throw new Error();
+                const d = await r.json();
+                setJobStatus(d?.status ?? null);
+            } catch {
+                setJobStatus(null);
+            }
+        };
+        load();
+    }, [selectedJobAdId]);
+
+    // Αν είναι pending, μην επιτρέπεις να “κολλήσει” tab σε κλειδωμένα
+    React.useEffect(() => {
+        if (isPending && LOCKED_TABS.includes(selectedTab)) {
+            setSelectedTab('description');
+        }
+    }, [isPending, selectedTab]);
 
     const handleJobAdDeleted = () => {
         setSelectedJobAdId(null);
         setReloadKey((k) => k + 1);
+        setJobStatus(null);
+        setSelectedTab('description');
     };
 
     const handleDepartmentSelect = (dept) => {
@@ -66,29 +130,41 @@ export default function YGrid() {
         setSelectedOccupation(null);
     };
 
-    // Props προς Analytics ώστε να λειτουργούν ΟΛΑ τα scopes
+    // Tabs που είναι κλειδωμένα όταν Pending
+    const disabledTabs = isPending ? LOCKED_TABS : [];
+
+    // onSelect από Header: αγνόησε τα disabled
+    const handleSelectTab = (key) => {
+        if (disabledTabs.includes(key)) return;
+        setSelectedTab(key);
+    };
+
     const analyticsProps = {
         orgId: 3,
-        apiBase: 'http://localhost:8087/api',
-        departmentData: selectedDepartment,                      // { id, name }
-        occupationData: selectedOccupation,                      // { id, name, departmentId }
-        jobAdData: selectedJobAdId ? { id: selectedJobAdId } : null, // { id }
+        apiBase: `${baseUrl}/api`,
+        departmentData: selectedDepartment,
+        occupationData: selectedOccupation,
+        jobAdData: selectedJobAdId ? { id: selectedJobAdId } : null,
     };
 
     return (
         <div>
-            <Header setSelectedTab={setSelectedTab} />
+            <Header
+                selectedTab={selectedTab}
+                setSelectedTab={handleSelectTab}
+                disabledTabs={disabledTabs}
+            />
+
             <div style={{ padding: '2rem', paddingTop: '20px' }}>
                 <Row>
                     <SidebarCard
                         onJobAdSelect={setSelectedJobAdId}
                         selectedJobAdId={selectedJobAdId}
                         reloadKey={reloadKey}
-                        // Department scope
+                        // scopes (αν τα χρησιμοποιείς)
                         onDepartmentSelect={handleDepartmentSelect}
                         onClearOrganization={handleBackToOrganization}
                         selectedDepartmentId={selectedDepartment?.id ?? null}
-                        // Occupation scope
                         onOccupationSelect={handleOccupationSelect}
                         selectedOccupationId={selectedOccupation?.id ?? null}
                     />
@@ -101,28 +177,50 @@ export default function YGrid() {
                                         selectedJobAdId={selectedJobAdId}
                                         allskills={allskills}
                                         onDeleted={handleJobAdDeleted}
+                                        // προαιρετικό: callback που στέλνει event όταν γίνεται publish
+                                        onPublished={() => {
+                                            setJobStatus('Published');
+                                            window.dispatchEvent(
+                                                new CustomEvent('hf:jobad-updated', {
+                                                    detail: { id: selectedJobAdId, status: 'Published' },
+                                                })
+                                            );
+                                        }}
                                     />
                                 )}
 
-                                {/* Διαχείριση ερωτήσεων (όχι analytics). Τα analytics της ερώτησης είναι στο Analytics → Questions */}
-                                {selectedTab === 'questions' && <Questions selectedJobAdId={selectedJobAdId} />}
-
-                                {selectedTab === 'interview' && <Interview selectedJobAdId={selectedJobAdId} />}
-
-                                {selectedTab === 'candidates' && (
-                                    <Candidates key={selectedJobAdId ?? 'no-job'} jobAdId={selectedJobAdId} />
+                                {selectedTab === 'questions' && (
+                                    <Questions selectedJobAdId={selectedJobAdId} />
                                 )}
 
-                                {selectedTab === 'analytics' && (
-                                    <Analytics {...analyticsProps} />
+                                {selectedTab === 'interview' && (
+                                    <Interview selectedJobAdId={selectedJobAdId} />
                                 )}
 
-                                {selectedTab === 'hire' && (
-                                    <Hire key={selectedJobAdId ?? 'no-job'} jobAdId={selectedJobAdId} />
-                                )}
+                                {selectedTab === 'candidates' &&
+                                    (isPending ? (
+                                        <LockNotice statusLabel={statusLabel} />
+                                    ) : (
+                                        <Candidates key={selectedJobAdId ?? 'no-job'} jobAdId={selectedJobAdId} />
+                                    ))}
 
-                                {/* Αν χρησιμοποιείς Result κάπου, βάλ' το εδώ */}
-                                {selectedTab === 'result' && <Result jobAdId={selectedJobAdId} />}
+                                {selectedTab === 'analytics' &&
+                                    (isPending ? (
+                                        <LockNotice statusLabel={statusLabel} />
+                                    ) : (
+                                        <Analytics {...analyticsProps}
+                                            onGoToOrganization={handleBackToOrganization} />
+
+                                    ))}
+
+                                {selectedTab === 'hire' &&
+                                    (isPending ? (
+                                        <LockNotice statusLabel={statusLabel} />
+                                    ) : (
+                                        <Hire key={selectedJobAdId ?? 'no-job'} jobAdId={selectedJobAdId} />
+                                    ))}
+
+
                             </CardBody>
                         </Card>
                     </Col>

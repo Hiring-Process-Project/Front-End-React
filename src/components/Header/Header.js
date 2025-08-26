@@ -2,9 +2,9 @@ import React from 'react';
 import logo from '../../images/logo.png';
 import NavbarDarkExample from './NavbarDarkExample';
 import { Col, Row } from 'reactstrap';
-import './header.css'
+import './header.css';
 
-function Header({ setSelectedTab }) {
+function Header({ selectedTab, setSelectedTab, disabledTabs = [] }) {
     return (
         <Row>
             <header className="custom-header">
@@ -12,7 +12,11 @@ function Header({ setSelectedTab }) {
                     <img src={logo} className="logo-img" alt="logo" />
                 </Col>
                 <Col md="8" style={{ marginLeft: '-150px', paddingTop: '60px' }}>
-                    <NavbarDarkExample onSelect={setSelectedTab} />
+                    <NavbarDarkExample
+                        onSelect={setSelectedTab}          // callback για αλλαγή tab
+                        selectedTab={selectedTab}          // ποιο tab είναι ενεργό
+                        disabledTabs={disabledTabs}        // ποια tabs είναι κλειδωμένα
+                    />
                 </Col>
             </header>
         </Row>
