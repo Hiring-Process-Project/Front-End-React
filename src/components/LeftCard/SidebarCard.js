@@ -1,42 +1,23 @@
-import React, { useEffect, useState } from "react";
+// SidebarCard.jsx
+import React, { useEffect, useState, useCallback } from "react";
 import { Card, CardBody, Col, Row, Button } from "reactstrap";
 import OccupationSelector from "./OccupationSelector";
 import CreateJobAd from "./CreateJobAd";
 
-const noop = () => { };
-
-// Fallbacks για τα seed data σου (αν λείπουν endpoints /departments και /occupations)
-const FALLBACK_DEPT_NAME_TO_ID = new Map([
-    ["Engineering", 4],
-    ["HR", 5],
-    ["Data Science", 6],
-]);
-
-const FALLBACK_OCC_NAME_TO_ID = new Map([
-    ["Software Engineer", 6],
-    ["HR Specialist", 7],
-    ["Data Analyst", 8],
-    ["Frontend Developer", 9],
-    ["Recruiter", 10],
-    ["Data Engineer", 11],
-    ["DevOps Engineer", 12],
-    ["Training Coordinator", 13],
-    ["Machine Learning Engineer", 14],
-]);
+const DEFAULT_BASE = "http://localhost:8087";
 
 const SidebarCard = ({
     onJobAdSelect,
     selectedJobAdId,
-    baseUrl = "http://localhost:8087",
+    baseUrl = DEFAULT_BASE,
     reloadKey = 0,
 
-    // Department scope
-    onDepartmentSelect = noop,
-    onClearOrganization = noop,   // πλέον δεν χρησιμοποιείται στο header
+    // Department scope (προαιρετικά)
+    onDepartmentSelect,
     selectedDepartmentId = null,
 
-    // Occupation scope
-    onOccupationSelect = noop,
+    // Occupation scope (προαιρετικά)
+    onOccupationSelect,
     selectedOccupationId = null,
 }) => {
     const [departments, setDepartments] = useState([]);
@@ -45,48 +26,44 @@ const SidebarCard = ({
 
     const toggleCreate = () => setIsCreateOpen((v) => !v);
 
-    const loadDepartments = async () => {
+    const loadDepartments = useCallback(async () => {
         try {
-            // 1) Φέρε ΟΛΑ τα job ads (κύρια πηγή για να γεμίσει το sidebar)
-            const jobsRes = await fetch(`${baseUrl}/jobAds`);
+            // 1) Job Ads (summary)
+            const jobsRes = await fetch(`${baseUrl}/jobAds`, { cache: "no-store" });
             if (!jobsRes.ok) throw new Error("Failed to fetch job ads");
-            const jobs = await jobsRes.json();
+            const jobs = await jobsRes.json(); // [{id, jobTitle, occupationName, status, departmentName}]
 
-            // 2) Προσπάθησε να φέρεις departments & occupations για mapping name -> id
-            let deptNameToId = new Map(FALLBACK_DEPT_NAME_TO_ID);
-            let occNameToId = new Map(FALLBACK_OCC_NAME_TO_ID);
+            // 2) Πάρε name→id για departments & occupations
+            let deptNameToId = new Map();
+            let occNameToId = new Map();
 
+            // Departments (names)
             try {
-                const depRes = await fetch(`${baseUrl}/departments`);
+                const depRes = await fetch(`${baseUrl}/api/v1/departments/names`, { cache: "no-store" });
                 if (depRes.ok) {
-                    const depList = await depRes.json(); // [{id, name}, ...]
+                    const depList = await depRes.json(); // [{id,name}]
                     deptNameToId = new Map(depList.map((d) => [d.name, d.id]));
                 }
-            } catch (ignored) { }
+            } catch { /* ignore, θα μείνουν null ids */ }
 
+            // Occupations (names)
             try {
-                const occRes = await fetch(`${baseUrl}/occupations`);
+                const occRes = await fetch(`${baseUrl}/api/v1/occupations/names`, { cache: "no-store" });
                 if (occRes.ok) {
-                    const occList = await occRes.json(); // [{id, title/name}, ...]
-                    occNameToId = new Map(
-                        occList.map((o) => [(o.title ?? o.name), o.id])
-                    );
+                    const occList = await occRes.json(); // [{id,name}]
+                    occNameToId = new Map(occList.map((o) => [o.name, o.id]));
                 }
-            } catch (ignored) { }
+            } catch { /* ignore */ }
 
-            // 3) Ομαδοποίηση job ads σε Department -> Occupation -> JobTitles
+            // 3) Grouping σε Department → Occupation → JobTitles
             const grouped = jobs.reduce((acc, item) => {
                 const deptName = item.departmentName || "Unassigned";
-                const deptId =
-                    item.departmentId ?? deptNameToId.get(deptName) ?? null;
+                const deptId = deptNameToId.get(deptName) ?? null;
 
                 const occName = item.occupationName || "Other";
-                const occId =
-                    item.occupationId ?? occNameToId.get(occName) ?? null;
+                const occId = occNameToId.get(occName) ?? null;
 
-                if (!acc[deptName]) {
-                    acc[deptName] = { id: deptId, occupations: {} };
-                }
+                if (!acc[deptName]) acc[deptName] = { id: deptId, occupations: {} };
                 if (!acc[deptName].occupations[occName]) {
                     acc[deptName].occupations[occName] = { id: occId, jobTitles: [] };
                 }
@@ -98,7 +75,7 @@ const SidebarCard = ({
                 return acc;
             }, {});
 
-            // 4) Μετατροπή σε format για το UI
+            // 4) Μετατροπή σε array για το UI
             const final = Object.entries(grouped).map(([deptName, v]) => ({
                 department: deptName,
                 departmentId: v.id,
@@ -116,12 +93,19 @@ const SidebarCard = ({
             setDepartments([]);
             setError(err);
         }
-    };
+    }, [baseUrl]);
 
+    // Φόρτωση στην αρχή & σε reloadKey αλλαγές
     useEffect(() => {
         loadDepartments();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [reloadKey, baseUrl]);
+    }, [loadDepartments, reloadKey]);
+
+    // Refresh όταν γίνει publish/αλλαγή job ad (π.χ. από Description)
+    useEffect(() => {
+        const onUpdated = () => loadDepartments();
+        window.addEventListener("hf:jobad-updated", onUpdated);
+        return () => window.removeEventListener("hf:jobad-updated", onUpdated);
+    }, [loadDepartments]);
 
     const handleCreated = async (created) => {
         await loadDepartments();
@@ -129,13 +113,16 @@ const SidebarCard = ({
         setIsCreateOpen(false);
     };
 
+    // Όταν επιλέγεται occupation, καθάρισε το επιλεγμένο job
+    const handleOccupationSelect = (occ) => {
+        onOccupationSelect?.(occ);
+        onJobAdSelect?.(null);
+    };
+
     return (
         <Col md="4">
             <Card className="shadow-sm" style={{ backgroundColor: "#F6F6F6", height: "450px" }}>
                 <CardBody>
-
-                    {/* ΑΦΑΙΡΕΘΗΚΕ το header με Departments / All Org */}
-
                     <Row>
                         {error ? (
                             <div className="text-center" style={{ width: "100%" }}>
@@ -146,15 +133,17 @@ const SidebarCard = ({
                             </div>
                         ) : (
                             <OccupationSelector
-                                Name="Departments"                 // εμφανίζεται σαν λεζάντα πάνω από το search (αν θες να φύγει, άλλαξέ το σε null/"" ή πείραξε το component)
+                                Name="Departments"
                                 departments={departments}
                                 onJobAdSelect={onJobAdSelect}
                                 selectedJobAdId={selectedJobAdId}
-                                // Department forwards
+
+                                // Department scope
                                 onDepartmentSelect={onDepartmentSelect}
                                 selectedDepartmentId={selectedDepartmentId}
-                                // Occupation forwards
-                                onOccupationSelect={onOccupationSelect}
+
+                                // Occupation scope
+                                onOccupationSelect={handleOccupationSelect}
                                 selectedOccupationId={selectedOccupationId}
                             />
                         )}

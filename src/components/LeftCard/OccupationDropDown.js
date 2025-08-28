@@ -35,14 +35,21 @@ function OccupationDropdown({
     }, [selectedOccIndex]);
 
     const handleToggle = (index, occupation) => {
-        setOpenIndex(openIndex === index ? null : index);
-        // Ενημέρωσε γονέα ποιο occupation επιλέχτηκε (για overview)
+        const nextOpen = openIndex === index ? null : index;
+        setOpenIndex(nextOpen);
+
+        // ✨ Κάθε φορά που αλλάζεις/πατάς occupation, καθάρισε το selected job
+        setActiveJobId(null);
+        onJobAdSelect?.(null);
+
+        // ενημέρωσε και το occupation scope προς τα πάνω
         onOccupationSelect?.({
-            id: occupation?.id ?? null, // <— Ιδανικά να υπάρχει από το /jobAds
+            id: occupation?.id ?? null,
             name: occupation?.name,
             departmentId: parentDepartmentId ?? null,
         });
     };
+
 
     const isOccActive = (occ) => {
         if (selectedOccupationId == null || !occ?.id) return false;

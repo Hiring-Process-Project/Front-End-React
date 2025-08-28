@@ -56,7 +56,7 @@ export default function MyGridLayout() {
 
     const [reloadKey, setReloadKey] = React.useState(0);
 
-    // 🔹 status για το επιλεγμένο Job Ad
+    // status για το επιλεγμένο Job Ad
     const [jobStatus, setJobStatus] = React.useState(null);
     const statusLabel = jobStatus ?? '—';
     const isPending = React.useMemo(() => {
@@ -99,12 +99,28 @@ export default function MyGridLayout() {
         load();
     }, [selectedJobAdId]);
 
-    // Αν είναι pending, μην επιτρέπεις να “κολλήσει” tab σε κλειδωμένα
+    // Μην αφήνεις να μείνει σε κλειδωμένα tabs όταν είναι Pending
     React.useEffect(() => {
         if (isPending && LOCKED_TABS.includes(selectedTab)) {
             setSelectedTab('description');
         }
     }, [isPending, selectedTab]);
+
+    // Ακούει publish updates (χωρίς full refetch)
+    React.useEffect(() => {
+        const onUpdated = (e) => {
+            const { id, status } = e.detail || {};
+            if (!id) return;
+            // αν αφορά το τρέχον job ad, ενημέρωσε label
+            if (selectedJobAdId && Number(id) === Number(selectedJobAdId)) {
+                setJobStatus(status || 'Published');
+            }
+            // bump reloadKey για να φρεσκαριστεί το SidebarCard (status badge)
+            setReloadKey((k) => k + 1);
+        };
+        window.addEventListener('hf:jobad-updated', onUpdated);
+        return () => window.removeEventListener('hf:jobad-updated', onUpdated);
+    }, [selectedJobAdId]);
 
     const handleJobAdDeleted = () => {
         setSelectedJobAdId(null);
@@ -130,10 +146,8 @@ export default function MyGridLayout() {
         setSelectedOccupation(null);
     };
 
-    // Tabs που είναι κλειδωμένα όταν Pending
     const disabledTabs = isPending ? LOCKED_TABS : [];
 
-    // onSelect από Header: αγνόησε τα disabled
     const handleSelectTab = (key) => {
         if (disabledTabs.includes(key)) return;
         setSelectedTab(key);
@@ -161,7 +175,7 @@ export default function MyGridLayout() {
                         onJobAdSelect={setSelectedJobAdId}
                         selectedJobAdId={selectedJobAdId}
                         reloadKey={reloadKey}
-                        // scopes (αν τα χρησιμοποιείς)
+                        // scopes
                         onDepartmentSelect={handleDepartmentSelect}
                         onClearOrganization={handleBackToOrganization}
                         selectedDepartmentId={selectedDepartment?.id ?? null}
@@ -177,9 +191,10 @@ export default function MyGridLayout() {
                                         selectedJobAdId={selectedJobAdId}
                                         allskills={allskills}
                                         onDeleted={handleJobAdDeleted}
-                                        // προαιρετικό: callback που στέλνει event όταν γίνεται publish
                                         onPublished={() => {
+                                            // ενημέρωσε local status…
                                             setJobStatus('Published');
+                                            // …και ενημέρωσε SidebarCard + λοιπά listeners
                                             window.dispatchEvent(
                                                 new CustomEvent('hf:jobad-updated', {
                                                     detail: { id: selectedJobAdId, status: 'Published' },
@@ -208,9 +223,7 @@ export default function MyGridLayout() {
                                     (isPending ? (
                                         <LockNotice statusLabel={statusLabel} />
                                     ) : (
-                                        <Analytics {...analyticsProps}
-                                            onGoToOrganization={handleBackToOrganization} />
-
+                                        <Analytics {...analyticsProps} onGoToOrganization={handleBackToOrganization} />
                                     ))}
 
                                 {selectedTab === 'hire' &&
@@ -220,7 +233,8 @@ export default function MyGridLayout() {
                                         <Hire key={selectedJobAdId ?? 'no-job'} jobAdId={selectedJobAdId} />
                                     ))}
 
-
+                                {/* (optional) */}
+                                {selectedTab === 'result' && <Result jobAdId={selectedJobAdId} />}
                             </CardBody>
                         </Card>
                     </Col>

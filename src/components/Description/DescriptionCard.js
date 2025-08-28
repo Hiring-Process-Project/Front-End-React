@@ -14,11 +14,12 @@ const normalizeStatus = (s) =>
         .toLowerCase()
         .replace(/\s+/g, "");
 
-export default function DescriptionCars({
+export default function DescriptionCard({
     selectedJobAdId,
     allskills = [],
     reloadSidebar,
     onDeleted,
+    onPublished, // <— ΝΕΟ callback προς parent
 }) {
     const [description, setDescription] = useState("");
     const [requiredSkills, setRequiredSkills] = useState([]);
@@ -35,7 +36,7 @@ export default function DescriptionCars({
 
     const statusLabel = status ?? "—";
 
-    // 🔹 Helper function για να φορτώνει τα details (description + status + skills)
+    // 🔹 Φόρτωση details (description + status + skills)
     const fetchJobAdDetails = useCallback(async () => {
         if (!selectedJobAdId) return;
 
@@ -51,7 +52,10 @@ export default function DescriptionCars({
 
         try {
             // --- DETAILS ---
-            const r = await fetch(detailsUrl);
+            const r = await fetch(detailsUrl, {
+                cache: "no-store",
+                headers: { "Cache-Control": "no-cache" },
+            });
             if (!r.ok) throw new Error();
             const d = await r.json();
             setDescription(d?.description ?? "");
@@ -61,14 +65,15 @@ export default function DescriptionCars({
             let found = false;
             for (const url of skillUrlsInPriority) {
                 try {
-                    const res = await fetch(url);
+                    const res = await fetch(url, {
+                        cache: "no-store",
+                        headers: { "Cache-Control": "no-cache" },
+                    });
                     if (!res.ok) continue;
                     const arr = await res.json();
                     if (Array.isArray(arr) && arr.length > 0) {
                         const titles = arr
-                            .map((x) =>
-                                typeof x === "string" ? x : x?.title ?? x?.name ?? ""
-                            )
+                            .map((x) => (typeof x === "string" ? x : x?.title ?? x?.name ?? ""))
                             .filter(Boolean);
                         if (titles.length > 0) {
                             setRequiredSkills(titles);
@@ -88,7 +93,6 @@ export default function DescriptionCars({
         }
     }, [selectedJobAdId]);
 
-    // Φόρτωσε αρχικά όταν αλλάζει το selectedJobAdId
     useEffect(() => {
         fetchJobAdDetails();
     }, [selectedJobAdId, fetchJobAdDetails]);
@@ -107,6 +111,7 @@ export default function DescriptionCars({
                 }),
             });
             if (!r.ok) throw new Error();
+
             await reloadSidebar?.();
         } catch {
             setError("Αποτυχία ενημέρωσης.");
@@ -116,17 +121,28 @@ export default function DescriptionCars({
     };
 
     const handlePublish = async () => {
+        // προαιρετικά σώσε πρώτα τα τρέχοντα changes
         await handleUpdate();
+
         try {
             const r = await fetch(`${baseUrl}/jobAds/${selectedJobAdId}/publish`, {
                 method: "POST",
             });
             if (!r.ok) throw new Error();
 
-            // 🔹 mini refresh: ξαναφόρτωσε τα details για να δείξει το νέο status
+            // mini refresh: ξαναφόρτωσε για να φανεί το νέο status
             await fetchJobAdDetails();
 
+            // ενημέρωσε sidebar + γονιό
             await reloadSidebar?.();
+            onPublished?.(); // <— ενημέρωσε parent
+
+            // και στείλε και event για όποιο component το ακούει
+            window.dispatchEvent(
+                new CustomEvent("hf:jobad-updated", {
+                    detail: { id: selectedJobAdId, status: "Published" },
+                })
+            );
         } catch {
             setError("Αποτυχία δημοσίευσης.");
         }
@@ -134,9 +150,7 @@ export default function DescriptionCars({
 
     const handleDelete = async () => {
         if (!selectedJobAdId) return;
-        const ok = window.confirm(
-            "Σίγουρα θέλεις να διαγράψεις αυτό το Job Ad;"
-        );
+        const ok = window.confirm("Σίγουρα θέλεις να διαγράψεις αυτό το Job Ad;");
         if (!ok) return;
         try {
             const r = await fetch(`${baseUrl}/jobAds/${selectedJobAdId}`, {
@@ -157,11 +171,7 @@ export default function DescriptionCars({
 
     // --- UI ---
     if (!selectedJobAdId)
-        return (
-            <p style={{ padding: "1rem" }}>
-                Επέλεξε ένα Job Ad για να δεις το Description.
-            </p>
-        );
+        return <p style={{ padding: "1rem" }}>Επέλεξε ένα Job Ad για να δεις το Description.</p>;
     if (loading) return <p style={{ padding: "1rem" }}>Φόρτωση…</p>;
 
     return (
@@ -215,19 +225,11 @@ export default function DescriptionCars({
                                 }}
                             >
                                 <div>
-                                    <span role="img" aria-label="lock">
-                                        🔒
-                                    </span>{" "}
+                                    <span role="img" aria-label="lock">🔒</span>{" "}
                                     Το συγκεκριμένο Job Ad είναι σε κατάσταση
                                 </div>
 
-                                <div
-                                    style={{
-                                        fontSize: 12,
-                                        fontWeight: "bold",
-                                        color: "#111827",
-                                    }}
-                                >
+                                <div style={{ fontSize: 12, fontWeight: "bold", color: "#111827" }}>
                                     {statusLabel}
                                 </div>
 
@@ -238,10 +240,7 @@ export default function DescriptionCars({
                 )}
 
                 {error && (
-                    <div
-                        className="mt-3 text-danger text-center"
-                        style={{ fontSize: 14 }}
-                    >
+                    <div className="mt-3 text-danger text-center" style={{ fontSize: 14 }}>
                         {error}
                     </div>
                 )}
