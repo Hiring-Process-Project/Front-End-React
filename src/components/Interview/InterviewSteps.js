@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import StepsDnd from "./StepsDnd";
 
 /**
- * Backends που χρησιμοποιούμε:
- * - PUT  /api/v1/step/{stepId}/description         (body: { description })
- * - PATCH /api/v1/step/interviews/{interviewId}/steps/reorder  (body: { stepIds: number[] })
+ * Backends:
+ * - PUT   /api/v1/step/{stepId}/description
+ * - PATCH /api/v1/step/interviews/{interviewId}/steps/reorder
  */
 const API_STEP = "http://localhost:8087/api/v1/step";
 
@@ -15,12 +15,17 @@ export default function InterviewSteps({
     interviewId,
     reloadSteps,
     onLocalReorder,                // (from, to) => void
+    canEdit = true,                // έλεγχος editability από γονέα
 }) {
     const [internalSelectedIndex, setInternalSelectedIndex] = useState(null);
     const selectedIndex = controlledSelectedIndex ?? internalSelectedIndex;
 
     useEffect(() => {
-        if (selectedIndex != null && interviewsteps?.length > 0 && selectedIndex >= interviewsteps.length) {
+        if (
+            selectedIndex != null &&
+            interviewsteps?.length > 0 &&
+            selectedIndex >= interviewsteps.length
+        ) {
             const safe = interviewsteps.length - 1;
             setInternalSelectedIndex(safe);
             const step = interviewsteps[safe];
@@ -92,7 +97,12 @@ export default function InterviewSteps({
                     onSelect={handleSelect}
                     onReorder={onLocalReorder}
                     onApplyServerReorder={applyServerReorder}
-                    onUpdateDescription={updateDescription}
+
+                    // αν δεν είναι editable, κόβουμε τελείως το update
+                    onUpdateDescription={canEdit ? updateDescription : undefined}
+                    readOnlyDescription={!canEdit}
+                    showSaveButton={!!canEdit}
+                    dndDisabled={!canEdit}
                 />
             </div>
         </div>

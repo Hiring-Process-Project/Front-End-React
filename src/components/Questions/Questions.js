@@ -123,6 +123,7 @@ const Questions = ({ selectedJobAdId }) => {
                             name={'Question Description'}
                             description={questionDesc}
                             onDescriptionChange={(val) => setQuestionDesc(val)}
+                            readOnly={!canEdit}
                         />
                     </Col>
 

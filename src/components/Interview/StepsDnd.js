@@ -8,7 +8,14 @@ export default function StepsDnd({
     onSelect,
     onReorder,
     onApplyServerReorder,
+
+    // Αν είναι undefined δεν γίνεται καθόλου update
     onUpdateDescription,
+
+    // ΝΕΑ flags
+    readOnlyDescription = false, // κάνει το textarea readOnly/disabled
+    showSaveButton = true,       // εμφανίζει/κρύβει το κουμπί Save
+    dndDisabled = false,         // απενεργοποιεί drag-n-drop
 }) {
     const [openIndex, setOpenIndex] = useState(null);
     const [draft, setDraft] = useState({});
@@ -20,6 +27,7 @@ export default function StepsDnd({
     };
 
     const handleDragEnd = async (result) => {
+        if (dndDisabled) return; // κόβουμε DnD όταν είναι κλειδωμένο
         const { source, destination } = result || {};
         if (!destination) return;
         const from = source.index;
@@ -44,13 +52,15 @@ export default function StepsDnd({
     };
 
     const startEdit = (stepId, initial) => {
+        if (readOnlyDescription) return; // δεν αλλάζουμε draft
         setDraft((d) => ({ ...d, [stepId]: initial ?? "" }));
     };
 
     const commitEdit = async (stepId) => {
-        if (!onUpdateDescription) return;
+        // αν δεν επιτρέπεται update ή δεν έχει στηθεί callback, σταματάμε
+        if (readOnlyDescription || !onUpdateDescription) return;
+
         const text = draft[stepId] ?? "";
-        // μην ξαναστείλεις αν ήδη κάνεις save το ίδιο step
         if (savingId === stepId) return;
 
         setSavingId(stepId);
@@ -58,7 +68,6 @@ export default function StepsDnd({
             await onUpdateDescription(stepId, text);
         } catch (e) {
             console.error(e);
-            // optional: toast/alert
         } finally {
             setSavingId(null);
         }
@@ -74,7 +83,12 @@ export default function StepsDnd({
                             const isOpen = idx === openIndex;
 
                             return (
-                                <Draggable key={s.id ?? idx} draggableId={`step-${s.id ?? idx}`} index={idx}>
+                                <Draggable
+                                    key={s.id ?? idx}
+                                    draggableId={`step-${s.id ?? idx}`}
+                                    index={idx}
+                                    isDragDisabled={dndDisabled}
+                                >
                                     {(dragProvided, snapshot) => (
                                         <div
                                             ref={dragProvided.innerRef}
@@ -87,7 +101,7 @@ export default function StepsDnd({
                                                 ...dragProvided.draggableProps.style,
                                             }}
                                         >
-                                            {/* HEADER: Steps | Category */}
+                                            {/* HEADER */}
                                             <div
                                                 className="step-row-header"
                                                 onClick={() => toggleOpen(idx)}
@@ -109,19 +123,22 @@ export default function StepsDnd({
                                                         paddingLeft: "12px",
                                                     }}
                                                 >
-                                                    <span
-                                                        {...dragProvided.dragHandleProps}
-                                                        title="Drag to reorder"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        style={{
-                                                            userSelect: "none",
-                                                            cursor: "grab",
-                                                            fontSize: 14,
-                                                            opacity: 0.7,
-                                                        }}
-                                                    >
-                                                        ⠿
-                                                    </span>
+                                                    {/* Drag handle μόνο όταν επιτρέπεται DnD */}
+                                                    {!dndDisabled && (
+                                                        <span
+                                                            {...dragProvided.dragHandleProps}
+                                                            title="Drag to reorder"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            style={{
+                                                                userSelect: "none",
+                                                                cursor: "grab",
+                                                                fontSize: 14,
+                                                                opacity: 0.7,
+                                                            }}
+                                                        >
+                                                            ⠿
+                                                        </span>
+                                                    )}
                                                     <span
                                                         style={{
                                                             fontSize: 14,
@@ -162,20 +179,26 @@ export default function StepsDnd({
                                                         rows={3}
                                                         value={draft[s.id] ?? s.description ?? ""}
                                                         onChange={(e) => startEdit(s.id, e.target.value)}
-                                                        onBlur={() => commitEdit(s.id)}  // μπορείς να το βγάλεις αν θες μόνο με κουμπί
+                                                        onBlur={() => commitEdit(s.id)}
                                                         placeholder="Write a short description for this step…"
+                                                        readOnly={readOnlyDescription}
+                                                        disabled={readOnlyDescription}
                                                     />
-                                                    <div className="d-flex justify-content-end" style={{ gap: 8, marginTop: 8 }}>
-                                                        <Button
-                                                            size="sm"
-                                                            color="secondary"
-                                                            outline
-                                                            onClick={() => commitEdit(s.id)}
-                                                            disabled={savingId === s.id}
-                                                        >
-                                                            {savingId === s.id ? "Saving…" : "Save"}
-                                                        </Button>
-                                                    </div>
+
+                                                    {/* Save button μόνο όταν το επιτρέπεις */}
+                                                    {showSaveButton && onUpdateDescription && (
+                                                        <div className="d-flex justify-content-end" style={{ gap: 8, marginTop: 8 }}>
+                                                            <Button
+                                                                size="sm"
+                                                                color="secondary"
+                                                                outline
+                                                                onClick={() => commitEdit(s.id)}
+                                                                disabled={savingId === s.id}
+                                                            >
+                                                                {savingId === s.id ? "Saving…" : "Save"}
+                                                            </Button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>

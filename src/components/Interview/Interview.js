@@ -30,7 +30,7 @@ function Interview({ selectedJobAdId }) {
     const [saving, setSaving] = useState(false);
     const [showAddStep, setShowAddStep] = useState(false);
 
-    // status από backend (ΔΕΝ βάζουμε default “Pending” για να μην μπερδεύει)
+    // status από backend
     const [status, setStatus] = useState(null);
     const canEdit = useMemo(() => isEditableStatus(status), [status]);
 
@@ -61,14 +61,14 @@ function Interview({ selectedJobAdId }) {
             })
             .catch(() => setError("Δεν ήταν δυνατή η φόρτωση των στοιχείων interview."));
 
-        // 2) job status για lock κουμπιών
+        // 2) job status για lock
         fetch(`${API}/jobAds/details?jobAdId=${selectedJobAdId}`)
             .then((r) => (r.ok ? r.json() : Promise.reject()))
             .then((d) => setStatus(d?.status ?? null))
             .catch(() => setStatus(null));
     }, [selectedJobAdId]);
 
-    // Φόρτωσε ταξινομημένα steps (position ASC)
+    // Φόρτωσε ταξινομημένα steps
     const reloadSteps = useCallback(async () => {
         if (!interviewId) return;
         try {
@@ -82,7 +82,6 @@ function Interview({ selectedJobAdId }) {
             }));
             setSteps(safe);
 
-            // κρατά τον δείκτη εντός ορίων
             const idx = Math.min(selectedStepIndex, Math.max(0, safe.length - 1));
             setSelectedStepIndex(idx);
 
@@ -161,9 +160,7 @@ function Interview({ selectedJobAdId }) {
                     body: JSON.stringify({ description }),
                 });
                 if (r.ok) descOk = true;
-            } catch {
-                /* noop */
-            }
+            } catch { /* noop */ }
 
             if (!descOk) {
                 const r2 = await fetch(`${API}/interviews/${interviewId}`, {
@@ -178,50 +175,40 @@ function Interview({ selectedJobAdId }) {
         }
     };
 
-    // ===== Delete Step (αισιόδοξο) =====
+    // Delete step (αισιόδοξο)
     const handleDeleteCurrentStep = async () => {
         const stepId = getCurrentStepId();
         if (!stepId) return;
         const ok = window.confirm("Σίγουρα θέλεις να διαγράψεις αυτό το βήμα;");
         if (!ok) return;
 
-        // αισιόδοξη ενημέρωση UI
         const prevSteps = steps;
         const currentIndex = selectedStepIndex;
         const nextSteps = prevSteps.filter((s) => s.id !== stepId);
-
-        // νέο επιλεγμένο index: ίδιο αν γίνεται, αλλιώς το αμέσως προηγούμενο
         const newIndex = Math.max(0, Math.min(currentIndex, nextSteps.length - 1));
 
         setSteps(nextSteps);
         setSelectedStepIndex(newIndex);
 
-        // φέρνουμε skills για το νέο επιλεγμένο step (ή καθαρίζουμε αν δεν υπάρχει)
         const nextSelectedId = nextSteps[newIndex]?.id ?? null;
         if (nextSelectedId != null) {
             fetchStepSkills(nextSelectedId);
         } else {
-            setStepSkills([]); // ΔΕΝ έχει άλλα steps → φεύγουν και τα skills
+            setStepSkills([]);
         }
 
         try {
             const res = await fetch(`${API}/api/v1/step/${stepId}`, { method: "DELETE" });
             if (!res.ok) throw new Error("Failed to delete step");
-            // optional: reloadSteps() για full sync
         } catch (e) {
             console.error(e);
-            // rollback αν αποτύχει το API
+            // rollback
             setSteps(prevSteps);
             setSelectedStepIndex(currentIndex);
             const rollbackId = prevSteps[currentIndex]?.id ?? null;
             if (rollbackId != null) fetchStepSkills(rollbackId);
             else setStepSkills([]);
         }
-    };
-
-
-    const handleStepCreated = async () => {
-        await reloadSteps();
     };
 
     if (!selectedJobAdId) {
@@ -250,10 +237,13 @@ function Interview({ selectedJobAdId }) {
                             interviewId={interviewId}
                             reloadSteps={reloadSteps}
                             onLocalReorder={onLocalReorder}
+
+                            // ⬇️ δίνουμε στο child αν επιτρέπεται edit
+                            canEdit={canEdit}
                         />
                     </div>
 
-                    {/* Δείξε actions ΜΟΝΟ όταν το status είναι Pending/Pedding/Draft */}
+                    {/* Actions μόνο όταν είναι editable */}
                     {canEdit && (
                         <div className="boxFooter" style={{ padding: "8px 10px", display: "flex", justifyContent: "center", gap: 15 }}>
                             <Button color="secondary" style={actionBtnStyle} onClick={() => setShowAddStep(true)}>
@@ -270,14 +260,21 @@ function Interview({ selectedJobAdId }) {
             <Col md="7">
                 <Row className="g-3">
                     <Col md="7">
-                        <JobDescription name="Interview Description" description={description} onDescriptionChange={setDescription} />
+                        <JobDescription
+                            name="Interview Description"
+                            description={description}
+                            onDescriptionChange={setDescription}
+                            // ⬇️ δεν μπορείς να αλλάξεις όταν δεν είναι editable
+                            readOnly={!canEdit}
+                            disabled={!canEdit}
+                        />
                     </Col>
 
                     <Col md="5">
                         <Row className="g-3">
                             <Col>
                                 <SkillSelectorReadOnly requiredskills={stepSkills} />
-                                {/* Δείξε Update ΜΟΝΟ όταν είναι editable */}
+                                {/* Update μόνο όταν είναι editable */}
                                 {canEdit && (
                                     <Row>
                                         <div className="d-flex justify-content-center">
@@ -303,7 +300,7 @@ function Interview({ selectedJobAdId }) {
                 isOpen={showAddStep}
                 toggle={() => setShowAddStep((v) => !v)}
                 interviewId={interviewId}
-                onCreated={handleStepCreated}
+                onCreated={reloadSteps}
             />
         </Row>
     );
