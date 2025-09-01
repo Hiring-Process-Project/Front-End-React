@@ -1,7 +1,6 @@
 // src/components/Analytics/Analytics.js
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { TabContent, TabPane } from 'reactstrap';
-
+import { TabContent, TabPane, UncontrolledTooltip } from 'reactstrap';
 import OverviewTab from './OverviewTab';
 import CandidatesTab from './CandidatesTab';
 import StepsTab from './StepsTab';
@@ -9,10 +8,26 @@ import QuestionsTab from './QuestionsTab';
 import SkillsTab from './SkillsTab';
 import AnalyticsTabsHeader from './AnalyticsTabsHeader';
 
-const getId = (obj, keys) =>
-    obj && typeof obj === 'object'
-        ? keys.map(k => obj[k]).find(v => v !== undefined && v !== null)
-        : null;
+// const getId = (obj, keys) =>
+//     obj && typeof obj === 'object'
+//         ? keys.map(k => obj[k]).find(v => v !== undefined && v !== null)
+//         : null;
+
+const getId = (obj, keys) => {
+    if (obj == null) return null;
+    if (typeof obj === 'number') return obj;
+    if (typeof obj === 'string') return obj.trim() ? Number(obj) : null;
+    if (typeof obj === 'object') {
+        for (const k of keys) {
+            const v = obj[k];
+            if (v !== undefined && v !== null && v !== '') {
+                return typeof v === 'string' ? Number(v) : v;
+            }
+        }
+    }
+    return null;
+};
+
 
 export default function Analytics({
     orgId = 3,
@@ -163,20 +178,40 @@ export default function Analytics({
             <AnalyticsTabsHeader activeTab={activeTab} setActiveTab={setActiveTab} />
 
             {activeTab === 'overview' && (
-                <div className="d-flex align-items-center justify-content-between mb-2" style={{ marginTop: 8 }}>
-                    <div style={{ fontWeight: 600 }}>Scope: {scopeLabel}</div>
+                <div className="d-flex align-items-center mb-2" style={{ marginTop: 8 }}>
+                    <div className="d-flex align-items-center" style={{ fontWeight: 600, gap: 8 }}>
+                        <span>Scope: {scopeLabel}</span>
 
-                    <button
-                        type="button"
-                        className="btn btn-outline-secondary btn-sm"
-                        onClick={gotoOrganization}
-                        disabled={level === 'organization'}
-                        title="Εμφάνιση στατιστικών για όλο τον οργανισμό"
-                    >
-                        Organization
-                    </button>
+                        {/* wrapper για να δουλεύει το tooltip και όταν το button είναι disabled */}
+                        <span id="org-scope-reset" className="d-inline-flex">
+                            <button
+                                type="button"
+                                onClick={gotoOrganization}
+                                disabled={level === 'organization'}
+                                aria-label="Return to Organization scope"
+                                className="btn btn-outline-secondary btn-sm d-inline-flex align-items-center justify-content-center p-0"
+                                style={{
+                                    width: 22,
+                                    height: 22,
+                                    lineHeight: '22px',
+                                    borderRadius: '50%',
+                                    opacity: level === 'organization' ? 0.5 : 1,
+                                    cursor: level === 'organization' ? 'not-allowed' : 'pointer',
+                                }}
+                            >
+                                ×
+                            </button>
+                        </span>
+
+                        <UncontrolledTooltip placement="top" target="org-scope-reset">
+                            {level === 'organization'
+                                ? "You're already in Organization scope"
+                                : 'Return to Organization scope'}
+                        </UncontrolledTooltip>
+                    </div>
                 </div>
             )}
+
 
             <TabContent activeTab={activeTab} className="pt-3">
                 <TabPane tabId="overview">

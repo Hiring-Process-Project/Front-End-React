@@ -152,7 +152,7 @@ export default function MyGridLayout() {
                 <Row style={{ flex: 1, minHeight: 0, width: '100%' }}>
                     {/* Sidebar: φρόντισε στο root component του SidebarCard να έχει minHeight:0 και
               το δικό του overflowY:'auto' αν χρειαστεί */}
-                    <SidebarCard
+                    {/* <SidebarCard
                         onJobAdSelect={setSelectedJobAdId}
                         selectedJobAdId={selectedJobAdId}
                         reloadKey={reloadKey}
@@ -164,7 +164,36 @@ export default function MyGridLayout() {
                         selectedDepartmentId={selectedDepartment?.id ?? null}
                         onOccupationSelect={setSelectedOccupation}
                         selectedOccupationId={selectedOccupation?.id ?? null}
+                    /> */}
+                    <SidebarCard
+                        onJobAdSelect={(id) => {
+                            // Επιλογή Job Ad ⇒ καθάρισε occupation (μένει το department)
+                            setSelectedJobAdId(id);
+                            if (id != null) setSelectedOccupation(null);
+                        }}
+                        selectedJobAdId={selectedJobAdId}
+                        reloadKey={reloadKey}
+                        onDepartmentSelect={(dept) => {
+                            // Επιλογή Department ⇒ καθάρισε occupation & jobAd
+                            setSelectedDepartment(dept);
+                            setSelectedOccupation(null);
+                            setSelectedJobAdId(null);
+                        }}
+                        onClearOrganization={() => {
+                            setSelectedDepartment(null);
+                            setSelectedOccupation(null);
+                            setSelectedJobAdId(null);
+                        }}
+                        selectedDepartmentId={selectedDepartment?.id ?? null}
+                        onOccupationSelect={(occ) => {
+                            // δέχεται είτε object είτε number ⇒ κράτα object στο state
+                            const obj = (occ && typeof occ === 'object') ? occ : { id: Number(occ) || null };
+                            setSelectedOccupation(obj);
+                            setSelectedJobAdId(null);
+                        }}
+                        selectedOccupationId={selectedOccupation?.id ?? null}
                     />
+
 
                     {/* Δεξί panel */}
                     <Col md="8" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -222,7 +251,24 @@ export default function MyGridLayout() {
                                     ))}
 
                                 {selectedTab === 'analytics' &&
-                                    (isPending ? <LockNotice statusLabel={statusLabel} /> : <Analytics />)}
+                                    (isPending ? (
+                                        <LockNotice statusLabel={statusLabel} />
+                                    ) : (
+                                        <Analytics
+                                            orgId={3}
+                                            apiBase={`${baseUrl}/api`}
+                                            departmentData={selectedDepartment}
+                                            occupationData={selectedOccupation}
+                                            jobAdData={selectedJobAdId ? { id: selectedJobAdId } : null}
+                                            onGoToOrganization={() => {
+                                                // καθάρισε όλες τις επιλογές όταν πατιέται το κουμπί Organization
+                                                setSelectedJobAdId(null);
+                                                setSelectedDepartment(null);
+                                                setSelectedOccupation(null);
+                                            }}
+                                        />
+                                    ))}
+
 
                                 {selectedTab === 'hire' &&
                                     (isPending ? (
@@ -231,7 +277,6 @@ export default function MyGridLayout() {
                                         <Hire key={selectedJobAdId ?? 'no-job'} jobAdId={selectedJobAdId} />
                                     ))}
 
-                                {selectedTab === 'result' && <Result jobAdId={selectedJobAdId} />}
                             </CardBody>
                         </Card>
                     </Col>
