@@ -4,7 +4,6 @@ import {
   Form, FormGroup, Label, Input, Button, Alert, Spinner
 } from "reactstrap";
 
-
 export default function AddStepModal({ isOpen, toggle, interviewId, onCreated }) {
   const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
@@ -91,13 +90,14 @@ export default function AddStepModal({ isOpen, toggle, interviewId, onCreated })
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               disabled={saving}
+              style={{ boxSizing: 'border-box' }}
             />
             <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
               Το «Step 1/2/3…» θα προκύψει αυτόματα από τη σειρά.
             </div>
           </FormGroup>
         </ModalBody>
-        <ModalFooter>
+        <ModalFooter style={{ gap: 8 }}>
           <Button type="button" color="secondary" onClick={handleClose} disabled={saving}>
             Άκυρο
           </Button>

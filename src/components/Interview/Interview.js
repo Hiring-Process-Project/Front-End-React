@@ -1,20 +1,17 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Row, Col, Button } from "reactstrap";
 import InterviewSteps from "./InterviewSteps";
 import JobDescription from "../Description/Description";
 import AddStepModal from "./AddStepModal";
 import SkillSelectorReadOnly from "../Description/SkillSelectorReadOnly";
+import ConfirmModal from "../Hire/ConfirmModal"; // <-- πρόσθεσε το modal
+import "./interview.css";
 
 const API = "http://localhost:8087";
 
 // helpers για status
 const normalizeStatus = (s) =>
-    String(s ?? "")
-        .replace(/\u00A0/g, " ")
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, "");
-
+    String(s ?? "").replace(/\u00A0/g, " ").trim().toLowerCase().replace(/\s+/g, "");
 const isEditableStatus = (raw) => {
     const norm = normalizeStatus(raw);
     return norm === "pending" || norm === "pedding" || norm === "draft";
@@ -33,6 +30,10 @@ function Interview({ selectedJobAdId }) {
     // status από backend
     const [status, setStatus] = useState(null);
     const canEdit = useMemo(() => isEditableStatus(status), [status]);
+
+    // state για confirm modal (delete step)
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     const actionBtnStyle = { minWidth: 104, height: 34, padding: "4px 10px", fontSize: 13.5 };
 
@@ -68,35 +69,6 @@ function Interview({ selectedJobAdId }) {
             .catch(() => setStatus(null));
     }, [selectedJobAdId]);
 
-    // Φόρτωσε ταξινομημένα steps
-    const reloadSteps = useCallback(async () => {
-        if (!interviewId) return;
-        try {
-            const r = await fetch(`${API}/api/v1/step/interviews/${interviewId}/steps`);
-            if (!r.ok) throw new Error("Failed to fetch ordered steps");
-            const data = await r.json();
-            const safe = (data || []).map((s) => ({
-                id: s.id ?? s.stepId ?? null,
-                title: s.title ?? s.tittle ?? "",
-                description: s.description ?? "",
-            }));
-            setSteps(safe);
-
-            const idx = Math.min(selectedStepIndex, Math.max(0, safe.length - 1));
-            setSelectedStepIndex(idx);
-
-            const currentId = safe[idx]?.id ?? null;
-            if (currentId != null) fetchStepSkills(currentId);
-            else setStepSkills([]);
-        } catch (e) {
-            console.error(e);
-        }
-    }, [interviewId, selectedStepIndex]);
-
-    useEffect(() => {
-        if (interviewId != null) reloadSteps();
-    }, [interviewId, reloadSteps]);
-
     // Φέρε skills για συγκεκριμένο step
     const fetchStepSkills = useCallback((stepId) => {
         if (stepId == null) {
@@ -115,6 +87,38 @@ function Interview({ selectedJobAdId }) {
             .catch(() => setStepSkills([]));
     }, []);
 
+    // Φόρτωσε ταξινομημένα steps
+    const reloadSteps = useCallback(
+        async () => {
+            if (!interviewId) return;
+            try {
+                const r = await fetch(`${API}/api/v1/step/interviews/${interviewId}/steps`);
+                if (!r.ok) throw new Error("Failed to fetch ordered steps");
+                const data = await r.json();
+                const safe = (data || []).map((s) => ({
+                    id: s.id ?? s.stepId ?? null,
+                    title: s.title ?? s.tittle ?? "",
+                    description: s.description ?? "",
+                }));
+                setSteps(safe);
+
+                const idx = Math.min(selectedStepIndex, Math.max(0, safe.length - 1));
+                setSelectedStepIndex(idx);
+
+                const currentId = safe[idx]?.id ?? null;
+                if (currentId != null) fetchStepSkills(currentId);
+                else setStepSkills([]);
+            } catch (e) {
+                console.error(e);
+            }
+        },
+        [interviewId, selectedStepIndex, fetchStepSkills]
+    );
+
+    useEffect(() => {
+        if (interviewId != null) reloadSteps();
+    }, [interviewId, reloadSteps]);
+
     // Επιλογή step
     const handleSelectStep = useCallback(
         (index, stepIdFromChild) => {
@@ -128,6 +132,7 @@ function Interview({ selectedJobAdId }) {
     );
 
     const getCurrentStepId = () => steps[selectedStepIndex]?.id ?? null;
+    const getCurrentStepTitle = () => steps[selectedStepIndex]?.title || "";
 
     // Αισιόδοξο reorder στο UI
     const onLocalReorder = useCallback((from, to) => {
@@ -175,31 +180,35 @@ function Interview({ selectedJobAdId }) {
         }
     };
 
-    // Delete step (αισιόδοξο)
-    const handleDeleteCurrentStep = async () => {
+    // Ανοίγουμε το confirm όταν πατηθεί Delete
+    const openDeleteConfirm = () => setConfirmOpen(true);
+
+    // Διαγραφή step (τρέχει όταν πατηθεί "Διαγραφή" στο modal)
+    const handleDeleteCurrentStepConfirmed = async () => {
         const stepId = getCurrentStepId();
-        if (!stepId) return;
-        const ok = window.confirm("Σίγουρα θέλεις να διαγράψεις αυτό το βήμα;");
-        if (!ok) return;
+        if (!stepId) {
+            setConfirmOpen(false);
+            return;
+        }
+
+        setDeleting(true);
 
         const prevSteps = steps;
         const currentIndex = selectedStepIndex;
         const nextSteps = prevSteps.filter((s) => s.id !== stepId);
         const newIndex = Math.max(0, Math.min(currentIndex, nextSteps.length - 1));
 
+        // optimistic UI
         setSteps(nextSteps);
         setSelectedStepIndex(newIndex);
-
         const nextSelectedId = nextSteps[newIndex]?.id ?? null;
-        if (nextSelectedId != null) {
-            fetchStepSkills(nextSelectedId);
-        } else {
-            setStepSkills([]);
-        }
+        if (nextSelectedId != null) fetchStepSkills(nextSelectedId);
+        else setStepSkills([]);
 
         try {
             const res = await fetch(`${API}/api/v1/step/${stepId}`, { method: "DELETE" });
             if (!res.ok) throw new Error("Failed to delete step");
+            setConfirmOpen(false);
         } catch (e) {
             console.error(e);
             // rollback
@@ -208,6 +217,9 @@ function Interview({ selectedJobAdId }) {
             const rollbackId = prevSteps[currentIndex]?.id ?? null;
             if (rollbackId != null) fetchStepSkills(rollbackId);
             else setStepSkills([]);
+            setConfirmOpen(false);
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -219,90 +231,111 @@ function Interview({ selectedJobAdId }) {
     }
 
     return (
-        <Row className="g-3">
-            <Col md="5" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-                <label className="description-labels" style={{ paddingLeft: 10, marginBottom: 14 }}>
-                    Interview Steps
-                </label>
+        <>
+            <Row className="g-3 iv-root-row">
+                {/* Left: Steps */}
+                <Col md="5" className="iv-col">
+                    <label className="description-labels iv-left-title">Interview Steps</label>
 
-                <div
-                    className="boxStyle"
-                    style={{ padding: 0, minHeight: 375, display: "flex", flexDirection: "column", overflow: "hidden", flexGrow: 1 }}
-                >
-                    <div style={{ flex: 1, overflow: "auto", padding: "2px 10px 0" }}>
-                        <InterviewSteps
-                            interviewsteps={steps}
-                            onSelect={handleSelectStep}
-                            selectedIndex={selectedStepIndex}
-                            interviewId={interviewId}
-                            reloadSteps={reloadSteps}
-                            onLocalReorder={onLocalReorder}
-
-                            // ⬇️ δίνουμε στο child αν επιτρέπεται edit
-                            canEdit={canEdit}
-                        />
-                    </div>
-
-                    {/* Actions μόνο όταν είναι editable */}
-                    {canEdit && (
-                        <div className="boxFooter" style={{ padding: "8px 10px", display: "flex", justifyContent: "center", gap: 15 }}>
-                            <Button color="secondary" style={actionBtnStyle} onClick={() => setShowAddStep(true)}>
-                                Create New
-                            </Button>
-                            <Button color="danger" style={actionBtnStyle} onClick={handleDeleteCurrentStep} disabled={!getCurrentStepId()}>
-                                Delete
-                            </Button>
+                    <div className="boxStyle iv-card">
+                        <div className="iv-card-scroll">
+                            <InterviewSteps
+                                interviewsteps={steps}
+                                onSelect={handleSelectStep}
+                                selectedIndex={selectedStepIndex}
+                                interviewId={interviewId}
+                                reloadSteps={reloadSteps}
+                                onLocalReorder={onLocalReorder}
+                                canEdit={canEdit}
+                            />
                         </div>
-                    )}
-                </div>
-            </Col>
 
-            <Col md="7">
-                <Row className="g-3">
-                    <Col md="7">
-                        <JobDescription
-                            name="Interview Description"
-                            description={description}
-                            onDescriptionChange={setDescription}
-                            // ⬇️ δεν μπορείς να αλλάξεις όταν δεν είναι editable
-                            readOnly={!canEdit}
-                            disabled={!canEdit}
-                        />
-                    </Col>
+                        {canEdit && (
+                            <div className="boxFooter iv-footer">
+                                <Button color="secondary" style={actionBtnStyle} onClick={() => setShowAddStep(true)}>
+                                    Create New
+                                </Button>
+                                <Button
+                                    color="danger"
+                                    style={actionBtnStyle}
+                                    onClick={openDeleteConfirm}          // <-- ανοίγει modal
+                                    disabled={!getCurrentStepId()}
+                                >
+                                    Delete
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                </Col>
 
-                    <Col md="5">
-                        <Row className="g-3">
-                            <Col>
+                {/* Right: Description + Skills */}
+                <Col md="7" className="iv-col">
+                    <Row className="g-3 iv-fill">
+                        <Col md="7" className="iv-col">
+                            <div className="iv-right-fill">
+                                <JobDescription
+                                    name="Interview Description"
+                                    description={description}
+                                    onDescriptionChange={setDescription}
+                                    readOnly={!canEdit}
+                                    disabled={!canEdit}
+                                />
+                            </div>
+                        </Col>
+
+                        <Col md="5" className="iv-col">
+                            <div className="iv-right-scroll">
                                 <SkillSelectorReadOnly requiredskills={stepSkills} />
-                                {/* Update μόνο όταν είναι editable */}
-                                {canEdit && (
-                                    <Row>
-                                        <div className="d-flex justify-content-center">
-                                            <Button
-                                                color="secondary"
-                                                className="delete-btn-req"
-                                                style={{ marginTop: 22, minWidth: 110, height: 34 }}
-                                                onClick={handleUpdate}
-                                                disabled={saving || !interviewId}
-                                            >
-                                                {saving ? "Saving..." : "Update"}
-                                            </Button>
-                                        </div>
-                                    </Row>
-                                )}
-                            </Col>
-                        </Row>
-                    </Col>
-                </Row>
-            </Col>
+                            </div>
 
-            <AddStepModal
-                isOpen={showAddStep}
-                toggle={() => setShowAddStep((v) => !v)}
-                interviewId={interviewId}
-                onCreated={reloadSteps}
+                            {canEdit && (
+                                <div className="d-flex justify-content-center iv-update-row">
+                                    <Button
+                                        color="secondary"
+                                        className="delete-btn-req"
+                                        onClick={handleUpdate}
+                                        disabled={saving || !interviewId}
+                                    >
+                                        {saving ? "Saving..." : "Update"}
+                                    </Button>
+                                </div>
+                            )}
+                        </Col>
+                    </Row>
+                </Col>
+
+                <AddStepModal
+                    isOpen={showAddStep}
+                    toggle={() => setShowAddStep((v) => !v)}
+                    interviewId={interviewId}
+                    onCreated={reloadSteps}
+                />
+            </Row>
+
+            {/* Confirm Modal για διαγραφή Step */}
+            <ConfirmModal
+                isOpen={confirmOpen}
+                title="Διαγραφή Step"
+                message={
+                    <div>
+                        Είσαι σίγουρος/η ότι θέλεις να διαγράψεις το step
+                        {getCurrentStepTitle() ? (
+                            <> <b> “{getCurrentStepTitle()}”</b>;</>
+                        ) : (
+                            <> αυτό;</>
+                        )}
+                        <br />
+                        Η ενέργεια δεν είναι αναστρέψιμη.
+                    </div>
+                }
+                confirmText="Διαγραφή"
+                cancelText="Άκυρο"
+                confirmColor="danger"
+                loading={deleting}
+                onConfirm={handleDeleteCurrentStepConfirmed}
+                onCancel={() => setConfirmOpen(false)}
             />
-        </Row>
+        </>
     );
 }
 

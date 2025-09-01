@@ -156,6 +156,9 @@ export default function StepsDnd({
                                                         color: "#2b2b2b",
                                                         textAlign: "left",
                                                         paddingLeft: "25px",
+                                                        overflow: "hidden",
+                                                        textOverflow: "ellipsis",
+                                                        whiteSpace: "nowrap",
                                                     }}
                                                 >
                                                     {s.title || "—"}
@@ -183,6 +186,11 @@ export default function StepsDnd({
                                                         placeholder="Write a short description for this step…"
                                                         readOnly={readOnlyDescription}
                                                         disabled={readOnlyDescription}
+                                                        style={{
+                                                            resize: "none",
+                                                            overflowWrap: "anywhere",
+                                                            boxSizing: "border-box",
+                                                        }}
                                                     />
 
                                                     {/* Save button μόνο όταν το επιτρέπεις */}

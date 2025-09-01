@@ -1,0 +1,61 @@
+/* sidebar.css */
+
+/* Η στήλη της sidebar πιάνει όλο το διαθέσιμο ύψος */
+.sidebar-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    /* επιτρέπει στα παιδιά να κάνουν scroll */
+}
+
+/* Το Card της sidebar τεντώνει κατακόρυφα */
+.sidebar-card {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+}
+
+/* Το CardBody επίσης γεμίζει και δεν έχει δικό του scroll */
+.sidebar-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* αποφυγή διπλών scrollbars */
+}
+
+/* Εδώ ζει ο OccupationSelector: αυτό κάνει το εσωτερικό scroll */
+.sidebar-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    /* κάθετο scroll στη λίστα */
+}
+
+/* OccupationSelector container (αν δεν το έχεις ήδη) */
+.occ-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding-right: 0.5rem;
+    padding-left: 0.5rem;
+    margin-right: 16px;
+    margin-left: 8px;
+    padding-top: 5px;
+}
+
+/* κάνε το DepartmentDropdown να γεμίζει και να κυλά */
+.occ-col>.row+* {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Responsive πλάτος: full-width σε mobile */
+@media (max-width: 768px) {
+    .sidebar-col {
+        margin-bottom: 12px;
+    }
+}

@@ -1,110 +1,108 @@
-.occupation-container {
+/* ------------------------------------------------ */
+/*  Responsive ONLY: χωρίς αλλαγές σε χρώματα       */
+/* ------------------------------------------------ */
+
+/* Καλύτερη προσαρμογή paddings & hit areas σε μικρές οθόνες */
+@media (max-width: 768px) {
+    .occupation-container {
+        gap: 10px;
+    }
+
+    .occupation-box {
+        margin-top: 10px;
+        padding: 6px;
+    }
+
+    .occupation-btn {
+        padding: 8px 10px;
+        /* μικρότερο padding για να χωράει */
+        font-size: 13.5px;
+    }
+
+    .department-btn {
+        padding: 8px 10px !important;
+        font-size: 14px;
+    }
+
+    .job-title-item {
+        padding: 8px 10px;
+        gap: 6px;
+        font-size: 13px !important;
+    }
+
+    .status-label {
+        font-size: 10.5px;
+        padding: 2px 6px;
+    }
+}
+
+/* Πολύ μικρές οθόνες */
+@media (max-width: 576px) {
+    .occupation-header {
+        gap: 6px;
+    }
+
+    .occupation-btn {
+        padding: 8px 10px;
+    }
+
+    .job-title-item {
+        padding: 8px;
+    }
+
+    /* Βεβαιώσου ότι τα κείμενα δεν “σπάνε” και κάνουν ellipsis */
+    .department-header span,
+    .occupation-header span,
+    .job-title-name {
+        display: inline-block;
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+/* Υποστήριξη για κοντέινερ με περιορισμένο ύψος (π.χ. sidebar card)
+   ώστε να γίνεται σωστό εσωτερικό scroll χωρίς να “σπάει” το layout */
+.sidebar-like,
+.scroll-wrapper-like {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.sidebar-like>.occupation-container,
+.scroll-wrapper-like>.occupation-container {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    height: 100%;
-
+    scrollbar-gutter: stable both-edges;
 }
 
-.occupation-box {
-    background-color: #E5E7EB;
-    border-radius: 12px;
-    padding: 5px;
-    color: black;
-    border: 0.5px solid #bbbbbb;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
-    margin-top: 15px;
-    overflow-y: auto;
+/* Απλός helper για να μη “σπάει” το layout όταν έχει πολλά items */
+.job-title-box>div {
+    max-width: 100%;
 }
 
-.occupation-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
+.truncate-1 {
+    display: inline-block;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.occupation-btn {
-    background-color: #F6F6F6 !important;
-    color: black;
-    font-weight: 500;
-    border: none !important;
-    border-radius: 8px !important;
-    font-size: 14px;
+/* Mobile fine-tuning χωρίς αλλαγή σε χρώματα */
+@media (max-width: 576px) {
+    .occupation-btn {
+        padding: 8px 10px;
+    }
 
-}
+    .job-title-item {
+        padding: 8px;
+    }
 
-.occupation-container>div:first-child {
-    margin-top: 10px;
-}
-
-
-
-.occupation-btn:hover {
-    background-color: #cfd1d2 !important;
-}
-
-.job-title-box {
-    padding: 5px;
-    background-color: #F6F6F6;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    color: black;
-    margin-bottom: 5px;
-
-}
-
-.job-title-box>div:first-child {
-    margin-top: 10px;
-}
-
-.job-title-item {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    margin-top: 10px !important;
-    margin-bottom: 5px;
-    width: 100% !important;
-    background-color: #e5e7eb !important;
-    border-radius: 8px !important;
-    font-size: 13px !important;
-    color: black !important;
-    border: none !important;
-    box-shadow: 0 1px 3px rgb(0 0 0 / 32%);
-}
-
-
-
-
-.job-title-item:focus {
-    background-color: #B7BABC !important;
-
-}
-
-
-
-.job-title-item:hover {
-    background-color: #B7BABC !important;
-}
-
-.badge {
-    color: black !important;
-    background-color: #dfe1e3 !important;
-}
-
-/* Κράτα ΟΛΑ τα υπάρχοντα styles σου. Πρόσθεσε μόνο τα παρακάτω: */
-
-.job-title-item.selected {
-    background-color: #B7BABC !important;
-    /* απαλό γκρι όπως ζήτησες */
-    border-color: #d4d6da !important;
-}
-
-/* προαιρετικά, για να φαίνεται "πατημένο" */
-.job-title-item.selected .job-title-name {
-    font-weight: 600;
-
+    .status-label {
+        font-size: 10.5px;
+    }
 }

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
     Modal, ModalHeader, ModalBody, ModalFooter,
-    Button, Form, FormGroup, Label, Input, FormFeedback, Spinner
+    Button, Form, FormGroup, Label, Input, Spinner
 } from "reactstrap";
 
 export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhost:8087", onCreated }) {
@@ -9,15 +9,18 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
     const [deptId, setDeptId] = useState("");
     const [occId, setOccId] = useState("");
 
-    const [departments, setDepartments] = useState([]);      // [{id,name,occupations:[{id,name}]}]
-    const [occupations, setOccupations] = useState([]);      // <-- από /api/v1/occupations/names
+    const [departments, setDepartments] = useState([]); // [{id,name,occupations:[{id,name}]}]
+    const [occupations, setOccupations] = useState([]); // all occupations
 
     const [loadingDeps, setLoadingDeps] = useState(false);
     const [loadingOccs, setLoadingOccs] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
 
-    // Φόρτωση departments
+    // NEW: search filters
+    const [deptQuery, setDeptQuery] = useState("");
+    const [occQuery, setOccQuery] = useState("");
+
     useEffect(() => {
         if (!isOpen) return;
         setLoadingDeps(true);
@@ -39,7 +42,6 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
             .finally(() => setLoadingDeps(false));
     }, [isOpen, baseUrl]);
 
-    // Φόρτωση ΟΛΩΝ των occupations από /api/v1/occupations/names
     useEffect(() => {
         if (!isOpen) return;
         setLoadingOccs(true);
@@ -49,7 +51,6 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
                 const mapped = (Array.isArray(data) ? data : [])
                     .map(o => ({ id: o.id, name: o.title ?? o.name ?? "" }))
                     .filter(o => o.name);
-                // sort αλφαβητικά
                 mapped.sort((a, b) => a.name.localeCompare(b.name));
                 setOccupations(mapped);
             })
@@ -63,6 +64,8 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
             setName("");
             setDeptId("");
             setOccId("");
+            setDeptQuery("");
+            setOccQuery("");
             setError("");
             setSaving(false);
         }
@@ -70,7 +73,7 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
 
     const canCreate = name.trim() && deptId && occId;
 
-    // Αν η occupation δεν ανήκει σε αυτό το department, προσπάθησε να τη συνδέσεις
+    // Αν η occupation δεν ανήκει στο department, προσπάθησε να τη συνδέσεις
     const ensureDepartmentHasOccupation = async (deptId, occId) => {
         const dep = departments.find(d => String(d.id) === String(deptId));
         const alreadyHas = dep?.occupations?.some(o => String(o.id) === String(occId));
@@ -90,7 +93,7 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
             }
 
             if (r.ok) {
-                // ενημέρωσε τοπικά για να φανεί στα tabs
+                // ενημέρωσε τοπικά
                 setDepartments(prev => prev.map(d => {
                     if (String(d.id) !== String(deptId)) return d;
                     const exists = d.occupations?.some(o => String(o.id) === String(occId));
@@ -100,7 +103,7 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
                 }));
             }
         } catch {
-            // ignore: δεν μπλοκάρουμε τη δημιουργία
+            // ignore
         }
     };
 
@@ -114,7 +117,6 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
             const deptName = departments.find(d => String(d.id) === String(deptId))?.name ?? "";
             const occName = occupations.find(o => String(o.id) === String(occId))?.name ?? "";
 
-            // πρώτα προσπάθησε να τη "δέσεις" με το department (αν δεν υπάρχει)
             await ensureDepartmentHasOccupation(deptId, occId);
 
             const payload = {
@@ -144,22 +146,25 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
         }
     };
 
-    const departmentOptions = useMemo(
-        () => departments.map(d => ({ value: d.id, label: d.name })),
-        [departments]
-    );
+    // Filtered options (αναζήτηση)
+    const filteredDepartments = useMemo(() => {
+        const q = deptQuery.trim().toLowerCase();
+        if (!q) return departments;
+        return departments.filter(d => d.name.toLowerCase().includes(q));
+    }, [deptQuery, departments]);
 
-    // ΠΡΟΕΡΧΟΝΤΑΙ από /api/v1/occupations/names (όλες)
-    const occupationOptions = useMemo(
-        () => occupations.map(o => ({ value: o.id, label: o.name })),
-        [occupations]
-    );
+    const filteredOccupations = useMemo(() => {
+        const q = occQuery.trim().toLowerCase();
+        if (!q) return occupations;
+        return occupations.filter(o => o.name.toLowerCase().includes(q));
+    }, [occQuery, occupations]);
 
     return (
         <Modal isOpen={isOpen} toggle={toggle} centered backdrop="static" keyboard>
             <ModalHeader toggle={toggle}>Δημιουργία Job Ad</ModalHeader>
             <ModalBody>
                 {error && <div className="mb-3 alert alert-danger">{error}</div>}
+
                 <Form onSubmit={handleCreate}>
                     <FormGroup>
                         <Label>Όνομα (Title)</Label>
@@ -170,39 +175,62 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
                             required
                             disabled={saving}
                         />
-                        <FormFeedback>Δώσε όνομα.</FormFeedback>
                     </FormGroup>
 
+                    {/* Department + Search */}
                     <FormGroup>
                         <Label>Department</Label>
-                        <Input
-                            type="select"
-                            value={deptId}
-                            onChange={e => setDeptId(e.target.value)}
-                            disabled={saving || loadingDeps}
-                        >
-                            <option value="">{loadingDeps ? "Φόρτωση..." : "— επίλεξε department —"}</option>
-                            {departmentOptions.map(d => (
-                                <option key={d.value} value={d.value}>{d.label}</option>
-                            ))}
-                        </Input>
+                        <div className="d-flex gap-2 flex-column flex-md-row">
+                            <Input
+                                placeholder="Αναζήτηση department…"
+                                value={deptQuery}
+                                onChange={(e) => setDeptQuery(e.target.value)}
+                                disabled={loadingDeps || saving}
+                            />
+                            <Input
+                                type="select"
+                                value={deptId}
+                                onChange={e => {
+                                    setDeptId(e.target.value);
+                                    // reset occupation if dept changes
+                                    setOccId("");
+                                }}
+                                disabled={saving || loadingDeps}
+                            >
+                                <option value="">
+                                    {loadingDeps ? "Φόρτωση..." : "— επίλεξε department —"}
+                                </option>
+                                {filteredDepartments.map(d => (
+                                    <option key={d.id} value={d.id}>{d.name}</option>
+                                ))}
+                            </Input>
+                        </div>
                     </FormGroup>
 
+                    {/* Occupation + Search */}
                     <FormGroup>
                         <Label>Occupation</Label>
-                        <Input
-                            type="select"
-                            value={occId}
-                            onChange={e => setOccId(e.target.value)}
-                            disabled={!deptId || saving || loadingOccs}
-                        >
-                            <option value="">
-                                {!deptId ? "επέλεξε πρώτα department" : (loadingOccs ? "Φόρτωση..." : "— επίλεξε occupation —")}
-                            </option>
-                            {occupationOptions.map(o => (
-                                <option key={o.value} value={o.value}>{o.label}</option>
-                            ))}
-                        </Input>
+                        <div className="d-flex gap-2 flex-column flex-md-row">
+                            <Input
+                                placeholder="Αναζήτηση occupation…"
+                                value={occQuery}
+                                onChange={(e) => setOccQuery(e.target.value)}
+                                disabled={!deptId || loadingOccs || saving}
+                            />
+                            <Input
+                                type="select"
+                                value={occId}
+                                onChange={e => setOccId(e.target.value)}
+                                disabled={!deptId || saving || loadingOccs}
+                            >
+                                <option value="">
+                                    {!deptId ? "επέλεξε πρώτα department" : (loadingOccs ? "Φόρτωση..." : "— επίλεξε occupation —")}
+                                </option>
+                                {filteredOccupations.map(o => (
+                                    <option key={o.id} value={o.id}>{o.name}</option>
+                                ))}
+                            </Input>
+                        </div>
                     </FormGroup>
                 </Form>
             </ModalBody>

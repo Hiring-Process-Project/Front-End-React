@@ -1,18 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { Col, Row } from 'reactstrap';
 import DepartmentDropdown from './DepartmentDropDown';
+import "./sidebar.css";
+
 
 function OccupationSelector({
     Name,
     departments = [],
     onJobAdSelect,
     selectedJobAdId,
-
-    // Department scope
     onDepartmentSelect,
     selectedDepartmentId = null,
-
-    // Occupation scope
     onOccupationSelect,
     selectedOccupationId = null,
 }) {
@@ -31,21 +29,19 @@ function OccupationSelector({
 
     return (
         <Col
+            className="d-flex flex-column"
             style={{
-                height: '350px',
-                paddingRight: '0.5rem',
-                paddingLeft: '0.5rem',
-                marginRight: '16px',
-                marginLeft: '8px',
-                overflow: 'hidden',
-                paddingTop: '5px',
+                minHeight: 0,
+                height: "100%",
+                padding: '0 0.5rem',
+                overflow: "hidden",
             }}
         >
-            <Row style={{ borderBottom: '1px solid #B7BABC' }}>
-                <Col md="4">
+            <Row style={{ borderBottom: '1px solid #B7BABC' }} className="pb-2">
+                <Col xs="12" md="4" className="mb-2 mb-md-0">
                     <label className="search-label">{Name}</label>
                 </Col>
-                <Col md="8">
+                <Col xs="12" md="8">
                     <input
                         type="text"
                         className="form-control"
@@ -56,17 +52,17 @@ function OccupationSelector({
                 </Col>
             </Row>
 
-            <DepartmentDropdown
-                departments={filteredDepartments}
-                onJobAdSelect={onJobAdSelect}
-                selectedJobAdId={selectedJobAdId}
-                // Department forwards
-                onDepartmentSelect={onDepartmentSelect}
-                selectedDepartmentId={selectedDepartmentId}
-                // Occupation forwards
-                onOccupationSelect={onOccupationSelect}
-                selectedOccupationId={selectedOccupationId}
-            />
+            <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingTop: 6 }}>
+                <DepartmentDropdown
+                    departments={filteredDepartments}
+                    onJobAdSelect={onJobAdSelect}
+                    selectedJobAdId={selectedJobAdId}
+                    onDepartmentSelect={onDepartmentSelect}
+                    selectedDepartmentId={selectedDepartmentId}
+                    onOccupationSelect={onOccupationSelect}
+                    selectedOccupationId={selectedOccupationId}
+                />
+            </div>
         </Col>
     );
 }

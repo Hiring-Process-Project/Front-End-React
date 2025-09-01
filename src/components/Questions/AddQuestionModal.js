@@ -18,8 +18,6 @@ export default function AddQuestionModal({
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
 
-    // Κάθε φορά που ανοίγει το modal (ή αλλάξουν τα steps/default),
-    // επίλεξε ΠΡΩΤΟ step ως default (ή το defaultStepId αν υπάρχει).
     useEffect(() => {
         if (!isOpen) return;
         const initial = (defaultStepId ?? options[0]?.id) ?? null;
@@ -51,17 +49,12 @@ export default function AddQuestionModal({
             const r = await fetch(`http://localhost:8087/api/v1/step/${stepId}/questions`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                // Στέλνουμε ΜΟΝΟ name (χωρίς description)
                 body: JSON.stringify({ name: name.trim() }),
             });
             if (!r.ok) throw new Error("create-question-failed");
 
             const data = await r.json().catch(() => ({}));
-            const created = {
-                id: data?.id ?? null,
-                name: data?.name ?? name.trim(),
-            };
-
+            const created = { id: data?.id ?? null, name: data?.name ?? name.trim() };
             onCreated?.({ stepId, question: created });
             toggle?.();
         } catch (err) {

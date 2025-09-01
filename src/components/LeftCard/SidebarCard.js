@@ -1,8 +1,8 @@
-// SidebarCard.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import { Card, CardBody, Col, Row, Button } from "reactstrap";
 import OccupationSelector from "./OccupationSelector";
 import CreateJobAd from "./CreateJobAd";
+import "./sidebar.css";
 
 const DEFAULT_BASE = "http://localhost:8087";
 
@@ -11,12 +11,8 @@ const SidebarCard = ({
     selectedJobAdId,
     baseUrl = DEFAULT_BASE,
     reloadKey = 0,
-
-    // Department scope (προαιρετικά)
     onDepartmentSelect,
     selectedDepartmentId = null,
-
-    // Occupation scope (προαιρετικά)
     onOccupationSelect,
     selectedOccupationId = null,
 }) => {
@@ -28,34 +24,29 @@ const SidebarCard = ({
 
     const loadDepartments = useCallback(async () => {
         try {
-            // 1) Job Ads (summary)
             const jobsRes = await fetch(`${baseUrl}/jobAds`, { cache: "no-store" });
             if (!jobsRes.ok) throw new Error("Failed to fetch job ads");
-            const jobs = await jobsRes.json(); // [{id, jobTitle, occupationName, status, departmentName}]
+            const jobs = await jobsRes.json();
 
-            // 2) Πάρε name→id για departments & occupations
             let deptNameToId = new Map();
             let occNameToId = new Map();
 
-            // Departments (names)
             try {
                 const depRes = await fetch(`${baseUrl}/api/v1/departments/names`, { cache: "no-store" });
                 if (depRes.ok) {
-                    const depList = await depRes.json(); // [{id,name}]
+                    const depList = await depRes.json();
                     deptNameToId = new Map(depList.map((d) => [d.name, d.id]));
                 }
-            } catch { /* ignore, θα μείνουν null ids */ }
+            } catch { }
 
-            // Occupations (names)
             try {
                 const occRes = await fetch(`${baseUrl}/api/v1/occupations/names`, { cache: "no-store" });
                 if (occRes.ok) {
-                    const occList = await occRes.json(); // [{id,name}]
+                    const occList = await occRes.json();
                     occNameToId = new Map(occList.map((o) => [o.name, o.id]));
                 }
-            } catch { /* ignore */ }
+            } catch { }
 
-            // 3) Grouping σε Department → Occupation → JobTitles
             const grouped = jobs.reduce((acc, item) => {
                 const deptName = item.departmentName || "Unassigned";
                 const deptId = deptNameToId.get(deptName) ?? null;
@@ -75,7 +66,6 @@ const SidebarCard = ({
                 return acc;
             }, {});
 
-            // 4) Μετατροπή σε array για το UI
             const final = Object.entries(grouped).map(([deptName, v]) => ({
                 department: deptName,
                 departmentId: v.id,
@@ -95,12 +85,10 @@ const SidebarCard = ({
         }
     }, [baseUrl]);
 
-    // Φόρτωση στην αρχή & σε reloadKey αλλαγές
     useEffect(() => {
         loadDepartments();
     }, [loadDepartments, reloadKey]);
 
-    // Refresh όταν γίνει publish/αλλαγή job ad (π.χ. από Description)
     useEffect(() => {
         const onUpdated = () => loadDepartments();
         window.addEventListener("hf:jobad-updated", onUpdated);
@@ -113,17 +101,18 @@ const SidebarCard = ({
         setIsCreateOpen(false);
     };
 
-    // Όταν επιλέγεται occupation, καθάρισε το επιλεγμένο job
     const handleOccupationSelect = (occ) => {
         onOccupationSelect?.(occ);
         onJobAdSelect?.(null);
     };
-
     return (
-        <Col md="4">
-            <Card className="shadow-sm" style={{ backgroundColor: "#F6F6F6", height: "450px" }}>
-                <CardBody>
-                    <Row>
+        <Col xs="12" md="4" className="sidebar-col">   {/* ⬅ */}
+            <Card
+                className="shadow-sm sidebar-card"  // ⬅
+                style={{ backgroundColor: "#F6F6F6" }}
+            >
+                <CardBody className="sidebar-body"> {/* ⬅ */}
+                    <Row className="sidebar-scroll">   {/* ⬅ κάνει fill + scroll περιεχόμενο */}
                         {error ? (
                             <div className="text-center" style={{ width: "100%" }}>
                                 <p>Σφάλμα φόρτωσης.</p>
@@ -137,12 +126,8 @@ const SidebarCard = ({
                                 departments={departments}
                                 onJobAdSelect={onJobAdSelect}
                                 selectedJobAdId={selectedJobAdId}
-
-                                // Department scope
                                 onDepartmentSelect={onDepartmentSelect}
                                 selectedDepartmentId={selectedDepartmentId}
-
-                                // Occupation scope
                                 onOccupationSelect={handleOccupationSelect}
                                 selectedOccupationId={selectedOccupationId}
                             />
@@ -151,9 +136,7 @@ const SidebarCard = ({
 
                     <Row className="mt-3">
                         <Col className="text-center">
-                            <Button color="secondary" onClick={toggleCreate}>
-                                Create New
-                            </Button>
+                            <Button color="secondary" onClick={toggleCreate}>Create New</Button>
                         </Col>
                     </Row>
 
@@ -167,6 +150,6 @@ const SidebarCard = ({
             </Card>
         </Col>
     );
-};
+}
 
 export default SidebarCard;

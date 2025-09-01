@@ -1,3 +1,4 @@
+// SearchSkills.jsx
 import { useState, useMemo } from 'react';
 import { Col, Row } from 'reactstrap';
 import SearchBar from '../SearchBar';
@@ -8,18 +9,11 @@ function SearchSkills({ allskills, onSkillClick }) {
 
     const filteredSkills = useMemo(() => {
         if (!searchText) return allskills;
-
         const lowerSearch = searchText.toLowerCase();
-
-        // Πρώτα όσα ξεκινούν με το query, μετά τα υπόλοιπα που περιέχουν
-        const startsWith = allskills.filter(skill =>
-            skill.toLowerCase().startsWith(lowerSearch)
+        const startsWith = allskills.filter((skill) => skill.toLowerCase().startsWith(lowerSearch));
+        const includes = allskills.filter(
+            (skill) => !skill.toLowerCase().startsWith(lowerSearch) && skill.toLowerCase().includes(lowerSearch)
         );
-        const includes = allskills.filter(skill =>
-            !skill.toLowerCase().startsWith(lowerSearch) &&
-            skill.toLowerCase().includes(lowerSearch)
-        );
-
         return [...startsWith, ...includes];
     }, [searchText, allskills]);
 
@@ -34,7 +28,7 @@ function SearchSkills({ allskills, onSkillClick }) {
             <Row>
                 <Col>
                     <div className="boxStyle" style={{ minHeight: '300px', padding: '12px', overflow: 'hidden' }}>
-                        <Col>
+                        <Col style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
                             <Row>
                                 <Col xs="3">
                                     <label className="search-label">Skills:</label>
@@ -43,8 +37,9 @@ function SearchSkills({ allskills, onSkillClick }) {
                                     <SearchBar value={searchText} onChange={setSearchText} />
                                 </Col>
                             </Row>
-                            <Row>
-                                <Col style={{ alignItems: 'center' }}>
+
+                            <Row style={{ flex: 1, minHeight: 0 }}>
+                                <Col style={{ alignItems: 'center', height: '100%', minHeight: 0, overflowY: 'auto' }}>
                                     <Skills requiredskills={filteredSkills} onSkillClick={onSkillClick} />
                                 </Col>
                             </Row>

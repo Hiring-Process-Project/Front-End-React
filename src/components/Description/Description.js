@@ -1,63 +1,60 @@
 import { Col, Row } from 'reactstrap';
+import './description.css';
 
-function JobDescription({
-    name,
-    description,
-    onDescriptionChange,
-    readOnly = false,   // 🔹 νέο prop
-    disabled = false,   // προαιρετικά: αν θες και disabled state
-}) {
-    const isLocked = readOnly || disabled;
-
+function Description({ name, description, onDescriptionChange, readOnly, disabled }) {
     return (
-        <Row>
-            <Col>
-                <Row className="mb-2" style={{ paddingLeft: '10px' }}>
+        <Row className="desc-root">
+            <Col className="desc-col">
+                <Row className="mb-2 desc-label-row">
                     <Col>
                         <label className="description-labels">{name}</label>
                     </Col>
                 </Row>
 
-                <Row>
-                    <Col>
+                <Row className="desc-content-row">
+                    <Col className="desc-content-col">
+                        {/* ⬇️ Αφήνω το boxStyle ΚΑΙ ΤΟ ΕΣΩΤΕΡΙΚΟ ΤΟΥ ατόφιο όπως ζήτησες */}
                         <div
                             className="boxStyle"
                             style={{
-                                minHeight: '370px',
+                                height: '100%',
+                                display: 'flex',
+                                flexDirection: 'column',
                                 overflow: 'hidden',
-                                padding: '10px',
-                                opacity: isLocked ? 0.85 : 1,
+                                padding: 10,
                             }}
                         >
-                            {/* ΕΣΩΤΕΡΙΚΟ λευκό πλαίσιο */}
                             <div
                                 style={{
-                                    backgroundColor: isLocked ? '#f9f9f9' : 'white',
+                                    flex: 1,
+                                    backgroundColor: 'white',
                                     border: '1px solid #ddd',
-                                    borderRadius: '8px',
-                                    padding: '10px',
-                                    minHeight: '100%',
+                                    borderRadius: 8,
+                                    padding: 10,
                                     boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                                    overflowY: 'auto', // ⬅ κάθετος scroll μέσα στο άσπρο
+                                    overflowX: 'hidden',
+                                    minHeight: 0,
                                 }}
                             >
                                 <textarea
                                     className="desc-label"
                                     value={description}
                                     placeholder="Προσθέστε περιγραφή..."
-                                    onChange={(e) => {
-                                        if (!isLocked) onDescriptionChange?.(e.target.value);
-                                    }}
-                                    readOnly={isLocked}        // 🔹 δεν επιτρέπει edit
-                                    disabled={disabled}         // 🔹 προαιρετικό disabled
+                                    onChange={(e) => onDescriptionChange?.(e.target.value)}
+                                    readOnly={!!readOnly}
+                                    disabled={!!disabled}
                                     style={{
+                                        display: 'block',
                                         width: '100%',
-                                        minHeight: '330px',
+                                        minHeight: 0,
+                                        height: '100%',
+                                        boxSizing: 'border-box',
                                         resize: 'none',
                                         border: 'none',
                                         outline: 'none',
                                         backgroundColor: 'transparent',
-                                        color: disabled ? '#6b7280' : 'inherit',
-                                        cursor: isLocked ? 'not-allowed' : 'text',
+                                        overflowWrap: 'anywhere',
                                     }}
                                 />
                             </div>
@@ -69,4 +66,4 @@ function JobDescription({
     );
 }
 
-export default JobDescription;
+export default Description;

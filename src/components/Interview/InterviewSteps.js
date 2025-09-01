@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import StepsDnd from "./StepsDnd";
+import "./interview.css";
 
 /**
  * Backends:
@@ -76,29 +77,19 @@ export default function InterviewSteps({
     };
 
     return (
-        <div style={{ padding: 0, overflow: "hidden" }}>
-            <div
-                style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 12,
-                    padding: "8px 10px",
-                    borderBottom: "1px solid rgb(183,186,188)",
-                }}
-            >
+        <div className="iv-no-x">
+            <div className="iv-steps-head">
                 <label className="active-label" style={{ margin: 0 }}>Steps:</label>
                 <label className="active-label" style={{ margin: 0 }}>Category:</label>
             </div>
 
-            <div style={{ padding: "8px 10px", overflow: "auto" }}>
+            <div className="iv-dnd-list">
                 <StepsDnd
                     steps={interviewsteps}
                     selectedIndex={selectedIndex ?? 0}
                     onSelect={handleSelect}
                     onReorder={onLocalReorder}
                     onApplyServerReorder={applyServerReorder}
-
-                    // αν δεν είναι editable, κόβουμε τελείως το update
                     onUpdateDescription={canEdit ? updateDescription : undefined}
                     readOnlyDescription={!canEdit}
                     showSaveButton={!!canEdit}

@@ -1,4 +1,3 @@
-// YGrid.jsx
 import React from 'react';
 import { Row, Col, Card, CardBody } from 'reactstrap';
 
@@ -56,7 +55,6 @@ export default function MyGridLayout() {
 
     const [reloadKey, setReloadKey] = React.useState(0);
 
-    // status για το επιλεγμένο Job Ad
     const [jobStatus, setJobStatus] = React.useState(null);
     const statusLabel = jobStatus ?? '—';
     const isPending = React.useMemo(() => {
@@ -77,7 +75,6 @@ export default function MyGridLayout() {
             .catch(console.error);
     }, []);
 
-    // Φέρε status όταν αλλάζει JobAd
     React.useEffect(() => {
         if (!selectedJobAdId) {
             setJobStatus(null);
@@ -99,23 +96,19 @@ export default function MyGridLayout() {
         load();
     }, [selectedJobAdId]);
 
-    // Μην αφήνεις να μείνει σε κλειδωμένα tabs όταν είναι Pending
     React.useEffect(() => {
         if (isPending && LOCKED_TABS.includes(selectedTab)) {
             setSelectedTab('description');
         }
     }, [isPending, selectedTab]);
 
-    // Ακούει publish updates (χωρίς full refetch)
     React.useEffect(() => {
         const onUpdated = (e) => {
             const { id, status } = e.detail || {};
             if (!id) return;
-            // αν αφορά το τρέχον job ad, ενημέρωσε label
             if (selectedJobAdId && Number(id) === Number(selectedJobAdId)) {
                 setJobStatus(status || 'Published');
             }
-            // bump reloadKey για να φρεσκαριστεί το SidebarCard (status badge)
             setReloadKey((k) => k + 1);
         };
         window.addEventListener('hf:jobad-updated', onUpdated);
@@ -129,23 +122,6 @@ export default function MyGridLayout() {
         setSelectedTab('description');
     };
 
-    const handleDepartmentSelect = (dept) => {
-        setSelectedDepartment(dept);
-        setSelectedOccupation(null);
-    };
-
-    const handleOccupationSelect = (occ) => {
-        setSelectedOccupation({
-            ...occ,
-            departmentId: occ.departmentId ?? selectedDepartment?.id ?? null,
-        });
-    };
-
-    const handleBackToOrganization = () => {
-        setSelectedDepartment(null);
-        setSelectedOccupation(null);
-    };
-
     const disabledTabs = isPending ? LOCKED_TABS : [];
 
     const handleSelectTab = (key) => {
@@ -153,48 +129,75 @@ export default function MyGridLayout() {
         setSelectedTab(key);
     };
 
-    const analyticsProps = {
-        orgId: 3,
-        apiBase: `${baseUrl}/api`,
-        departmentData: selectedDepartment,
-        occupationData: selectedOccupation,
-        jobAdData: selectedJobAdId ? { id: selectedJobAdId } : null,
-    };
-
     return (
-        <div>
+        // 1) Το εξωτερικό container γεμίζει 100vh και ΚΟΒΕΙ το window scroll (βοηθάει και το global CSS)
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             <Header
                 selectedTab={selectedTab}
                 setSelectedTab={handleSelectTab}
                 disabledTabs={disabledTabs}
             />
 
-            <div style={{ padding: '2rem', paddingTop: '20px' }}>
-                <Row>
+            {/* 2) Περιεχόμενο: flex:1 + minHeight:0 για να μην “σπρώχνει” ύψος */}
+            <div
+                style={{
+                    flex: 1,
+                    padding: '2rem',
+                    paddingTop: '20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: 0,
+                }}
+            >
+                {/* 3) Η Row πρέπει να μπορεί να συμπιεστεί (minHeight:0) */}
+                <Row style={{ flex: 1, minHeight: 0, width: '100%' }}>
+                    {/* Sidebar: φρόντισε στο root component του SidebarCard να έχει minHeight:0 και
+              το δικό του overflowY:'auto' αν χρειαστεί */}
                     <SidebarCard
                         onJobAdSelect={setSelectedJobAdId}
                         selectedJobAdId={selectedJobAdId}
                         reloadKey={reloadKey}
-                        // scopes
-                        onDepartmentSelect={handleDepartmentSelect}
-                        onClearOrganization={handleBackToOrganization}
+                        onDepartmentSelect={setSelectedDepartment}
+                        onClearOrganization={() => {
+                            setSelectedDepartment(null);
+                            setSelectedOccupation(null);
+                        }}
                         selectedDepartmentId={selectedDepartment?.id ?? null}
-                        onOccupationSelect={handleOccupationSelect}
+                        onOccupationSelect={setSelectedOccupation}
                         selectedOccupationId={selectedOccupation?.id ?? null}
                     />
 
-                    <Col md="8">
-                        <Card className="shadow-sm" style={{ backgroundColor: '#F6F6F6', minHeight: '450px' }}>
-                            <CardBody>
+                    {/* Δεξί panel */}
+                    <Col md="8" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                        <Card
+                            className="shadow-sm"
+                            style={{
+                                backgroundColor: '#F6F6F6',
+                                flex: 1,
+                                minHeight: 0,       // ✅ επιτρέπει στο CardBody να διαχειριστεί ύψος
+                                display: 'flex',
+                                flexDirection: 'column',
+                                overflow: 'hidden',  // ❗️ ΜΗ scroll εδώ
+                            }}
+                        >
+                            {/* 4) Το CardBody επίσης δεν κάνει scroll.
+                     Τα child components (DescriptionCard, Interview, κ.λπ.) έχουν δικό τους εσωτερικό scroll. */}
+                            <CardBody
+                                style={{
+                                    flex: 1,
+                                    minHeight: 0,
+                                    overflow: 'hidden',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                }}
+                            >
                                 {selectedTab === 'description' && (
                                     <DescriptionCard
                                         selectedJobAdId={selectedJobAdId}
                                         allskills={allskills}
                                         onDeleted={handleJobAdDeleted}
                                         onPublished={() => {
-                                            // ενημέρωσε local status…
                                             setJobStatus('Published');
-                                            // …και ενημέρωσε SidebarCard + λοιπά listeners
                                             window.dispatchEvent(
                                                 new CustomEvent('hf:jobad-updated', {
                                                     detail: { id: selectedJobAdId, status: 'Published' },
@@ -220,11 +223,7 @@ export default function MyGridLayout() {
                                     ))}
 
                                 {selectedTab === 'analytics' &&
-                                    (isPending ? (
-                                        <LockNotice statusLabel={statusLabel} />
-                                    ) : (
-                                        <Analytics {...analyticsProps} onGoToOrganization={handleBackToOrganization} />
-                                    ))}
+                                    (isPending ? <LockNotice statusLabel={statusLabel} /> : <Analytics />)}
 
                                 {selectedTab === 'hire' &&
                                     (isPending ? (
@@ -233,7 +232,6 @@ export default function MyGridLayout() {
                                         <Hire key={selectedJobAdId ?? 'no-job'} jobAdId={selectedJobAdId} />
                                     ))}
 
-                                {/* (optional) */}
                                 {selectedTab === 'result' && <Result jobAdId={selectedJobAdId} />}
                             </CardBody>
                         </Card>

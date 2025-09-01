@@ -6,16 +6,13 @@ function OccupationDropdown({
     occupations = [],
     onJobAdSelect,
     selectedJobAdId,
-
-    // NEW for occupation scope
-    onOccupationSelect, // (occ) => void
+    onOccupationSelect,
     selectedOccupationId = null,
     parentDepartmentId = null,
 }) {
     const [openIndex, setOpenIndex] = useState(null);
     const [activeJobId, setActiveJobId] = useState(() => selectedJobAdId ?? null);
 
-    // Sync επιλεγμένο job
     useEffect(() => {
         if (selectedJobAdId != null && selectedJobAdId !== activeJobId) {
             setActiveJobId(selectedJobAdId);
@@ -23,10 +20,11 @@ function OccupationDropdown({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedJobAdId]);
 
-    // Άνοιξε αυτόματα το occupation που περιέχει το επιλεγμένο Job
     const selectedOccIndex = useMemo(() => {
         if (activeJobId == null) return null;
-        const idx = occupations.findIndex((occ) => (occ?.jobTitles ?? []).some((j) => j?.id === activeJobId));
+        const idx = occupations.findIndex((occ) =>
+            (occ?.jobTitles ?? []).some((j) => j?.id === activeJobId)
+        );
         return idx >= 0 ? idx : null;
     }, [occupations, activeJobId]);
 
@@ -37,19 +35,14 @@ function OccupationDropdown({
     const handleToggle = (index, occupation) => {
         const nextOpen = openIndex === index ? null : index;
         setOpenIndex(nextOpen);
-
-        // ✨ Κάθε φορά που αλλάζεις/πατάς occupation, καθάρισε το selected job
         setActiveJobId(null);
         onJobAdSelect?.(null);
-
-        // ενημέρωσε και το occupation scope προς τα πάνω
         onOccupationSelect?.({
             id: occupation?.id ?? null,
             name: occupation?.name,
             departmentId: parentDepartmentId ?? null,
         });
     };
-
 
     const isOccActive = (occ) => {
         if (selectedOccupationId == null || !occ?.id) return false;
@@ -66,10 +59,9 @@ function OccupationDropdown({
                         block
                     >
                         <div className="occupation-header">
-                            <span style={{ color: 'black' }}>{occupation.name}</span>
+                            <span className="truncate-1" style={{ color: 'black' }}>{occupation.name}</span>
                             <span className="badge">
-                                {`${(occupation.jobTitles || []).filter((j) => j.status === 'Published').length}/${(occupation.jobTitles || []).length
-                                    }`}
+                                {`${(occupation.jobTitles || []).filter((j) => j.status === 'Published').length}/${(occupation.jobTitles || []).length}`}
                             </span>
                         </div>
                     </Button>
@@ -88,8 +80,9 @@ function OccupationDropdown({
                                             onJobAdSelect?.(job.id);
                                         }}
                                         aria-pressed={isSelected}
+                                        title={job?.title ?? ''}
                                     >
-                                        <span className="job-title-name">{job.title}</span>
+                                        <span className="job-title-name truncate-1">{job.title}</span>
                                         <span className={`status-label ${job.status?.toLowerCase?.() || 'unknown'}`}>{job.status}</span>
                                     </Button>
                                 );

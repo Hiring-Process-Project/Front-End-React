@@ -1,25 +1,25 @@
 import { Col, Row, Button } from 'reactstrap';
+import './description.css';
 
 function DescriptionButtons({ onUpdate, onPublish, onDelete, saving }) {
     return (
-        <Row className="mt-3" style={{ paddingTop: '20px', display: 'flex', gap: '10px' }}>
-            <Col md="2" className="text-center">
-                <Button color="secondary" onClick={onUpdate} disabled={saving}>
+        <Row className="mt-3 desc-buttons-row">
+            <Col xs="12" sm="4" className="desc-btn-col">
+                <Button color="secondary" onClick={onUpdate} disabled={saving} className="desc-btn-full">
                     {saving ? 'Saving…' : 'Update'}
                 </Button>
             </Col>
-            <Col md="6" className="text-center">
-                <Button color="secondary" style={{ marginLeft: '12px' }} onClick={onPublish} disabled={saving}>
+            <Col xs="12" sm="4" className="desc-btn-col">
+                <Button color="secondary" onClick={onPublish} disabled={saving} className="desc-btn-full">
                     Publish Job Ad
                 </Button>
             </Col>
-            <Col md="4" className="text-center" style={{ marginLeft: '-30px' }}>
-                <Button color="danger" style={{ marginRight: '-30px' }} onClick={onDelete} disabled={saving}>
+            <Col xs="12" sm="4" className="desc-btn-col">
+                <Button color="danger" onClick={onDelete} disabled={saving} className="desc-btn-full">
                     Delete Job Ad
                 </Button>
             </Col>
         </Row>
     );
 }
-
 export default DescriptionButtons;
