@@ -72,31 +72,31 @@ function StepHeatmap({ items = [] }) {
     // χρώμα: 0=κόκκινο → 10=πράσινο (HSL hue 0..120)
     const colorFor = (avg) => `hsl(${Math.max(0, Math.min(120, (avg / 10) * 120))} 70% 45%)`;
     return (
-        <Card className="shadow-sm h-100">
-            <CardBody>
-                <div style={{ fontWeight: 600, marginBottom: 8 }}>Step Difficulty</div>
-                <ListGroup flush>
-                    {!items?.length && <ListGroupItem className="text-muted">—</ListGroupItem>}
-                    {items?.map(s => (
-                        <ListGroupItem key={s.step} className="d-flex align-items-center justify-content-between">
-                            <span>{s.step}</span>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <div style={{
-                                    width: 120, height: 10, borderRadius: 6,
-                                    background: '#f1f3f5', overflow: 'hidden'
-                                }}>
-                                    <div style={{
-                                        width: `${(Number(s.averageScore) || 0) / 10 * 100}%`,
-                                        height: '100%', background: colorFor(Number(s.averageScore) || 0)
-                                    }} />
-                                </div>
-                                <strong>{(Number(s.averageScore) || 0).toFixed(1)}</strong>
-                            </div>
-                        </ListGroupItem>
-                    ))}
-                </ListGroup>
-            </CardBody>
-        </Card>
+        // <Card className="shadow-sm h-100">
+        //     <CardBody>
+        //         <div style={{ fontWeight: 600, marginBottom: 8 }}>Step Difficulty</div>
+        //         <ListGroup flush>
+        //             {!items?.length && <ListGroupItem className="text-muted">—</ListGroupItem>}
+        //             {items?.map(s => (
+        //                 <ListGroupItem key={s.step} className="d-flex align-items-center justify-content-between">
+        //                     <span>{s.step}</span>
+        //                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        //                         <div style={{
+        //                             width: 120, height: 10, borderRadius: 6,
+        //                             background: '#f1f3f5', overflow: 'hidden'
+        //                         }}>
+        //                             <div style={{
+        //                                 width: `${(Number(s.averageScore) || 0) / 10 * 100}%`,
+        //                                 height: '100%', background: colorFor(Number(s.averageScore) || 0)
+        //                             }} />
+        //                         </div>
+        //                         <strong>{(Number(s.averageScore) || 0).toFixed(1)}</strong>
+        //                     </div>
+        //                 </ListGroupItem>
+        //             ))}
+        //         </ListGroup>
+        //     </CardBody>
+        // </Card>
     );
 }
 
@@ -166,8 +166,9 @@ export default function DepartmentOverview({ deptId, base = '/api' }) {
             </Row>
 
             <Row className="g-3 mt-1">
-                <Col lg="6"><ScoreHistogram buckets={scoreDistribution} /></Col>
-                <Col lg="6"><StepHeatmap items={stepDifficulty} /></Col>
+                <Col lg="12">
+                    <ScoreHistogram buckets={scoreDistribution} />
+                </Col>
             </Row>
 
             <Row className="g-3 mt-1">

@@ -5,7 +5,6 @@ import { Row, Col, Card, CardBody } from 'reactstrap';
 import SidebarCard from './LeftCard/SidebarCard';
 import Header from './Header/Header';
 import Candidates from './Candidates/Candidates';
-import Result from './Result/Result';
 import Questions from './Questions/Questions';
 import Interview from './Interview/Interview';
 import DescriptionCard from './Description/DescriptionCard';

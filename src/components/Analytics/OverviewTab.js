@@ -153,7 +153,6 @@ export default function OverviewTab({ level, data, base = 'http://localhost:8087
     if (level === 'jobAd') {
         const approvalRate = val(stats.approvalRate, stats.approval_rate);
         const rejectionRate = val(stats.rejectionRate, stats.rejection_rate);
-        const hireRate = val(stats.hireRate, stats.hire_rate);
         const avgCandidateScore = val(stats.avgCandidateScore, stats.avg_score, stats.averageScore);
 
         const distribution = stats.distribution ?? stats.scoreDistribution ?? [];
@@ -182,10 +181,7 @@ export default function OverviewTab({ level, data, base = 'http://localhost:8087
                             </CardBody>
                         </Card>
                     </Col>
-                    <Col md="3">
-                        <Kpi title="Hire Rate" value={fmtPct(hireRate)} sub="Hires vs total applications" />
-                    </Col>
-                    <Col md="3">
+                    <Col md="6">
                         <Kpi title="Avg Candidate Score" value={fmt1(avgCandidateScore)} sub="0–10" />
                     </Col>
                 </Row>
@@ -239,24 +235,18 @@ export default function OverviewTab({ level, data, base = 'http://localhost:8087
     if (level === 'department') {
         const approvalRate = val(stats.approvalRate, stats.approval_rate);
         const rejectionRate = val(stats.rejectionRate, stats.rejection_rate);
-        const avgCandPerJobAd = val(stats.avgCandidatesPerJobAd, stats.candidatesPerJobAd, stats.avg_cand_per_job);
+        const avgCandPerJobAd = val(
+            stats.avgCandidatesPerJobAd,
+            stats.candidatesPerJobAd,
+            stats.avg_cand_per_job
+        );
         const distribution = stats.scoreDistribution ?? stats.distribution ?? [];
-
-        const stepAverages = (stats.stepAverages ?? stats.stepAvg ?? stats.stepDifficulty ?? []).map((s) => ({
-            label: s.step ?? s.title ?? s.name ?? '—',
-            value: val(s.avgScore, s.averageScore, s.avg_score),
-        }));
 
         const occupationDifficulty = (stats.occupationDifficulty ?? stats.occDifficulty ?? []).map((o) => ({
             label: o.occupation ?? o.title ?? o.name ?? '—',
             value: val(o.avgScore, o.averageScore, o.avg_score),
         }));
 
-        const skillDifficulty = (stats.skillDifficulty ?? stats.skillDiff ?? []).map((s) => ({
-            label: s.skill ?? s.title ?? s.name ?? '—',
-            value: val(s.avgScore, s.averageScore, s.avg_score),
-        }));
-
         return (
             <div>
                 <Row className="g-3">
@@ -272,6 +262,7 @@ export default function OverviewTab({ level, data, base = 'http://localhost:8087
                     </Col>
                 </Row>
 
+                {/* Histogram + Occupation Difficulty side-by-side */}
                 <Row className="g-3 mt-1">
                     <Col md="6">
                         <Card className="shadow-sm h-100">
@@ -280,58 +271,29 @@ export default function OverviewTab({ level, data, base = 'http://localhost:8087
                             </CardBody>
                         </Card>
                     </Col>
-                    <Col md="6">
-                        <Card className="shadow-sm h-100">
-                            <CardBody>
-                                <div style={{ fontWeight: 600, marginBottom: 8 }}>Step Averages</div>
-                                <ListGroup flush>
-                                    {stepAverages.length === 0 && <ListGroupItem className="text-muted">—</ListGroupItem>}
-                                    {stepAverages.map((s, i) => (
-                                        <ListGroupItem key={`dep-step-${i}`} className="d-flex align-items-center justify-content-between">
-                                            <span>{s.label}</span>
-                                            <strong>{fmt1(s.value)}</strong>
-                                        </ListGroupItem>
-                                    ))}
-                                </ListGroup>
-                            </CardBody>
-                        </Card>
-                    </Col>
-                </Row>
-
-                <Row className="g-3 mt-1">
                     <Col md="6">
                         <RankedList
                             title="Occupation Difficulty"
                             items={occupationDifficulty}
                         />
                     </Col>
-                    <Col md="6">
-                        <RankedList
-                            title="Skill Difficulty"
-                            items={skillDifficulty}
-                        />
-                    </Col>
                 </Row>
+
             </div>
         );
     }
 
-    /* ---------- OCCUPATION (ίδιο ύφος με segmented bar) ---------- */
+
+    /* ---------- OCCUPATION (χωρίς Step Averages & Skill Difficulty) ---------- */
     if (level === 'occupation') {
         const approvalRate = val(stats.approvalRate, stats.approval_rate);
         const rejectionRate = val(stats.rejectionRate, stats.rejection_rate);
-        const avgCandPerJobAd = val(stats.candidatesPerJobAd, stats.avgCandidatesPerJobAd, stats.avg_cand_per_job);
+        const avgCandPerJobAd = val(
+            stats.candidatesPerJobAd,
+            stats.avgCandidatesPerJobAd,
+            stats.avg_cand_per_job
+        );
         const distribution = stats.scoreDistribution ?? stats.distribution ?? [];
-
-        const stepAverages = (stats.stepAverages ?? stats.stepAvg ?? stats.stepDifficulty ?? []).map((s) => ({
-            label: s.step ?? s.title ?? s.name ?? '—',
-            value: val(s.avgScore, s.averageScore, s.avg_score),
-        }));
-
-        const skillDifficulty = (stats.skillDifficulty ?? stats.skillDiff ?? []).map((s) => ({
-            label: s.skill ?? s.title ?? s.name ?? '—',
-            value: val(s.avgScore, s.averageScore, s.avg_score),
-        }));
 
         return (
             <div>
@@ -348,6 +310,7 @@ export default function OverviewTab({ level, data, base = 'http://localhost:8087
                     </Col>
                 </Row>
 
+                {/* Μόνο histogram */}
                 <Row className="g-3 mt-1">
                     <Col md="6">
                         <Card className="shadow-sm h-100">
@@ -356,42 +319,24 @@ export default function OverviewTab({ level, data, base = 'http://localhost:8087
                             </CardBody>
                         </Card>
                     </Col>
-                    <Col md="6">
-                        <Card className="shadow-sm h-100">
-                            <CardBody>
-                                <div style={{ fontWeight: 600, marginBottom: 8 }}>Step Averages</div>
-                                <ListGroup flush>
-                                    {stepAverages.length === 0 && <ListGroupItem className="text-muted">—</ListGroupItem>}
-                                    {stepAverages.map((s, i) => (
-                                        <ListGroupItem key={`occ-step-${i}`} className="d-flex align-items-center justify-content-between">
-                                            <span>{s.label}</span>
-                                            <strong>{fmt1(s.value)}</strong>
-                                        </ListGroupItem>
-                                    ))}
-                                </ListGroup>
-                            </CardBody>
-                        </Card>
-                    </Col>
-                </Row>
-
-                <Row className="g-3 mt-1">
-                    <Col md="12">
-                        <RankedList
-                            title="Skill Difficulty"
-                            items={skillDifficulty}
-                        />
-                    </Col>
                 </Row>
             </div>
         );
     }
 
+
     /* ---------- ORGANIZATION (καθαρό layout) ---------- */
     return (
         <div>
             <Row className="g-3">
-                <Col md="3"><Kpi title="Approval Rate" value={fmtPct(stats.approvalRate)} /></Col>
-                <Col md="3"><Kpi title="Rejection Rate" value={fmtPct(stats.rejectionRate)} /></Col>
+                <Col md="6">
+                    <Card className="shadow-sm h-100">
+                        <CardBody>
+                            {/* χρησιμοποιεί το ήδη δηλωμένο SegmentedBar πιο πάνω στο ίδιο αρχείο */}
+                            <SegmentedBar approved={stats.approvalRate} rejected={stats.rejectionRate} />
+                        </CardBody>
+                    </Card>
+                </Col>
                 <Col md="3"><Kpi title="Hire Rate" value={fmtPct(stats.hireRate)} /></Col>
                 <Col md="3"><Kpi title="Hires" value={stats.hireCount ?? stats.hires ?? '—'} /></Col>
             </Row>
@@ -403,7 +348,7 @@ export default function OverviewTab({ level, data, base = 'http://localhost:8087
                         hintLowerHarder={false}
                         items={(stats.top5Skills ?? stats.topSkills ?? []).map((s) => ({
                             label: s.skill ?? s.title ?? s.name ?? '—',
-                            value: val(s.avgScore, s.averageScore, s.avg_score),
+                            value: (s.avgScore ?? s.averageScore ?? s.avg_score),
                         }))}
                     />
                 </Col>
@@ -413,7 +358,7 @@ export default function OverviewTab({ level, data, base = 'http://localhost:8087
                         hintLowerHarder={false}
                         items={(stats.weakest5Skills ?? stats.weak5Skills ?? []).map((s) => ({
                             label: s.skill ?? s.title ?? s.name ?? '—',
-                            value: val(s.avgScore, s.averageScore, s.avg_score),
+                            value: (s.avgScore ?? s.averageScore ?? s.avg_score),
                         }))}
                     />
                 </Col>

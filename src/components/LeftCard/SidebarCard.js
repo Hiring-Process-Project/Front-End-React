@@ -129,6 +129,16 @@ const SidebarCard = ({
         setIsCreateOpen(false);
     };
 
+    // useEffect(() => {
+    //     const onJobAdUpdated = (e) => {
+    //         // κάθε φορά που έρχεται ενημέρωση, ξαναφόρτωσε τη λίστα
+    //         loadDepartments();
+    //     };
+    //     window.addEventListener("hf:jobad-updated", onJobAdUpdated);
+    //     return () => window.removeEventListener("hf:jobad-updated", onJobAdUpdated);
+    // }, []);
+
+
     return (
         <Col md="4">
             <Card className="shadow-sm" style={{ backgroundColor: "#F6F6F6", height: "450px" }}>

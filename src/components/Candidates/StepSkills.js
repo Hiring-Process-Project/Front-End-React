@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Button, Input } from "reactstrap";
 
-const API_BASE =
-    process.env.REACT_APP_API_BASE || "http://localhost:8087";
+const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8087";
 
 /** Μικρό toast χωρίς libs */
 function TinyToast({ show, text, type = "info", onHide }) {
@@ -23,9 +22,10 @@ function TinyToast({ show, text, type = "info", onHide }) {
             style={{
                 position: "fixed", right: 16, bottom: 16,
                 background: bg, color: "#fff",
-                padding: "10px 14px", borderRadius: 10,
+                padding: "6px 8px",
+                borderRadius: 8,
                 boxShadow: "0 6px 16px rgba(0,0,0,0.25)", zIndex: 9999,
-                fontWeight: 600
+                fontWeight: 600, fontSize: 11
             }}
             role="status" aria-live="polite"
         >
@@ -34,50 +34,39 @@ function TinyToast({ show, text, type = "info", onHide }) {
     );
 }
 
-/* ===== drafts σε localStorage για μονιμότητα (χρησιμοποιούνται ΜΟΝΟ σε edit mode) ===== */
-const DRAFT_NS = "hf_skill_drafts";
-
-function makePairKey(candidateId, questionId) {
-    return `cand:${candidateId}|q:${questionId}`;
-}
-function readDrafts(candidateId, questionId) {
-    try {
-        const raw = localStorage.getItem(DRAFT_NS);
-        if (!raw) return {};
-        const all = JSON.parse(raw);
-        return all[makePairKey(candidateId, questionId)] || {};
-    } catch { return {}; }
-}
-function writeDrafts(candidateId, questionId, draftsObj) {
-    try {
-        const raw = localStorage.getItem(DRAFT_NS);
-        const all = raw ? JSON.parse(raw) : {};
-        all[makePairKey(candidateId, questionId)] = draftsObj;
-        localStorage.setItem(DRAFT_NS, JSON.stringify(all));
-    } catch { }
-}
-
-const normScore = (v) => (v === "" || v === null || typeof v === "undefined" ? "" : Number(v));
+const normScore = (v) =>
+    (v === "" || v === null || typeof v === "undefined" ? "" : Number(v));
 const normText = (s) => (s ?? "");
 function valuesEqual(a, b) {
     return normScore(a.score) === normScore(b.score)
         && normText(a.comment) === normText(b.comment);
 }
 
+/* ---------- κοινά στυλ για ίδια εμφάνιση/πλάτος ---------- */
+const BOX_BG = "#F6F6F6";
+const fullWidthBox = {
+    border: "1px solid #e5e7eb",
+    background: BOX_BG,
+    borderRadius: 12,
+    padding: "10px 12px",
+    boxShadow: "0 3px 10px rgba(0,0,0,0.05)",
+    margin: "0 -10px 2px -10px",
+    fontSize: 11,
+};
+
 /**
  * Props:
  *  - step: { name, skills: [{id, name}], context?: { candidateId, questionId } }
- *  - mode: "edit" | "view"  (default: "edit")
+ *  - mode: "edit" | "view"
  */
-export default function StepSkills({ step, mode = "edit" }) {
+export default function StepSkills({ step, mode = "edit", onAfterSave }) {
     const skills = Array.isArray(step?.skills) ? step.skills : [];
     const candidateId = step?.context?.candidateId ?? null;
     const questionId = step?.context?.questionId ?? null;
 
     const readOnly = mode !== "edit";
-    const useDrafts = !readOnly; // ΣΤΟ HIRE (view) δεν χρησιμοποιούμε drafts
 
-    // { [skillId]: { score, comment, dirty, exists } }
+    // rows: { [skillId]: { score, comment, dirty, exists } }
     const [rows, setRows] = useState({});
     const [loading, setLoading] = useState(false);
 
@@ -86,86 +75,89 @@ export default function StepSkills({ step, mode = "edit" }) {
     const showToast = (text, type = "info") => setToast({ show: true, text, type });
     const hideToast = () => setToast((t) => ({ ...t, show: false }));
 
-    // Φόρτωση από backend + (αν είμαστε σε edit) overlay drafts από localStorage
+    /** GET από ΒΔ – χρησιμοποιείται και μετά από Save */
+    const fetchEvaluations = useCallback(async () => {
+        if (!candidateId || !questionId) {
+            setRows({});
+            return;
+        }
+        setLoading(true);
+        try {
+            const url = `${API_BASE}/api/v1/skill-scores/candidate/${candidateId}/question/${questionId}`;
+            const r = await fetch(url);
+            const data = r.ok ? await r.json() : [];
+
+            const byId = new Map(
+                (Array.isArray(data) ? data : []).map((e) => [
+                    e.skillId,
+                    {
+                        score: Number.isFinite(e.score) ? e.score : "",
+                        comment: e.comment || "",
+                        exists: true,
+                        dirty: false,
+                    },
+                ])
+            );
+
+            const next = {};
+            for (const s of skills) {
+                next[s.id] = byId.get(s.id) ?? { score: "", comment: "", exists: false, dirty: false };
+            }
+            setRows(next);
+        } catch {
+            // σε αποτυχία δεν αδειάζουμε ό,τι φαίνεται
+        } finally {
+            setLoading(false);
+        }
+    }, [candidateId, questionId, skills]);
+
+    // Κάθε φορά που αλλάζει candidate/question/skills → φόρτωσε ΜΟΝΟ ΒΔ
     useEffect(() => {
         if (!candidateId || !questionId) {
             setRows({});
             return;
         }
-        let ignore = false;
-        (async () => {
-            try {
-                setLoading(true);
+        fetchEvaluations();
+    }, [candidateId, questionId, skills.map(s => s.id).join(","), fetchEvaluations]);
 
-                // 1) από backend
-                const url = `${API_BASE}/api/v1/candidates/${candidateId}/questions/${questionId}/evaluations`;
-                const r = await fetch(url);
-                const data = r.ok ? await r.json() : [];
-                const byId = new Map(
-                    (Array.isArray(data) ? data : []).map((e) => [
-                        e.skillId,
-                        {
-                            score: Number.isFinite(e.score) ? e.score : "",
-                            comment: e.comment || "",
-                            exists: true,
-                            dirty: false,
-                        },
-                    ])
-                );
-
-                let next = {};
-                if (useDrafts) {
-                    // 2) overlay με drafts (edit mode)
-                    const drafts = readDrafts(candidateId, questionId);
-                    for (const s of skills) {
-                        const base = byId.get(s.id) ?? { score: "", comment: "", exists: false, dirty: false };
-                        const draft = drafts[String(s.id)];
-                        if (draft) {
-                            const merged = { ...base, ...draft };
-                            next[s.id] = { ...merged, dirty: !valuesEqual(merged, base) };
-                        } else {
-                            next[s.id] = base;
-                        }
-                    }
-                } else {
-                    // view mode: δείξε ΜΟΝΟ τα της βάσης
-                    for (const s of skills) {
-                        next[s.id] = byId.get(s.id) ?? { score: "", comment: "", exists: false, dirty: false };
-                    }
-                }
-
-                if (!ignore) setRows(next);
-            } catch {
-                if (!ignore) setRows({});
-            } finally {
-                if (!ignore) setLoading(false);
-            }
-        })();
-        return () => { ignore = true; };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [candidateId, questionId, skills.map((s) => s.id).join(","), useDrafts]);
-
-    // === Edit mode: ενημέρωση drafts ===
-    const upsertDraft = (skillId, patch) => {
+    // Επεξεργασία (τοπικά, χωρίς αποθήκευση μέχρι να πατηθεί Save)
+    const upsertLocal = (skillId, patch) => {
         setRows((prev) => {
             const cur = prev[skillId] || { score: "", comment: "", dirty: false, exists: false };
             const merged = { ...cur, ...patch, dirty: true };
-            const drafts = readDrafts(candidateId, questionId);
-            drafts[String(skillId)] = { score: merged.score, comment: merged.comment };
-            writeDrafts(candidateId, questionId, drafts);
             return { ...prev, [skillId]: merged };
         });
     };
-    const handleChangeScore = (skillId, val) => upsertDraft(skillId, { score: val === "" ? "" : Number(val) });
-    const handleChangeComment = (skillId, val) => upsertDraft(skillId, { comment: val });
 
-    const hasSomethingToSave = useMemo(() => Object.values(rows).some((r) => r?.dirty), [rows]);
+    // clamp 0..100
+    const handleChangeScore = (skillId, val) => {
+        if (val === "" || val === null || typeof val === "undefined") {
+            upsertLocal(skillId, { score: "" });
+            return;
+        }
+        let num = Number(val);
+        if (!Number.isFinite(num)) num = "";
+        else {
+            if (num > 100) num = 100;
+            if (num < 0) num = 0;
+        }
+        upsertLocal(skillId, { score: num });
+    };
+    const handleChangeComment = (skillId, val) => upsertLocal(skillId, { comment: val });
 
+    const hasSomethingToSave = useMemo(
+        () => Object.values(rows).some((r) => r?.dirty),
+        [rows]
+    );
+
+    // === ΜΟΝΗ ΑΛΛΑΓΗ: απαιτούμε κάθε dirty row να έχει score 0..100 (όχι μόνο σχόλιο)
     const allDirtyValid = useMemo(() => {
         const dirty = Object.values(rows).filter((r) => r?.dirty);
         if (dirty.length === 0) return false;
         for (const r of dirty) {
-            if (r.score === "" || r.score === null || typeof r.score === "undefined") continue;
+            if (r.score === "" || r.score === null || typeof r.score === "undefined") {
+                return false; // μόνο σχόλιο → όχι Save
+            }
             const sc = Number(r.score);
             if (!Number.isFinite(sc) || sc < 0 || sc > 100) return false;
         }
@@ -177,23 +169,23 @@ export default function StepSkills({ step, mode = "edit" }) {
         if (!hasSomethingToSave || !allDirtyValid) return;
 
         setLoading(true);
-        let anyCreated = false;
-        let anyUpdated = false;
-        let anyError = false;
+
+        // Για το μήνυμα: τι είναι create vs update με βάση την πρότερη κατάσταση
+        const dirtyEntries = Object.entries(rows).filter(([, v]) => v?.dirty === true);
+        const toCreate = dirtyEntries.filter(([, v]) => !v.exists);
+        const toUpdate = dirtyEntries.filter(([, v]) => v.exists);
 
         try {
-            const entries = Object.entries(rows).filter(([, v]) => v?.dirty === true);
-
-            for (const [skillId, v] of entries) {
+            for (const [skillId, v] of dirtyEntries) {
                 const payloadScore =
                     v.score === "" || v.score === null || typeof v.score === "undefined"
                         ? null
                         : Number(v.score);
+
                 if (
                     payloadScore !== null &&
                     (!Number.isFinite(payloadScore) || payloadScore < 0 || payloadScore > 100)
                 ) {
-                    anyError = true;
                     continue;
                 }
 
@@ -212,73 +204,54 @@ export default function StepSkills({ step, mode = "edit" }) {
                 });
 
                 if (!resp.ok) {
-                    anyError = true;
+                    // αν κάποιο αποτύχει, δεν αλλάζουμε οπτικά τίποτα – απλώς θα μείνει dirty
                     continue;
                 }
-
-                if (!v.exists) anyCreated = true;
-                else anyUpdated = true;
             }
 
-            // Μετά το save: κρατάμε τις τιμές, μη‑dirty, και τις περνάμε στα drafts (edit mode)
-            setRows((prev) => {
-                const next = {};
-                if (useDrafts) {
-                    const drafts = readDrafts(candidateId, questionId);
-                    for (const [k, v] of Object.entries(prev)) {
-                        if (!v) continue;
-                        const clean = { ...v, dirty: false, exists: true };
-                        next[k] = clean;
-                        drafts[String(k)] = { score: clean.score, comment: clean.comment };
-                    }
-                    writeDrafts(candidateId, questionId, drafts);
-                } else {
-                    for (const [k, v] of Object.entries(prev)) {
-                        if (!v) continue;
-                        next[k] = { ...v, dirty: false, exists: true };
-                    }
-                }
-                return next;
-            });
+            // Μετά το save: κάνε re-fetch από ΒΔ και ΠΡΟΒΑΛΕ ΜΟΝΟ ΤΑ ΑΠΟΘΗΚΕΥΜΕΝΑ
+            await fetchEvaluations();
 
-            if (anyError) showToast("Some items failed to save", "error");
-            else if (anyUpdated && anyCreated) showToast("Saved & modified", "success");
-            else if (anyUpdated) showToast("Modified", "success");
-            else if (anyCreated) showToast("Saved", "success");
+            // Toast policy
+            if (toCreate.length > 0 && toUpdate.length === 0) {
+                showToast("Saved", "success");
+            } else {
+                showToast("Modified", "success");
+            }
         } catch {
             showToast("Save failed", "error");
         } finally {
             setLoading(false);
         }
+        try {
+            onAfterSave?.({
+                candidateId,
+                questionId,
+                stepId: step?.context?.stepId ?? null,
+                totalSkills: skills.length,
+            });
+        } catch { }
     };
 
     // ====== Placeholder όταν δεν υπάρχουν skills ======
     const showPlaceholder = skills.length === 0;
     const placeholderText = readOnly
-        ? "Select a skill to see the evaluation…"
+        ? "Select a question to see skills evaluation…"
         : "Select a skill to make an evaluation…";
 
     if (showPlaceholder) {
         return (
-            <div style={{ background: "#e5e7eb", borderRadius: 12, padding: 12, minHeight: 220 }}>
-                <div style={{ fontWeight: 700, marginBottom: 8, color: "#374151" }}>
-                    {step?.name || "—"}
-                </div>
-                <div
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        height: 160,
-                        border: "1px dashed #cbd5e1",
-                        borderRadius: 10,
-                        background: "#f8fafc",
-                        color: "#64748b",
-                        fontWeight: 600
-                    }}
-                >
+            <div style={{ background: "#e5e7eb", borderRadius: 12, padding: 10 }}>
+                {step?.name && (
+                    <div style={{ fontWeight: 600, fontSize: 11, marginBottom: 6, color: "#374151" }}>
+                        {step.name}
+                    </div>
+                )}
+
+                <div style={fullWidthBox}>
                     {placeholderText}
                 </div>
+
                 <TinyToast show={toast.show} text={toast.text} type={toast.type} onHide={hideToast} />
             </div>
         );
@@ -286,35 +259,36 @@ export default function StepSkills({ step, mode = "edit" }) {
 
     // ====== Κανονικό UI ======
     return (
-        <div style={{ background: "#e5e7eb", borderRadius: 12, padding: 12, minHeight: 220 }}>
-            <div style={{ fontWeight: 700, marginBottom: 8, color: "#374151" }}>
-                {step?.name || "—"}
-            </div>
+        <div
+            style={{
+                background: "#e5e7eb",
+                borderRadius: 12,
+                padding: 10,
+                fontSize: 11,
+            }}
+        >
+            {step?.name && (
+                <div style={{ fontWeight: 600, fontSize: 11, marginBottom: 6, color: "#374151" }}>
+                    {step.name}
+                </div>
+            )}
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {skills.map((s) => {
                     const row = rows[s.id] || { score: "", comment: "", dirty: false, exists: false };
 
-                    // ===== VIEW (HIRE): καθαρή ανάγνωση χωρίς inputs =====
+                    // ===== VIEW =====
                     if (readOnly) {
                         return (
-                            <div
-                                key={s.id}
-                                style={{
-                                    background: "#f3f4f6",
-                                    borderRadius: 10,
-                                    padding: 12,
-                                    border: "1px solid #e5e7eb",
-                                }}
-                            >
-                                <div style={{ fontWeight: 800, marginBottom: 8 }}>{s.name}</div>
-                                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                                    <span style={{ opacity: 0.8, minWidth: 60 }}>Score:</span>
+                            <div key={s.id} style={fullWidthBox}>
+                                <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 6 }}>{s.name}</div>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                                    <span style={{ opacity: 0.8, minWidth: 52 }}>Score:</span>
                                     <span
                                         style={{
                                             fontWeight: 700,
-                                            padding: "2px 8px",
-                                            borderRadius: 8,
+                                            padding: "1px 6px",
+                                            borderRadius: 6,
                                             background: "#e5e7eb",
                                             border: "1px solid #d1d5db",
                                         }}
@@ -328,8 +302,8 @@ export default function StepSkills({ step, mode = "edit" }) {
                                         background: "#fff",
                                         border: "1px solid #e5e7eb",
                                         borderRadius: 8,
-                                        padding: 10,
-                                        minHeight: 44,
+                                        padding: 8,
+                                        minHeight: 38,
                                         whiteSpace: "pre-wrap",
                                     }}
                                 >
@@ -339,24 +313,16 @@ export default function StepSkills({ step, mode = "edit" }) {
                         );
                     }
 
-                    // ===== EDIT (Candidates): inputs =====
+                    // ===== EDIT =====
                     return (
-                        <div
-                            key={s.id}
-                            style={{
-                                background: "#f3f4f6",
-                                borderRadius: 10,
-                                padding: 12,
-                                border: "1px solid #e5e7eb",
-                            }}
-                        >
-                            <div style={{ fontWeight: 700, marginBottom: 8 }}>{s.name}</div>
+                        <div key={s.id} style={fullWidthBox}>
+                            <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 6 }}>{s.name}</div>
 
                             <div
                                 style={{
                                     display: "grid",
-                                    gridTemplateColumns: "auto 120px",
-                                    gap: 10,
+                                    gridTemplateColumns: "auto 110px",
+                                    gap: 8,
                                     alignItems: "center",
                                     marginBottom: 8,
                                 }}
@@ -366,14 +332,16 @@ export default function StepSkills({ step, mode = "edit" }) {
                                     type="number"
                                     min={0}
                                     max={100}
+                                    step={10}
                                     placeholder="0–100"
                                     disabled={loading}
                                     value={row.score}
                                     onChange={(e) => handleChangeScore(s.id, e.target.value)}
+                                    style={{ fontSize: 11, height: 32 }}
                                 />
                             </div>
 
-                            <div style={{ marginBottom: 8 }}>Comment:</div>
+                            <div style={{ marginBottom: 6 }}>Comment:</div>
                             <Input
                                 type="textarea"
                                 rows={3}
@@ -381,21 +349,20 @@ export default function StepSkills({ step, mode = "edit" }) {
                                 value={row.comment}
                                 onChange={(e) => handleChangeComment(s.id, e.target.value)}
                                 placeholder="Write your comments..."
-                                style={{ resize: "vertical" }}
+                                style={{ resize: "vertical", fontSize: 11 }}
                             />
                         </div>
                     );
                 })}
             </div>
 
-            {/* Save μόνο σε edit mode και μόνο αν υπάρχουν skills */}
             {!readOnly && skills.length > 0 && (
-                <div style={{ display: "flex", justifyContent: "center", marginTop: 14 }}>
+                <div style={{ display: "flex", justifyContent: "center", marginTop: 10 }}>
                     <Button
                         color="success"
                         onClick={handleSave}
                         disabled={!hasSomethingToSave || !allDirtyValid || loading}
-                        style={{ minWidth: 120, height: 40 }}
+                        style={{ minWidth: 108, height: 34, fontSize: 11 }}
                     >
                         {loading ? "Saving..." : "Save"}
                     </Button>

@@ -99,6 +99,39 @@ export default function StepsTab({
 
     if (!jobAdId) return <div className="text-muted">Select a Job Ad to view steps and step analytics.</div>;
 
+    /* --- Μίνι ιστόγραμμα όπως στο JobAdOverview --- */
+    function StepScoreHistogram({ buckets = [] }) {
+        const max = Math.max(1, ...buckets.map(b => Number(b.count) || 0));
+        return (
+            <Card className="shadow-sm h-100">
+                <CardBody>
+                    <div style={{ fontWeight: 600, marginBottom: 8 }}>Score Distribution (0–100)</div>
+                    <div style={{ height: 150, display: 'flex', alignItems: 'end', gap: 8, padding: '8px 4px' }}>
+                        {buckets.map((b, i) => {
+                            const h = ((Number(b.count) || 0) / max) * 100;
+                            const label = b.range || `${b.from}–${b.to}`;
+                            return (
+                                <div key={b.from ?? i}
+                                    style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                                    <div style={{ width: '100%', height: 120, display: 'flex', alignItems: 'end' }}>
+                                        <div style={{
+                                            width: '100%', height: `${h}%`, background: '#e9ecef',
+                                            borderRadius: 4, boxShadow: 'inset 0 0 1px rgba(0,0,0,.15)'
+                                        }} />
+                                    </div>
+                                    <div style={{ fontSize: 10, whiteSpace: 'nowrap' }}>{label}</div>
+                                </div>
+                            );
+                        })}
+                        {(!buckets || buckets.length === 0) && (
+                            <div className="text-muted" style={{ fontSize: 12 }}>—</div>
+                        )}
+                    </div>
+                </CardBody>
+            </Card>
+        );
+    }
+
     return (
         <Row className="g-3">
             <Col lg="4">
@@ -170,23 +203,10 @@ export default function StepsTab({
 
                                     <Row className="g-3 mt-1">
                                         <Col md="12">
-                                            <Card className="shadow-sm h-100">
-                                                <CardBody>
-                                                    <div style={{ fontWeight: 600, marginBottom: 8 }}>Score Distribution</div>
-                                                    <ListGroup flush>
-                                                        {(stats.scoreDistribution ?? []).map((b, i) => (
-                                                            <ListGroupItem key={i} className="d-flex align-items-center justify-content-between">
-                                                                <span>{b.range ?? `${b.from}-${b.to}`}</span>
-                                                                <strong>{b.count ?? b.cnt ?? 0}</strong>
-                                                            </ListGroupItem>
-                                                        ))}
-                                                        {(!stats.scoreDistribution || stats.scoreDistribution.length === 0) &&
-                                                            <ListGroupItem className="text-muted">—</ListGroupItem>}
-                                                    </ListGroup>
-                                                </CardBody>
-                                            </Card>
+                                            <StepScoreHistogram buckets={stats.scoreDistribution ?? []} />
                                         </Col>
                                     </Row>
+
 
                                     <Row className="g-3 mt-1">
                                         <Col md="6">
@@ -207,7 +227,7 @@ export default function StepsTab({
                                             </Card>
                                         </Col>
 
-                                        <Col md="6">
+                                        {/* <Col md="6">
                                             <Card className="shadow-sm h-100">
                                                 <CardBody>
                                                     <div style={{ fontWeight: 600, marginBottom: 8 }}>Skill Ranking</div>
@@ -223,7 +243,7 @@ export default function StepsTab({
                                                     </ListGroup>
                                                 </CardBody>
                                             </Card>
-                                        </Col>
+                                        </Col> */}
                                     </Row>
                                 </>
                             )}

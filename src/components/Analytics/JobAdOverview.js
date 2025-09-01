@@ -137,7 +137,6 @@ export default function JobAdOverview({ jobAdId, base = '/api' }) {
     const {
         approvalRate = 0,
         rejectionRate = 0,
-        hireRate = 0,
         avgCandidateScore = 0,
         scoreDistribution = [],
         stepAvg = [],
@@ -148,9 +147,19 @@ export default function JobAdOverview({ jobAdId, base = '/api' }) {
     return (
         <>
             <Row className="g-3">
-                <Col lg="6"><ApprovalRejection approvalRate={approvalRate} rejectionRate={rejectionRate} /></Col>
-                <Col lg="3"><Kpi title="Hire Rate" value={fmtPercent(hireRate)} sub="Hires vs total applications" /></Col>
-                <Col lg="3"><Kpi title="Avg Candidate Score" value={fmtNumber(avgCandidateScore)} sub="0–10" /></Col>
+                <Col lg="6">
+                    <ApprovalRejection
+                        approvalRate={approvalRate}
+                        rejectionRate={rejectionRate}
+                    />
+                </Col>
+                <Col lg="6">
+                    <Kpi
+                        title="Avg Candidate Score"
+                        value={fmtNumber(avgCandidateScore)}
+                        sub="0–10"
+                    />
+                </Col>
             </Row>
 
             <Row className="g-3 mt-1">

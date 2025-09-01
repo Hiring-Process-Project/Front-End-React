@@ -1,46 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Badge, Collapse } from 'reactstrap';
 import './Candidates.css';
 
+const API_BASE =
+    process.env.REACT_APP_API_BASE || 'http://localhost:8087';
+
 /**
  * Props:
- *  - steps: [
- *      {
- *        id, name,
- *        // OPTIONAL: μετρικές από backend για το step
- *        __metrics?: {
- *          totalQuestions: number,
- *          ratedQuestions: number,      // ερωτήσεις με ΟΛΑ τα skills βαθμολογημένα
- *          averageScore: number | null  // 0..100
- *        },
- *        questions: [
- *          {
- *            id, question,
- *            skills?: [{ id, name }],   // προαιρετικά (για fallback υπολογισμών)
- *            // OPTIONAL: μετρικές από backend για την ερώτηση
- *            __metrics?: {
- *              totalSkills: number,
- *              ratedSkills: number,     // πόσα skills έχουν score
- *              averageScore: number | null
- *            }
- *          }
- *        ]
- *      }
- *    ]
- *
- *  - ratings (optional): { "<StepName>::<SkillName>": { value, comment } }
- *    Χρησιμοποιείται μόνο όταν ΔΕΝ υπάρχουν μετρικές από backend.
- *
+ *  - steps: [...]
+ *  - ratings (optional): fallback only
  *  - onSelect(step, question)
  *  - showScore (default: true)
+ *  - interviewReportId (optional)
+ *  - candidateId (optional)
  */
 export default function StepsDropDown({
     steps = [],
     ratings = {},
     onSelect,
     showScore = true,
+    interviewReportId,
+    candidateId,
 }) {
     const [openIndex, setOpenIndex] = useState(null);
+
+    /** ---------- Backend metrics cache ---------- */
+    const [metricsByQ, setMetricsByQ] = useState({});
+    const allQids = (steps ?? [])
+        .flatMap(s => (s?.questions ?? []).map(q => q?.id))
+        .filter(Boolean);
+
+    // fetch metrics είτε με interviewReportId είτε (fallback) με candidateId
+    useEffect(() => {
+        const hasIds = allQids.length > 0;
+        const shouldFetch = showScore && hasIds && (interviewReportId || candidateId);
+        if (!shouldFetch) { setMetricsByQ({}); return; }
+
+        const qs = allQids.join(',');
+        const base = interviewReportId
+            ? `${API_BASE}/api/v1/question-scores/metrics-by-report?interviewReportId=${encodeURIComponent(interviewReportId)}`
+            : `${API_BASE}/api/v1/question-scores/metrics?candidateId=${encodeURIComponent(candidateId)}`;
+        const url = `${base}&questionIds=${encodeURIComponent(qs)}`;
+
+        let alive = true;
+        (async () => {
+            try {
+                const r = await fetch(url);
+                if (!r.ok) return;
+                const data = await r.json(); // [{questionId,totalSkills,ratedSkills,averageScore}]
+                if (!alive) return;
+                const map = {};
+                for (const m of data || []) {
+                    if (m && m.questionId != null) map[m.questionId] = m;
+                }
+                setMetricsByQ(map);
+            } catch {
+                // ignore
+            }
+        })();
+
+        return () => { alive = false; };
+    }, [showScore, interviewReportId, candidateId, JSON.stringify(allQids)]);
 
     /* ---------- Helpers για Fallback υπολογισμών (όταν δεν έχουμε __metrics) ---------- */
 
@@ -58,7 +78,6 @@ export default function StepsDropDown({
         const total = ids.length;
         const vals = ids.map(id => ratings[id]?.value).filter(v => Number.isFinite(v));
         const ratedCount = vals.length;
-        // Για να θεωρηθεί "rated" η ερώτηση, πρέπει να έχουν βαθμολογηθεί ΟΛΑ τα skills
         const complete = total > 0 && ratedCount === total;
 
         const avg = ratedCount > 0
@@ -73,9 +92,9 @@ export default function StepsDropDown({
         const qs = Array.isArray(step?.questions) ? step.questions : [];
         const totalQ = qs.length;
 
-        let counted = 0;     // πόσα questions έχουν avg (>= 1 skill rated)
+        let counted = 0;
         let sumAvgs = 0;
-        let fullyRatedQ = 0; // πόσα questions έχουν ΟΛΑ τα skills rated
+        let fullyRatedQ = 0;
 
         for (const q of qs) {
             const { avg, ratedCount, total, complete } = computeQuestionStatsFallback(q, step);
@@ -86,21 +105,41 @@ export default function StepsDropDown({
         const avg = counted > 0 ? Math.round(sumAvgs / counted) : null;
 
         return {
-            avg,                          // μέσος όρος από όσες έχουν τουλ. 1 βαθμό
-            ratedQuestions: fullyRatedQ,  // πλήρως βαθμολογημένες
+            avg,
+            ratedQuestions: fullyRatedQ,
             totalQuestions: totalQ
         };
     };
 
-    /* ---------- Επιλογή πηγής μετρικών (backend-first, αλλιώς fallback) ---------- */
+    /* ---------- Επιλογή πηγής μετρικών (backend-first, με merge, αλλιώς fallback) ---------- */
 
     const getQuestionMetrics = (q, step) => {
-        if (q?.__metrics) {
-            const { totalSkills = 0, ratedSkills = 0, averageScore = null } = q.__metrics || {};
-            return { total: totalSkills, ratedCount: ratedSkills, avg: averageScore, complete: totalSkills > 0 && ratedSkills === totalSkills };
-        }
-        // fallback
-        return computeQuestionStatsFallback(q, step);
+        const remote = q?.id ? metricsByQ[q.id] : null;      // από backend
+        const local = q?.__metrics || {};                   // από refreshMetrics
+
+        // total: προτίμηση στο τοπικό αν είναι >0, αλλιώς backend, αλλιώς 0
+        const total =
+            (Number.isFinite(local.totalSkills) && local.totalSkills > 0)
+                ? local.totalSkills
+                : (Number.isFinite(remote?.totalSkills) ? remote.totalSkills : 0);
+
+        // rated: μέγιστο από local/remote
+        const ratedCount = Math.max(
+            Number.isFinite(local.ratedSkills) ? local.ratedSkills : 0,
+            Number.isFinite(remote?.ratedSkills) ? remote.ratedSkills : 0
+        );
+
+        // avg: προτίμηση στο τοπικό αν υπάρχει, αλλιώς backend
+        const avg = Number.isFinite(local.averageScore)
+            ? local.averageScore
+            : (Number.isFinite(remote?.averageScore) ? remote.averageScore : null);
+
+        return {
+            total,
+            ratedCount,
+            avg,
+            complete: total > 0 && ratedCount === total,
+        };
     };
 
     const getStepMetrics = (step) => {
@@ -108,7 +147,46 @@ export default function StepsDropDown({
             const { totalQuestions = 0, ratedQuestions = 0, averageScore = null } = step.__metrics || {};
             return { totalQuestions, ratedQuestions, avg: averageScore };
         }
-        // fallback
+        // Αν έχουμε backend question metrics, συνθέτουμε step metrics από αυτά
+        const qs = Array.isArray(step?.questions) ? step.questions : [];
+        const totalQuestions = qs.length;
+        if (totalQuestions > 0 && Object.keys(metricsByQ).length > 0) {
+            let ratedQuestions = 0;
+            let sum = 0, cnt = 0;
+            // for (const q of qs) {
+            //     const m = q?.id ? metricsByQ[q.id] : null;
+            //     if (m) {
+            //         if (m.totalSkills > 0 && m.ratedSkills === m.totalSkills) ratedQuestions += 1;
+            //         if (Number.isFinite(m.averageScore)) { sum += m.averageScore; cnt += 1; }
+            //     }
+            // }
+
+            for (const q of qs) {
+                const m = q?.id ? metricsByQ[q.id] : null;
+                if (!m) continue;
+
+                // fallback: __metrics.totalSkills ή q.skills.length
+                const totalSkillsForQ =
+                    Number.isFinite(m?.totalSkills) ? m.totalSkills
+                        : Number.isFinite(q?.__metrics?.totalSkills) ? q.__metrics.totalSkills
+                            : (Array.isArray(q?.skills) ? q.skills.length : 0);
+
+                if (totalSkillsForQ > 0 &&
+                    Number.isFinite(m.ratedSkills) &&
+                    m.ratedSkills === totalSkillsForQ) {
+                    ratedQuestions += 1;
+                }
+
+                if (Number.isFinite(m.averageScore)) {
+                    sum += m.averageScore;
+                    cnt += 1;
+                }
+            }
+
+            const avg = cnt ? Math.round(sum / cnt) : null;
+            return { totalQuestions, ratedQuestions, avg };
+        }
+        // Fallback από ratings/skills
         return computeStepStatsFallback(step);
     };
 
@@ -167,12 +245,17 @@ export default function StepsDropDown({
                                     {(step.questions ?? []).map((q, i) => {
                                         const qStats = showScore ? getQuestionMetrics(q, step) : null;
 
-                                        // Προτεραιότητα στα backend metrics για counts.
-                                        const skillsCountFromMetrics = q?.__metrics?.totalSkills;
+                                        // προτεραιότητα στο backend για totalSkills, αλλιώς local __metrics
+                                        const skillsCountFromMetrics =
+                                            (q?.id && metricsByQ[q.id]?.totalSkills) ?? q?.__metrics?.totalSkills;
+
                                         const skillsCount =
                                             Number.isFinite(skillsCountFromMetrics)
                                                 ? skillsCountFromMetrics
                                                 : (q?.skills?.length ?? 0);
+
+                                        // αν qStats.total = 0, χρησιμοποίησε skillsCount σαν παρονομαστή
+                                        const denom = (qStats?.total && qStats.total > 0) ? qStats.total : skillsCount;
 
                                         return (
                                             <button
@@ -201,7 +284,7 @@ export default function StepsDropDown({
                                                             {skillsCount} skills
                                                         </span>
                                                         <span className="badge rated-badge" style={{ margin: 0 }}>
-                                                            {(qStats?.ratedCount ?? 0)}/{(qStats?.total ?? skillsCount)} rated
+                                                            {(qStats?.ratedCount ?? 0)}/{denom} rated
                                                         </span>
                                                         <span className="badge score-badge" style={{ margin: 0 }}>
                                                             {qStats?.avg != null ? `${qStats.avg}%` : '—%'}

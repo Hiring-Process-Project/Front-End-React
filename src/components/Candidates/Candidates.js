@@ -1,18 +1,77 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { Row, Col, Card, CardBody, Button } from "reactstrap";
-import CandidateDropdown from "./CandidateDropDown";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
+import { Row, Col, Card, CardBody, Button, Input } from "reactstrap";
+import CandidateListPanel from "./CandidateListPanel";
 import StepsDropDown from "./StepsDropDown";
 import StepSkills from "./StepSkills";
 import "./Candidates.css";
+import CandidateComments from "./CandidateComments";
+import ConfirmModal from "../Hire/ConfirmModal";
 
 const API_BASE =
     process.env.REACT_APP_API_BASE || "http://localhost:8087";
 
+/* ----------  banner όταν ο υποψήφιος είναι κλειδωμένος ---------- */
+function LockBanner({ status, jobAdComplete = false }) {
+    const up = String(status || "").toUpperCase();
+
+    return (
+        <div
+            style={{
+                marginTop: 6,
+                border: "1px solid #e5e7eb",
+                background: "#F6F6F6",
+                borderRadius: 12,
+                padding: "10px 12px",
+                textAlign: "center",
+                boxShadow: "0 3px 10px rgba(0,0,0,0.05)",
+                fontSize: 11,
+            }}
+            role="note"
+            aria-live="polite"
+        >
+            <div
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    color: "#334155",
+                    fontWeight: 600,
+                    marginBottom: 4,
+                }}
+            >
+                <span style={{ fontSize: 13 }} aria-hidden>🔒</span>
+                <span>Candidate Status</span>
+                {/* <span>{jobAdComplete ? "Job ad" : "Candidate status"}</span> */}
+            </div>
+
+            {/* 
+            {!jobAdComplete && (
+                <div style={{ fontWeight: 800, fontSize: 12.5, color: "#111827" }}>
+                    {up || "LOCKED"}
+                </div>
+            )} */}
+
+
+            <div style={{ fontWeight: 800, fontSize: 12.5, color: "#111827" }}>
+                {up || "LOCKED"}
+            </div>
+
+
+            <div style={{ marginTop: 4, color: "#475569", lineHeight: 1.35 }}>
+                {jobAdComplete
+                    ? "The job ad is complete. Another candidate has been hired and evaluation editing is locked."
+                    : "Scores are locked and cannot be edited."}
+            </div>
+        </div>
+    );
+}
+
 export default function Candidates({ jobAdId }) {
     // selections
     const [selectedCandidate, setSelectedCandidate] = useState(null);
-    const [selectedStep, setSelectedStep] = useState(null);
-    const [selectedQuestion, setSelectedQuestion] = useState(null);
+    const [, setSelectedStep] = useState(null);
+    const [, setSelectedQuestion] = useState(null);
 
     // data
     const [candidates, setCandidates] = useState([]);
@@ -25,6 +84,38 @@ export default function Candidates({ jobAdId }) {
     const [loadingSteps, setLoadingSteps] = useState(false);
     const [errSteps, setErrSteps] = useState(null);
     const [loadingAssess, setLoadingAssess] = useState(false);
+
+    // --- state για το modal επιβεβαίωσης (ΕΛΑΧΙΣΤΗ ΠΡΟΣΘΗΚΗ) ---
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [confirmType, setConfirmType] = useState(null); // 'APPROVED' | 'REJECTED'
+    const [confirmLoading, setConfirmLoading] = useState(false);
+
+    //candidate comments
+    const [candComment, setCandComment] = useState("");
+
+    // Κανονικοποιημένο status υποψηφίου
+    const statusUp = (selectedCandidate?.status || "").toUpperCase();
+
+    // Υπάρχει ήδη Hired σε αυτό το job ad;
+    const anyHiredInJob =
+        Array.isArray(candidates) &&
+        candidates.some(c => String(c?.status || "").toUpperCase() === "HIRED");
+
+    // Κλείδωμα που οφείλεται στο status του ίδιου του υποψηφίου
+    const lockedByCandidate = ["APPROVED", "REJECTED", "HIRED"].includes(statusUp);
+
+    // Αν το job ad έχει ήδη Hired, τότε οι PENDING κλειδώνουν επίσης
+    const lockedByJobAdPending = anyHiredInJob && statusUp === "PENDING";
+
+    // Τελικό flag για skills
+    const isLocked = !!selectedCandidate && (lockedByCandidate || lockedByJobAdPending);
+    const canEdit = !!selectedCandidate && !isLocked;
+
+    // Τελικό flag για comments – ίδιος κανόνας
+    const isCommentLocked = isLocked;
+
+    // Χρήσιμο αν θες ειδικό μήνυμα “job ad complete”
+    const jobAdCompleteLocked = !!selectedCandidate && statusUp === "PENDING" && anyHiredInJob;
 
     // reset on job change
     useEffect(() => {
@@ -58,6 +149,8 @@ export default function Candidates({ jobAdId }) {
                     email: c.email,
                     status: c.status,
                     cv: c.cvPath,
+                    interviewReportId: c?.interviewReportId ?? null,
+
                 }));
                 setCandidates(mapped);
             } catch (e) {
@@ -85,7 +178,8 @@ export default function Candidates({ jobAdId }) {
                     `${API_BASE}/jobAds/${jobAdId}/interview-details`,
                     { signal: ac.signal }
                 );
-                if (!detailsRes.ok) throw new Error("Failed to fetch interview-details");
+                if (!detailsRes.ok)
+                    throw new Error("Failed to fetch interview-details");
                 const d = await detailsRes.json();
 
                 const iid = d?.id ?? null;
@@ -162,7 +256,9 @@ export default function Candidates({ jobAdId }) {
                     })
                 );
             } catch {
-                setSteps((prev) => prev.map((s) => ({ ...s, __metrics: undefined })));
+                setSteps((prev) =>
+                    prev.map((s) => ({ ...s, __metrics: undefined }))
+                );
             } finally {
                 setLoadingAssess(false);
             }
@@ -200,6 +296,7 @@ export default function Candidates({ jobAdId }) {
                     context: {
                         candidateId: selectedCandidate?.id ?? null,
                         questionId: q.id,
+                        stepId: step?.id ?? null,
                     },
                 });
             } catch {
@@ -209,6 +306,7 @@ export default function Candidates({ jobAdId }) {
                     context: {
                         candidateId: selectedCandidate?.id ?? null,
                         questionId: q.id,
+                        stepId: step?.id ?? null,
                     },
                 });
             }
@@ -216,41 +314,167 @@ export default function Candidates({ jobAdId }) {
         [selectedCandidate?.id]
     );
 
+    // === refresh metrics after save
+    const refreshMetrics = useCallback(
+        async ({ stepId, questionId, totalSkills }) => {
+            if (!selectedCandidate?.id || !questionId) return;
+
+            try {
+                // 1) Φέρε από ΒΔ τις ΑΠΟΘΗΚΕΥΜΕΝΕΣ βαθμολογίες της ερώτησης
+                const r = await fetch(
+                    `${API_BASE}/api/v1/skill-scores/candidate/${selectedCandidate.id}/question/${questionId}`
+                );
+                const arr = r.ok ? await r.json() : [];
+
+                const scores = arr
+                    .map((x) => Number(x?.score))
+                    .filter((v) => Number.isFinite(v));
+                const ratedSkills = scores.length;
+                const avg =
+                    ratedSkills > 0
+                        ? Math.round(scores.reduce((a, b) => a + b, 0) / ratedSkills)
+                        : null;
+
+                // 2) Γράψε __metrics στο συγκεκριμένο question
+                setSteps((prev) =>
+                    prev.map((s) => {
+                        if (s.id !== stepId) return s;
+                        // 1) ενημέρωση του συγκεκριμένου question.__metrics
+                        const newQuestions = (s.questions || []).map((q) => {
+                            if ((q.id ?? q.questionId) !== questionId) return q;
+                            const total =
+                                Number.isFinite(totalSkills)
+                                    ? totalSkills
+                                    : (Array.isArray(q.skills) ? q.skills.length : 0);
+                            return {
+                                ...q,
+                                __metrics: {
+                                    totalSkills: total,
+                                    ratedSkills,
+                                    averageScore: avg,
+                                },
+                            };
+                        });
+
+                        // 2) ΑΜΕΣΟΣ τοπικός υπολογισμός των step metrics από τα newQuestions
+                        let fullyRated = 0, sum = 0, cnt = 0;
+                        for (const q of newQuestions) {
+                            const m = q.__metrics;
+                            const totalSkillsForQ = Number.isFinite(m?.totalSkills)
+                                ? m.totalSkills
+                                : (Array.isArray(q?.skills) ? q.skills.length : 0);
+                            const ratedForQ = Number.isFinite(m?.ratedSkills) ? m.ratedSkills : 0;
+                            if (totalSkillsForQ > 0 && ratedForQ === totalSkillsForQ) fullyRated += 1;
+                            if (Number.isFinite(m?.averageScore)) { sum += m.averageScore; cnt += 1; }
+                        }
+                        const localAvg = cnt ? Math.round(sum / cnt) : null;
+
+                        return {
+                            ...s,
+                            questions: newQuestions,
+                            __metrics: {
+                                totalQuestions: newQuestions.length,
+                                ratedQuestions: fullyRated,
+                                averageScore: localAvg,
+                            },
+                        };
+                    })
+                );
+
+                // 3) refresh και τα step-level metrics από ΒΔ
+                if (interviewId) {
+                    const r2 = await fetch(
+                        `${API_BASE}/api/v1/assessment/interviews/${interviewId}/candidates/${selectedCandidate.id}/steps`
+                    );
+                    if (r2.ok) {
+                        const data = await r2.json();
+                        const byId = new Map(
+                            (Array.isArray(data) ? data : []).map((a) => [a.stepId, a])
+                        );
+                        setSteps((prev) =>
+                            prev.map((s) => {
+                                const a = byId.get(s.id);
+                                return a
+                                    ? {
+                                        ...s,
+                                        __metrics: {
+                                            totalQuestions: a.totalQuestions ?? 0,
+                                            ratedQuestions: a.ratedQuestions ?? 0,
+                                            averageScore: a.averageScore ?? null,
+                                        },
+                                    }
+                                    : s;
+                            })
+                        );
+                    }
+                }
+            } catch {
+            }
+        },
+        [selectedCandidate?.id, interviewId]
+    );
+
     const rightPaneStepObj = useMemo(() => rightPane, [rightPane]);
 
-    // === Κλείδωμα επεξεργασίας με βάση status ===
-    const isLocked = !!selectedCandidate && ["APPROVED", "REJECTED"]
-        .includes((selectedCandidate.status || "").toUpperCase());
-    const canEdit = !!selectedCandidate && !isLocked;
-
-    // === Update status στη βάση + refresh τοπικού state ===
     async function updateCandidateStatus(newStatus) {
         if (!selectedCandidate) return;
         try {
+            // Μετατροπή σε Title Case για το backend
+            const backendStatus =
+                newStatus === "APPROVED" ? "Approved" :
+                    newStatus === "REJECTED" ? "Rejected" :
+                        newStatus;
+
             const resp = await fetch(
                 `${API_BASE}/api/v1/candidates/${selectedCandidate.id}/status`,
                 {
-                    method: "PUT",
+                    method: "PATCH",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ status: newStatus }),
+                    body: JSON.stringify({ status: backendStatus }),
                 }
             );
-            if (!resp.ok) throw new Error("Failed to update status");
-            // ανανέωση local state ώστε να κλειδώσει αμέσως το UI
-            setSelectedCandidate((prev) => prev ? { ...prev, status: newStatus } : prev);
-            // ανανέωση λίστας υποψηφίων
-            setCandidates((prev) =>
-                prev.map(c => c.id === selectedCandidate.id ? { ...c, status: newStatus } : c)
+
+            if (!resp.ok) {
+                const txt = await resp.text().catch(() => "");
+                throw new Error(`Failed to update status. HTTP ${resp.status} ${txt}`.trim());
+            }
+
+            // Τοπικό refresh της κατάστασης
+            setSelectedCandidate((prev) =>
+                prev ? { ...prev, status: backendStatus } : prev
             );
-            // “αγγίζουμε” τα steps
-            setSteps((prev) => [...prev]);
+
+            setCandidates((prev) =>
+                prev.map((c) =>
+                    c.id === selectedCandidate.id ? { ...c, status: backendStatus } : c
+                )
+            );
+
+            setSteps((prev) => [...prev]); // trigger re-render
         } catch (e) {
             console.error(e);
-            alert("Αποτυχία ενημέρωσης status");
+            alert(e.message || "Αποτυχία ενημέρωσης status");
         }
     }
 
-    // (προαιρετικό) καθάρισε drafts όταν κλειδώνει (χρησιμοποιούμε localStorage)
+
+    // ---  για modal Approve/Reject ---
+    const openConfirm = (type) => {
+        if (!selectedCandidate) return;
+        setConfirmType(type); // 'APPROVED' ή 'REJECTED'
+        setShowConfirm(true);
+    };
+
+    const onConfirm = async () => {
+        if (!confirmType) return;
+        setConfirmLoading(true);
+        await updateCandidateStatus(confirmType);
+        setConfirmLoading(false);
+        setShowConfirm(false);
+        setConfirmType(null);
+    };
+
+    // καθάρισε drafts όταν κλειδώνει
     useEffect(() => {
         if (!rightPane?.context || !isLocked) return;
         const { candidateId, questionId } = rightPane.context;
@@ -264,130 +488,182 @@ export default function Candidates({ jobAdId }) {
         } catch { }
     }, [isLocked, rightPane?.context]);
 
+
+    useEffect(() => {
+        if (!selectedCandidate?.id) {
+            setCandComment("");
+            return;
+        }
+        (async () => {
+            try {
+                const r = await fetch(`${API_BASE}/api/v1/candidates/${selectedCandidate.id}`);
+                const d = r.ok ? await r.json() : null;
+                setCandComment(d?.comments ?? "");
+            } catch {
+                setCandComment("");
+            }
+        })();
+    }, [selectedCandidate?.id]);
+
+    async function saveCandidateComment() {
+        if (!selectedCandidate) return;
+        try {
+            const resp = await fetch(
+                `${API_BASE}/api/v1/candidates/${selectedCandidate.id}/comments`,
+                {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ comments: candComment }),
+                }
+            );
+            if (!resp.ok) {
+                const txt = await resp.text().catch(() => "");
+                throw new Error(`Failed to save comment. HTTP ${resp.status} ${txt}`.trim());
+            }
+        } catch (e) {
+            console.error(e);
+            alert(e.message || "Αποτυχία αποθήκευσης σχολίου");
+        }
+    }
+
+    /* ---------- EARLY RETURN όταν δεν έχει επιλεγεί Job Ad ---------- */
+    if (!jobAdId) {
+        return (
+            <Row>
+                <Col md="12">
+                    <CardBody>Select a job ad to view its candidates.</CardBody>
+                </Col>
+            </Row>
+        );
+    }
+
+    /* ---------- Κανονικό layout όταν υπάρχει Job Ad ---------- */
     return (
-        <Row>
-            {/* LEFT: candidates */}
-            <Col md="4" className="d-flex flex-column align-items-stretch">
-                <Card className="panel">
-                    <CardBody>
-                        <Row className="panel__header-row">
-                            <Col md="4">
-                                <label className="active-label">Candidate No:</label>
-                            </Col>
-                            <Col md="4">
-                                <label className="active-label">Name:</label>
-                            </Col>
-                            <Col md="4">
-                                <label className="active-label">Status:</label>
-                            </Col>
-                        </Row>
+        <>
+            <Row>
+                {/* LEFT: candidates */}
+                <CandidateListPanel
+                    loadingCandidates={loadingCandidates}
+                    errCandidates={errCandidates}
+                    candidates={candidates}
+                    setSelectedCandidate={setSelectedCandidate}
+                    openConfirm={openConfirm}
+                    selectedCandidate={selectedCandidate}
+                    isLocked={isLocked}
+                />
 
-                        {!jobAdId ? (
-                            <div style={{ opacity: 0.7 }}>
-                                Select a job ad to view its candidates.
-                            </div>
-                        ) : loadingCandidates ? (
-                            <div>Loading candidates…</div>
-                        ) : errCandidates ? (
-                            <div style={{ color: "crimson" }}>Error: {errCandidates}</div>
-                        ) : (
-                            <CandidateDropdown
-                                candidates={candidates}
-                                onSelect={(cand) => {
-                                    setSelectedCandidate(cand);
-                                    setSelectedStep(null);
-                                    setSelectedQuestion(null);
-                                    setRightPane(null);
-                                }}
+                <Col md="8">
+                    <Row>
+                        {/* MIDDLE: steps */}
+                        <Col md="6">
+                            <label className="description-labels">Interview Steps:</label>
+                            <Card className="panel panel--short">
+                                <CardBody>
+                                    {loadingSteps ? (
+                                        <div>Loading steps…</div>
+                                    ) : errSteps ? (
+                                        <div style={{ color: "crimson" }}>Error: {errSteps}</div>
+                                    ) : selectedCandidate ? (
+                                        <StepsDropDown
+                                            steps={steps}
+                                            ratings={{}}
+                                            onSelect={handleSelectQ}
+                                            showScore={true}
+                                            candidateId={selectedCandidate?.id}
+                                            interviewReportId={selectedCandidate?.interviewReportId}
+                                        />
+                                    ) : (
+                                        <div style={{ opacity: 0.6 }}>
+                                            Select a candidate to see steps…
+                                        </div>
+                                    )}
+                                    {loadingAssess && selectedCandidate && (
+                                        <div style={{ fontSize: 11, opacity: 0.7, marginTop: 8 }}>
+                                            Loading ratings…
+                                        </div>
+                                    )}
+                                </CardBody>
+                            </Card>
+                        </Col>
+
+                        {/* RIGHT: skills */}
+                        <Col md="6">
+                            <label className="description-labels">Skills for this question:</label>
+                            <Card className="panel panel--short">
+                                <CardBody>
+                                    {selectedCandidate ? (
+                                        <>
+                                            <StepSkills
+                                                step={rightPaneStepObj}
+                                                mode={canEdit ? "edit" : "view"}
+                                                onAfterSave={({ stepId, questionId, totalSkills }) =>
+                                                    // αν δεν σταλεί από StepSkills, fallback στο rightPane
+                                                    refreshMetrics({
+                                                        stepId,
+                                                        questionId,
+                                                        totalSkills:
+                                                            Number.isFinite(totalSkills)
+                                                                ? totalSkills
+                                                                : (rightPaneStepObj?.skills?.length ?? 0),
+                                                    })
+                                                }
+                                            />
+                                            {isLocked && (
+                                                <LockBanner
+                                                    status={selectedCandidate.status}
+                                                    jobAdComplete={anyHiredInJob}
+                                                />
+                                            )}
+
+                                        </>
+                                    ) : (
+                                        <div style={{ opacity: 0.6 }}>
+                                            Select a candidate to see skills…
+                                        </div>
+                                    )}
+                                </CardBody>
+                            </Card>
+                        </Col>
+                    </Row>
+                    <Row style={{ marginTop: 16 }}>
+                        <Col md="12">
+                            <label className="description-labels">Comments about the candidate:</label>
+                            {/* Αντικατάσταση με το νέο component */}
+                            <CandidateComments
+                                selectedCandidate={selectedCandidate}
+                                candComment={candComment}
+                                setCandComment={setCandComment}
+                                isCommentLocked={isCommentLocked}
+                                saveCandidateComment={saveCandidateComment}
+                                jobAdCompleteLocked={jobAdCompleteLocked}
                             />
-                        )}
-                    </CardBody>
-                </Card>
+                        </Col>
+                    </Row>
+                </Col>
+            </Row>
 
-                {/* Approve / Reject */}
-                <div
-                    style={{
-                        display: "flex",
-                        justifyContent: "center",
-                        gap: 12,
-                        marginTop: 16,
-                    }}
-                >
-                    <Button
-                        color="success"
-                        style={{ minWidth: 120, height: 40 }}
-                        disabled={!selectedCandidate || isLocked}
-                        onClick={() => updateCandidateStatus("APPROVED")}
-                    >
-                        Approve
-                    </Button>
-                    <Button
-                        color="danger"
-                        style={{ minWidth: 120, height: 40 }}
-                        disabled={!selectedCandidate || isLocked}
-                        onClick={() => updateCandidateStatus("REJECTED")}
-                    >
-                        Reject
-                    </Button>
-                </div>
-            </Col>
-
-            {/* MIDDLE: steps */}
-            <Col md="4">
-                <label className="description-labels">Interview Steps:</label>
-                <Card className="panel panel--short">
-                    <CardBody>
-                        {!jobAdId ? (
-                            <div style={{ opacity: 0.6 }}>
-                                Select a job ad to see its steps…
-                            </div>
-                        ) : loadingSteps ? (
-                            <div>Loading steps…</div>
-                        ) : errSteps ? (
-                            <div style={{ color: "crimson" }}>Error: {errSteps}</div>
-                        ) : selectedCandidate ? (
-                            <StepsDropDown
-                                steps={steps}
-                                ratings={{}}
-                                onSelect={handleSelectQ}
-                                showScore={true}
-                            />
-                        ) : (
-                            <div style={{ opacity: 0.6 }}>
-                                Select a candidate to see steps…
-                            </div>
-                        )}
-                        {loadingAssess && selectedCandidate && (
-                            <div style={{ fontSize: 12, opacity: 0.7, marginTop: 8 }}>
-                                Loading ratings…
-                            </div>
-                        )}
-                    </CardBody>
-                </Card>
-            </Col>
-
-            {/* RIGHT: skills */}
-            <Col md="4">
-                <label className="description-labels">Skills for this question:</label>
-                <Card className="panel panel--short">
-                    <CardBody>
-                        {selectedCandidate ? (
-                            <>
-                                <StepSkills step={rightPaneStepObj} mode={canEdit ? "edit" : "view"} />
-                                {isLocked && (
-                                    <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
-                                        Ο υποψήφιος είναι {String(selectedCandidate.status).toUpperCase()}. Οι βαθμολογίες έχουν κλειδώσει.
-                                    </div>
-                                )}
-                            </>
-                        ) : (
-                            <div style={{ opacity: 0.6 }}>
-                                Select a candidate to see skills…
-                            </div>
-                        )}
-                    </CardBody>
-                </Card>
-            </Col>
-        </Row>
+            {/* Modal επιβεβαίωσης (ΕΛΑΧΙΣΤΗ ΠΡΟΣΘΗΚΗ) */}
+            <ConfirmModal
+                isOpen={showConfirm}
+                title={confirmType === "REJECTED" ? "Confirm Reject" : "Confirm Approve"}
+                message={
+                    <>
+                        Do you really want to{" "}
+                        <b>{confirmType === "REJECTED" ? "Reject" : "Approve"}</b>{" "}
+                        <b>{selectedCandidate?.name}</b>? This will change the status to{" "}
+                        <b>{confirmType}</b>.
+                    </>
+                }
+                confirmText="Confirm"
+                cancelText="Cancel"
+                confirmColor={confirmType === "REJECTED" ? "danger" : "success"}
+                loading={confirmLoading}
+                onConfirm={onConfirm}
+                onCancel={() => {
+                    setShowConfirm(false);
+                    setConfirmType(null);
+                }}
+            />
+        </>
     );
 }
