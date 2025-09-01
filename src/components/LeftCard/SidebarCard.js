@@ -1,42 +1,19 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Card, CardBody, Col, Row, Button } from "reactstrap";
 import OccupationSelector from "./OccupationSelector";
 import CreateJobAd from "./CreateJobAd";
+import "./sidebar.css";
 
-const noop = () => { };
-
-// Fallbacks για τα seed data σου (αν λείπουν endpoints /departments και /occupations)
-const FALLBACK_DEPT_NAME_TO_ID = new Map([
-    ["Engineering", 4],
-    ["HR", 5],
-    ["Data Science", 6],
-]);
-
-const FALLBACK_OCC_NAME_TO_ID = new Map([
-    ["Software Engineer", 6],
-    ["HR Specialist", 7],
-    ["Data Analyst", 8],
-    ["Frontend Developer", 9],
-    ["Recruiter", 10],
-    ["Data Engineer", 11],
-    ["DevOps Engineer", 12],
-    ["Training Coordinator", 13],
-    ["Machine Learning Engineer", 14],
-]);
+const DEFAULT_BASE = "http://localhost:8087";
 
 const SidebarCard = ({
     onJobAdSelect,
     selectedJobAdId,
-    baseUrl = "http://localhost:8087",
+    baseUrl = DEFAULT_BASE,
     reloadKey = 0,
-
-    // Department scope
-    onDepartmentSelect = noop,
-    onClearOrganization = noop,   // πλέον δεν χρησιμοποιείται στο header
+    onDepartmentSelect,
     selectedDepartmentId = null,
-
-    // Occupation scope
-    onOccupationSelect = noop,
+    onOccupationSelect,
     selectedOccupationId = null,
 }) => {
     const [departments, setDepartments] = useState([]);
@@ -45,48 +22,39 @@ const SidebarCard = ({
 
     const toggleCreate = () => setIsCreateOpen((v) => !v);
 
-    const loadDepartments = async () => {
+    const loadDepartments = useCallback(async () => {
         try {
-            // 1) Φέρε ΟΛΑ τα job ads (κύρια πηγή για να γεμίσει το sidebar)
-            const jobsRes = await fetch(`${baseUrl}/jobAds`);
+            const jobsRes = await fetch(`${baseUrl}/jobAds`, { cache: "no-store" });
             if (!jobsRes.ok) throw new Error("Failed to fetch job ads");
             const jobs = await jobsRes.json();
 
-            // 2) Προσπάθησε να φέρεις departments & occupations για mapping name -> id
-            let deptNameToId = new Map(FALLBACK_DEPT_NAME_TO_ID);
-            let occNameToId = new Map(FALLBACK_OCC_NAME_TO_ID);
+            let deptNameToId = new Map();
+            let occNameToId = new Map();
 
             try {
-                const depRes = await fetch(`${baseUrl}/departments`);
+                const depRes = await fetch(`${baseUrl}/api/v1/departments/names`, { cache: "no-store" });
                 if (depRes.ok) {
-                    const depList = await depRes.json(); // [{id, name}, ...]
+                    const depList = await depRes.json();
                     deptNameToId = new Map(depList.map((d) => [d.name, d.id]));
                 }
-            } catch (ignored) { }
+            } catch { }
 
             try {
-                const occRes = await fetch(`${baseUrl}/occupations`);
+                const occRes = await fetch(`${baseUrl}/api/v1/occupations/names`, { cache: "no-store" });
                 if (occRes.ok) {
-                    const occList = await occRes.json(); // [{id, title/name}, ...]
-                    occNameToId = new Map(
-                        occList.map((o) => [(o.title ?? o.name), o.id])
-                    );
+                    const occList = await occRes.json();
+                    occNameToId = new Map(occList.map((o) => [o.name, o.id]));
                 }
-            } catch (ignored) { }
+            } catch { }
 
-            // 3) Ομαδοποίηση job ads σε Department -> Occupation -> JobTitles
             const grouped = jobs.reduce((acc, item) => {
                 const deptName = item.departmentName || "Unassigned";
-                const deptId =
-                    item.departmentId ?? deptNameToId.get(deptName) ?? null;
+                const deptId = deptNameToId.get(deptName) ?? null;
 
                 const occName = item.occupationName || "Other";
-                const occId =
-                    item.occupationId ?? occNameToId.get(occName) ?? null;
+                const occId = occNameToId.get(occName) ?? null;
 
-                if (!acc[deptName]) {
-                    acc[deptName] = { id: deptId, occupations: {} };
-                }
+                if (!acc[deptName]) acc[deptName] = { id: deptId, occupations: {} };
                 if (!acc[deptName].occupations[occName]) {
                     acc[deptName].occupations[occName] = { id: occId, jobTitles: [] };
                 }
@@ -98,7 +66,6 @@ const SidebarCard = ({
                 return acc;
             }, {});
 
-            // 4) Μετατροπή σε format για το UI
             const final = Object.entries(grouped).map(([deptName, v]) => ({
                 department: deptName,
                 departmentId: v.id,
@@ -116,12 +83,17 @@ const SidebarCard = ({
             setDepartments([]);
             setError(err);
         }
-    };
+    }, [baseUrl]);
 
     useEffect(() => {
         loadDepartments();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [reloadKey, baseUrl]);
+    }, [loadDepartments, reloadKey]);
+
+    useEffect(() => {
+        const onUpdated = () => loadDepartments();
+        window.addEventListener("hf:jobad-updated", onUpdated);
+        return () => window.removeEventListener("hf:jobad-updated", onUpdated);
+    }, [loadDepartments]);
 
     const handleCreated = async (created) => {
         await loadDepartments();
@@ -129,6 +101,7 @@ const SidebarCard = ({
         setIsCreateOpen(false);
     };
 
+<<<<<<< HEAD
     // useEffect(() => {
     //     const onJobAdUpdated = (e) => {
     //         // κάθε φορά που έρχεται ενημέρωση, ξαναφόρτωσε τη λίστα
@@ -139,14 +112,20 @@ const SidebarCard = ({
     // }, []);
 
 
+=======
+    const handleOccupationSelect = (occ) => {
+        onOccupationSelect?.(occ);
+        onJobAdSelect?.(null);
+    };
+>>>>>>> 5abcecdd1f5d9d0f92c9c425063dfa0f51f0e69b
     return (
-        <Col md="4">
-            <Card className="shadow-sm" style={{ backgroundColor: "#F6F6F6", height: "450px" }}>
-                <CardBody>
-
-                    {/* ΑΦΑΙΡΕΘΗΚΕ το header με Departments / All Org */}
-
-                    <Row>
+        <Col xs="12" md="4" className="sidebar-col">   {/* ⬅ */}
+            <Card
+                className="shadow-sm sidebar-card"  // ⬅
+                style={{ backgroundColor: "#F6F6F6" }}
+            >
+                <CardBody className="sidebar-body"> {/* ⬅ */}
+                    <Row className="sidebar-scroll">   {/* ⬅ κάνει fill + scroll περιεχόμενο */}
                         {error ? (
                             <div className="text-center" style={{ width: "100%" }}>
                                 <p>Σφάλμα φόρτωσης.</p>
@@ -156,15 +135,13 @@ const SidebarCard = ({
                             </div>
                         ) : (
                             <OccupationSelector
-                                Name="Departments"                 // εμφανίζεται σαν λεζάντα πάνω από το search (αν θες να φύγει, άλλαξέ το σε null/"" ή πείραξε το component)
+                                Name="Departments"
                                 departments={departments}
                                 onJobAdSelect={onJobAdSelect}
                                 selectedJobAdId={selectedJobAdId}
-                                // Department forwards
                                 onDepartmentSelect={onDepartmentSelect}
                                 selectedDepartmentId={selectedDepartmentId}
-                                // Occupation forwards
-                                onOccupationSelect={onOccupationSelect}
+                                onOccupationSelect={handleOccupationSelect}
                                 selectedOccupationId={selectedOccupationId}
                             />
                         )}
@@ -172,9 +149,7 @@ const SidebarCard = ({
 
                     <Row className="mt-3">
                         <Col className="text-center">
-                            <Button color="secondary" onClick={toggleCreate}>
-                                Create New
-                            </Button>
+                            <Button color="secondary" onClick={toggleCreate}>Create New</Button>
                         </Col>
                     </Row>
 
@@ -188,6 +163,6 @@ const SidebarCard = ({
             </Card>
         </Col>
     );
-};
+}
 
 export default SidebarCard;

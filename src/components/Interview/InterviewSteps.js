@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import StepsDnd from "./StepsDnd";
+import "./interview.css";
 
 /**
- * Backends που χρησιμοποιούμε:
- * - PUT  /api/v1/step/{stepId}/description         (body: { description })
- * - PATCH /api/v1/step/interviews/{interviewId}/steps/reorder  (body: { stepIds: number[] })
+ * Backends:
+ * - PUT   /api/v1/step/{stepId}/description
+ * - PATCH /api/v1/step/interviews/{interviewId}/steps/reorder
  */
 const API_STEP = "http://localhost:8087/api/v1/step";
 
@@ -15,12 +16,17 @@ export default function InterviewSteps({
     interviewId,
     reloadSteps,
     onLocalReorder,                // (from, to) => void
+    canEdit = true,                // έλεγχος editability από γονέα
 }) {
     const [internalSelectedIndex, setInternalSelectedIndex] = useState(null);
     const selectedIndex = controlledSelectedIndex ?? internalSelectedIndex;
 
     useEffect(() => {
-        if (selectedIndex != null && interviewsteps?.length > 0 && selectedIndex >= interviewsteps.length) {
+        if (
+            selectedIndex != null &&
+            interviewsteps?.length > 0 &&
+            selectedIndex >= interviewsteps.length
+        ) {
             const safe = interviewsteps.length - 1;
             setInternalSelectedIndex(safe);
             const step = interviewsteps[safe];
@@ -71,28 +77,23 @@ export default function InterviewSteps({
     };
 
     return (
-        <div style={{ padding: 0, overflow: "hidden" }}>
-            <div
-                style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 12,
-                    padding: "8px 10px",
-                    borderBottom: "1px solid rgb(183,186,188)",
-                }}
-            >
+        <div className="iv-no-x">
+            <div className="iv-steps-head">
                 <label className="active-label" style={{ margin: 0 }}>Steps:</label>
                 <label className="active-label" style={{ margin: 0 }}>Category:</label>
             </div>
 
-            <div style={{ padding: "8px 10px", overflow: "auto" }}>
+            <div className="iv-dnd-list">
                 <StepsDnd
                     steps={interviewsteps}
                     selectedIndex={selectedIndex ?? 0}
                     onSelect={handleSelect}
                     onReorder={onLocalReorder}
                     onApplyServerReorder={applyServerReorder}
-                    onUpdateDescription={updateDescription}
+                    onUpdateDescription={canEdit ? updateDescription : undefined}
+                    readOnlyDescription={!canEdit}
+                    showSaveButton={!!canEdit}
+                    dndDisabled={!canEdit}
                 />
             </div>
         </div>

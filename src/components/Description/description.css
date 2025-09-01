@@ -1,0 +1,150 @@
+/* ====== Generic flex/height helpers ====== */
+.desc-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.desc-fill {
+    flex: 1;
+    min-height: 0;
+}
+
+.desc-no-x {
+    overflow-x: hidden;
+}
+
+/* ====== Section headings ====== */
+.desc-label-row {
+    padding-left: 10px;
+}
+
+/* ====== Box wrapper (γκρι κάρτα) ====== */
+.desc-box {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* κόβει οριζόντιο */
+    padding: 10px;
+}
+
+/* ====== Inner white panel (textarea) ====== */
+.desc-panel {
+    flex: 1;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, .2);
+    overflow: hidden;
+}
+
+.desc-textarea {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+    resize: none;
+    border: none;
+    outline: none;
+    background: transparent;
+    overflow-wrap: anywhere;
+}
+
+/* ====== Lock notice ====== */
+.desc-lock {
+    padding: 8px 8px;
+    border-radius: 12px;
+    background: #E5E7EB;
+    border: 1px solid #bbb;
+    color: #374151;
+    display: flex;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, .15);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 8px;
+    min-height: 60px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.desc-lock-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #111827;
+}
+
+/* ====== Buttons row (πάντα ίδια σειρά, responsive) ====== */
+.desc-buttons-row {
+    padding-top: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+}
+
+.desc-btn-col {
+    text-align: center;
+    flex: 1 1 0;
+    min-width: 140px;
+}
+
+.desc-btn-full {
+    width: 100%;
+}
+
+/* ====== Skills (read-only) panel ====== */
+.skills-wrapper {
+    height: 100%;
+    min-height: 0;
+}
+
+.skills-box {
+    position: relative;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    padding: 10px;
+}
+
+.skills-scroll {
+    height: calc(100% - 48px);
+    /* αφήνει χώρο για το input */
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Ρίζα: γεμίζει το διαθέσιμο ύψος και επιτρέπει στα παιδιά να κάνουν σωστό scroll */
+.desc-root {
+    height: 100%;
+    min-height: 0;
+}
+
+/* Το βασικό Col: να μπορεί να “σπάει” σωστά και να τεντώνει */
+.desc-col {
+    min-width: 0;
+    height: 100%;
+}
+
+/* Πάνω σειρά με το label */
+.desc-label-row {
+    padding-left: 10px;
+}
+
+/* Η σειρά που περιέχει το boxStyle: υπολογισμένο ύψος και μηδενικό min-height για σωστό overflow */
+.desc-content-row {
+    height: calc(100% - 28px);
+    min-height: 0;
+}
+
+/* Το Col που περιέχει το boxStyle: γεμίζει, δεν επιβάλλει δικό του overflow */
+.desc-content-col {
+    height: 100%;
+    min-height: 0;
+}

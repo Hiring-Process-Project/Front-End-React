@@ -1,49 +1,36 @@
 import React, { useState, useMemo } from 'react';
 import { Badge, Input, Row, Col } from 'reactstrap';
+import './description.css';
 import './SkillSelector.css';
 
 function SkillSelectorReadOnly({ requiredskills = [] }) {
     const [searchText, setSearchText] = useState('');
-
     const filteredSkills = useMemo(() => {
         const lower = searchText.trim().toLowerCase();
-        if (!lower) return requiredskills;
-        return requiredskills.filter((skill) =>
-            (skill || '').toLowerCase().includes(lower)
-        );
+        return lower ? requiredskills.filter((s) => (s || '').toLowerCase().includes(lower)) : requiredskills;
     }, [searchText, requiredskills]);
 
     return (
-        <Row>
-            <Col>
-                <Row className="mb-2" style={{ paddingLeft: '10px' }}>
-                    <Col>
-                        <label className="description-labels">Skills:</label>
-                    </Col>
+        <Row style={{ height: '100%', minHeight: 0 }}>
+            <Col className="desc-col">
+                <Row className="mb-2 desc-label-row">
+                    <Col><label className="description-labels">Skills:</label></Col>
                 </Row>
 
-                <Row>
-                    <Col>
-                        <div
-                            className="boxStyle"
-                            style={{
-                                minHeight: '280px',
-                                overflow: 'hidden',
-                                padding: '10px',
-                            }}
-                        >
+                <Row style={{ height: 'calc(100% - 28px)', minHeight: 0 }}>
+                    <Col className="desc-col">
+                        <div className="boxStyle skills-box">
                             <Input
                                 type="text"
                                 value={searchText}
                                 onChange={(e) => setSearchText(e.target.value)}
                                 placeholder="Search within required skills..."
                             />
-
-                            <div className="selected-skills-container mt-3">
-                                {filteredSkills.length > 0 ? (
-                                    filteredSkills.map((skill, index) => (
-                                        <Badge key={index} color="info" pill className="skill-badge">
-                                            {skill}
+                            <div className="selected-skills-container mt-3 skills-scroll">
+                                {filteredSkills.length ? (
+                                    filteredSkills.map((skill, i) => (
+                                        <Badge key={i} color="info" pill className="skill-badge">
+                                            <span className="skill-badge-text" title={skill}>{skill}</span>
                                         </Badge>
                                     ))
                                 ) : (
@@ -57,5 +44,4 @@ function SkillSelectorReadOnly({ requiredskills = [] }) {
         </Row>
     );
 }
-
 export default SkillSelectorReadOnly;

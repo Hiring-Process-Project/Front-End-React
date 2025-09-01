@@ -2,6 +2,8 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Card, CardBody, Col, Row, Button } from "reactstrap";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import AddQuestionModal from "./AddQuestionModal";
+import ConfirmModal from "../Hire/ConfirmModal"; // <-- προσαρμόσε το path αν χρειάζεται
+import "./questions.css";
 
 const API = "http://localhost:8087";
 
@@ -13,7 +15,10 @@ export default function StepsTree({ selectedJobAdId, onSelectQuestion, canEdit =
     const [selectedQuestionId, setSelectedQuestionId] = useState(null);
     const [selectedQuestionStepId, setSelectedQuestionStepId] = useState(null);
 
-    // ===== Load steps for selected job ad =====
+    // confirm modal (DELETE question)
+    const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+
     useEffect(() => {
         if (!selectedJobAdId) {
             setSteps([]);
@@ -45,7 +50,6 @@ export default function StepsTree({ selectedJobAdId, onSelectQuestion, canEdit =
         })();
     }, [selectedJobAdId]);
 
-    // ===== Lazy-load questions per step (cached) =====
     const loadQuestions = useCallback(
         async (stepId) => {
             if (!stepId) return;
@@ -75,7 +79,6 @@ export default function StepsTree({ selectedJobAdId, onSelectQuestion, canEdit =
         [steps]
     );
 
-    // ===== Create / Delete =====
     const handleQuestionCreated = ({ stepId, question }) => {
         setQuestionsByStep((prev) => {
             const old = prev[stepId] || [];
@@ -86,12 +89,19 @@ export default function StepsTree({ selectedJobAdId, onSelectQuestion, canEdit =
         setSelectedQuestionStepId(stepId);
     };
 
-    const handleDeleteSelectedQuestion = async () => {
+    // --- open confirm for delete ---
+    const openDeleteConfirm = () => {
+        if (!selectedQuestionId) return;
+        setConfirmDeleteOpen(true);
+    };
+
+    // --- actual delete (confirmed) ---
+    const handleDeleteConfirmed = async () => {
         const qId = selectedQuestionId;
         const stepId = selectedQuestionStepId || openStepId;
         if (!qId || !stepId) return;
-        if (!window.confirm("Σίγουρα θέλεις να διαγράψεις αυτή την ερώτηση;")) return;
 
+        setDeleting(true);
         try {
             const r = await fetch(`${API}/api/v1/question/${qId}`, { method: "DELETE" });
             if (!r.ok) throw new Error("Failed to delete question");
@@ -102,12 +112,14 @@ export default function StepsTree({ selectedJobAdId, onSelectQuestion, canEdit =
             setSelectedQuestionId(null);
             setSelectedQuestionStepId(null);
             onSelectQuestion?.(null);
+            setConfirmDeleteOpen(false);
         } catch (e) {
             console.error(e);
+        } finally {
+            setDeleting(false);
         }
     };
 
-    // ===== DnD handlers (ONE DragDropContext for all steps) =====
     const onDragEnd = async (result) => {
         const { source, destination, draggableId } = result || {};
         if (!destination) return;
@@ -116,12 +128,10 @@ export default function StepsTree({ selectedJobAdId, onSelectQuestion, canEdit =
         const toStepId = parseInt(destination.droppableId.replace("step-", ""), 10);
         const qId = parseInt(draggableId.replace("q-", ""), 10);
 
-        // --- Same list: reorder ---
         if (fromStepId === toStepId) {
             const from = source.index;
             const to = destination.index;
 
-            // optimistic
             setQuestionsByStep((prev) => {
                 const list = [...(prev[fromStepId] || [])];
                 const [moved] = list.splice(from, 1);
@@ -150,10 +160,8 @@ export default function StepsTree({ selectedJobAdId, onSelectQuestion, canEdit =
             return;
         }
 
-        // --- Cross-step: move ---
         const toIndex = destination.index;
 
-        // optimistic
         setQuestionsByStep((prev) => {
             const src = [...(prev[fromStepId] || [])];
             const dst = [...(prev[toStepId] || [])];
@@ -180,35 +188,15 @@ export default function StepsTree({ selectedJobAdId, onSelectQuestion, canEdit =
     };
 
     return (
-        <Card className="shadow-sm h-100 flex-column" style={{ backgroundColor: "#E5E7EB" }}>
-            <CardBody
-                style={{
-                    backgroundColor: "#E5E7EB",
-                    overflowY: "auto",
-                    scrollbarGutter: "stable both-edges",
-                    paddingRight: 8,
-                    width: 300,
-                }}
-            >
+        <Card className="shadow-sm h-100 q-card q-card-bg">
+            <CardBody className="q-card-body">
                 <DragDropContext onDragEnd={onDragEnd}>
                     <Row className="g-2">
                         {steps.map((step) => {
                             const list = questionsByStep[step.id] || [];
                             return (
                                 <Col xs="12" key={step.id}>
-                                    <div
-                                        onClick={() => toggleStep(step.id)}
-                                        style={{
-                                            cursor: "pointer",
-                                            background: "#fff",
-                                            border: "1px solid #dcdcdc",
-                                            borderRadius: 10,
-                                            padding: "10px 12px",
-                                            fontWeight: 600,
-                                            width: "100%",
-                                            boxSizing: "border-box",
-                                        }}
-                                    >
+                                    <div className="q-step-header" onClick={() => toggleStep(step.id)}>
                                         {step.title || "(Untitled step)"}
                                     </div>
 
@@ -218,7 +206,7 @@ export default function StepsTree({ selectedJobAdId, onSelectQuestion, canEdit =
                                                 <div
                                                     ref={dropProvided.innerRef}
                                                     {...dropProvided.droppableProps}
-                                                    style={{ padding: "8px 12px", borderLeft: "2px solid #aaa", marginTop: 6 }}
+                                                    className="q-droppable"
                                                 >
                                                     {list.map((q, idx) => {
                                                         const label = q.name ?? q.title ?? "(untitled)";
@@ -233,49 +221,27 @@ export default function StepsTree({ selectedJobAdId, onSelectQuestion, canEdit =
                                                                 {(dragProvided, snapshot) => (
                                                                     <div
                                                                         ref={dragProvided.innerRef}
-                                                                        {...dragProvided.draggableProps}   // ⬅️ ΜΟΝΟ αυτά στο container
+                                                                        {...dragProvided.draggableProps}
                                                                         onClick={() => {
                                                                             setSelectedQuestionId(q.id);
                                                                             setSelectedQuestionStepId(step.id);
                                                                             onSelectQuestion?.(q.id);
                                                                         }}
                                                                         title={label}
-                                                                        style={{
-                                                                            background: isSelected
-                                                                                ? "#eef4ff"
-                                                                                : snapshot.isDragging
-                                                                                    ? "#f0f5ff"
-                                                                                    : "#f9f9f9",
-                                                                            border: isSelected ? "1px solid #9db7ff" : "1px solid #eee",
-                                                                            borderRadius: 8,
-                                                                            padding: "8px 10px",
-                                                                            marginBottom: 6,
-                                                                            userSelect: "none",
-                                                                            width: "100%",
-                                                                            boxSizing: "border-box",
-                                                                            minHeight: 34,
-                                                                            ...dragProvided.draggableProps.style,
-                                                                        }}
+                                                                        className={[
+                                                                            "q-draggable",
+                                                                            isSelected ? "is-selected" : "",
+                                                                            snapshot.isDragging ? "is-dragging" : ""
+                                                                        ].join(" ").trim()}
+                                                                        style={dragProvided.draggableProps.style}
                                                                     >
-                                                                        {/* row: handle + text */}
-                                                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                                                            {/* ⠿ Χερούλι: μόνο εδώ τα dragHandleProps */}
+                                                                        <div className="q-draggable-row">
                                                                             <span
                                                                                 {...dragProvided.dragHandleProps}
+                                                                                className="q-drag-handle"
                                                                                 onClick={(e) => e.stopPropagation()}
                                                                                 title={canEdit ? "Drag to reorder" : ""}
-                                                                                style={{
-                                                                                    width: 16,
-                                                                                    height: 16,
-                                                                                    display: "inline-flex",
-                                                                                    alignItems: "center",
-                                                                                    justifyContent: "center",
-                                                                                    cursor: canEdit ? "grab" : "default",
-                                                                                    opacity: 0.7,
-                                                                                    userSelect: "none",
-                                                                                }}
                                                                             >
-                                                                                {/* SVG grip (φαίνεται σε όλες τις γραμματοσειρές) */}
                                                                                 <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
                                                                                     <circle cx="3" cy="3" r="1.4"></circle>
                                                                                     <circle cx="9" cy="3" r="1.4"></circle>
@@ -284,18 +250,7 @@ export default function StepsTree({ selectedJobAdId, onSelectQuestion, canEdit =
                                                                                 </svg>
                                                                             </span>
 
-                                                                            <span
-                                                                                style={{
-                                                                                    flex: 1,
-                                                                                    whiteSpace: "nowrap",
-                                                                                    overflow: "hidden",
-                                                                                    textOverflow: "ellipsis",
-                                                                                    color: "#2b2b2b",
-                                                                                    fontSize: 14,
-                                                                                }}
-                                                                            >
-                                                                                {label}
-                                                                            </span>
+                                                                            <span className="q-question-text">{label}</span>
                                                                         </div>
                                                                     </div>
                                                                 )}
@@ -306,7 +261,7 @@ export default function StepsTree({ selectedJobAdId, onSelectQuestion, canEdit =
                                                     {dropProvided.placeholder}
 
                                                     {list.length === 0 && (
-                                                        <div style={{ fontSize: 12, opacity: 0.6, paddingLeft: 4 }}>No questions</div>
+                                                        <div className="q-empty">No questions</div>
                                                     )}
                                                 </div>
                                             )}
@@ -320,23 +275,19 @@ export default function StepsTree({ selectedJobAdId, onSelectQuestion, canEdit =
             </CardBody>
 
             {canEdit && (
-                <Row>
-                    <Col className="text-center" style={{ paddingBottom: 10 }}>
-                        <div className="d-flex justify-content-center" style={{ gap: 10 }}>
-                            <Button color="secondary" style={{ minWidth: 110, height: 36 }} onClick={() => setShowAddQuestion(true)}>
-                                Create New
-                            </Button>
-                            <Button
-                                color="danger"
-                                style={{ minWidth: 110, height: 36 }}
-                                onClick={handleDeleteSelectedQuestion}
-                                disabled={!selectedQuestionId}
-                            >
-                                Delete
-                            </Button>
-                        </div>
-                    </Col>
-                </Row>
+                <div className="q-actions">
+                    <Button color="secondary" style={{ minWidth: 110, height: 36 }} onClick={() => setShowAddQuestion(true)}>
+                        Create New
+                    </Button>
+                    <Button
+                        color="danger"
+                        style={{ minWidth: 110, height: 36 }}
+                        onClick={openDeleteConfirm}
+                        disabled={!selectedQuestionId}
+                    >
+                        Delete
+                    </Button>
+                </div>
             )}
 
             <AddQuestionModal
@@ -345,6 +296,25 @@ export default function StepsTree({ selectedJobAdId, onSelectQuestion, canEdit =
                 steps={cleanSteps}
                 defaultStepId={openStepId || cleanSteps[0]?.id}
                 onCreated={handleQuestionCreated}
+            />
+
+            {/* Confirm Delete Question */}
+            <ConfirmModal
+                isOpen={confirmDeleteOpen}
+                title="Διαγραφή ερώτησης"
+                message={
+                    <div>
+                        Θέλεις σίγουρα να διαγράψεις αυτή την ερώτηση;
+                        <br />
+                        Η ενέργεια δεν είναι αναστρέψιμη.
+                    </div>
+                }
+                confirmText="Διαγραφή"
+                cancelText="Άκυρο"
+                confirmColor="danger"
+                loading={deleting}
+                onConfirm={handleDeleteConfirmed}
+                onCancel={() => setConfirmDeleteOpen(false)}
             />
         </Card>
     );

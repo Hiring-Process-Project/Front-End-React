@@ -7,13 +7,9 @@ function DepartmentDropdown({
     departments = [],
     onJobAdSelect,
     selectedJobAdId,
-
-    // Department scope
-    onDepartmentSelect, // (dept) => void
+    onDepartmentSelect,
     selectedDepartmentId = null,
-
-    // Occupation scope
-    onOccupationSelect, // (occ) => void
+    onOccupationSelect,
     selectedOccupationId = null,
 }) {
     const [openDepartmentIndex, setOpenDepartmentIndex] = useState(null);
@@ -26,12 +22,10 @@ function DepartmentDropdown({
     };
 
     const handleDepartmentClick = (dept, index) => {
-        if (typeof onDepartmentSelect === 'function') {
-            onDepartmentSelect({
-                id: dept.departmentId ?? null,
-                name: dept.department,
-            });
-        }
+        onDepartmentSelect?.({
+            id: dept.departmentId ?? null,
+            name: dept.department,
+        });
         setOpenDepartmentIndex(openDepartmentIndex === index ? null : index);
     };
 
@@ -47,7 +41,7 @@ function DepartmentDropdown({
                             title="Select department"
                         >
                             <div className="department-header">
-                                <span>{dept.department}</span>
+                                <span className="truncate-1">{dept.department}</span>
                             </div>
                         </Button>
 
@@ -56,7 +50,6 @@ function DepartmentDropdown({
                                 occupations={dept.occupations}
                                 onJobAdSelect={onJobAdSelect}
                                 selectedJobAdId={selectedJobAdId}
-                                // Occupation forwards (+ parent dept id for convenience)
                                 parentDepartmentId={dept.departmentId ?? selectedDepartmentId ?? null}
                                 onOccupationSelect={onOccupationSelect}
                                 selectedOccupationId={selectedOccupationId}

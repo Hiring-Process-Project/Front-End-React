@@ -1,26 +1,28 @@
 /* Search bar με στρογγυλές γωνίες, ίδιο στυλ με το υπόλοιπο UI */
 .skill-selector-container input[type="text"],
 input[type="text"].form-control {
+    width: 100%;
     border-radius: 20px !important;
     padding: 10px 14px;
     font-size: 14px;
     border: 1px solid #ccc;
     outline: none;
     max-height: 30px !important;
-
+    box-sizing: border-box;
 }
 
+/* Dropdown: να μην «πετάει» οριζόντιο scroll και να μην ξεχειλίζει */
 .dropdown-suggestions {
     position: absolute;
-    background: white;
+    background: #fff;
     border: 1px solid #ccc;
     border-radius: 10px;
     z-index: 10;
-    width: auto;
+    width: min(360px, 100%);
     min-width: 150px;
-    max-width: 360px;
     max-height: 300px;
     overflow-y: auto;
+    overflow-x: hidden;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     margin-top: 5px;
     padding: 2px;
@@ -31,7 +33,9 @@ input[type="text"].form-control {
     cursor: pointer;
     font-size: 13px;
     border-bottom: 1px solid #eee;
-
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .dropdown-item-skill:hover {
@@ -45,12 +49,16 @@ input[type="text"].form-control {
     padding: 6px 10px;
 }
 
-
+/* Container για τα badges: κάθετο scroll όταν χρειαστεί, ποτέ οριζόντιο */
 .selected-skills-container {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    margin-top: 16px;
+    margin-top: 0;
+    /* ήταν 16px και δημιουργούσε «κενό» */
+    max-width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .skill-badge {
@@ -64,6 +72,8 @@ input[type="text"].form-control {
     color: black;
     font-weight: normal !important;
     height: 26px;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .badge-close {
@@ -74,4 +84,57 @@ input[type="text"].form-control {
     background: none;
     border: none;
     cursor: pointer;
+}
+
+/* Μικρά breakpoints: λίγο πιο «άνετες» γραμματοσειρές/ύψη */
+@media (max-width: 576px) {
+    .dropdown-item-skill {
+        font-size: 12px;
+    }
+
+    .skill-badge {
+        font-size: 12px;
+        height: 24px;
+    }
+}
+
+/* --- Ellipsis για badges --- */
+.skill-badge {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px;
+    max-width: 100%;
+    overflow: hidden;
+    /* επιτρέπει στο κείμενο να κόβεται */
+}
+
+.skill-badge-text {
+    flex: 1 1 auto;
+    /* γεμίζει τον διαθέσιμο χώρο */
+    min-width: 0;
+    /* ΑΠΑΡΑΙΤΗΤΟ για ellipsis μέσα σε flex */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* να μη “μαζεύει” το X */
+.badge-close {
+    flex: 0 0 auto;
+}
+
+/* --- Ellipsis για dropdown items --- */
+.dropdown-item-skill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.dropdown-item-skill-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }

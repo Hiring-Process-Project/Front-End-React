@@ -3,10 +3,10 @@ import { Col, Row, Button } from 'reactstrap';
 import StepsTree from './StepsTree';
 import Description from '../Description/Description';
 import SkillSelector from '../Description/SkillSelector';
+import './questions.css';
 
 const API = "http://localhost:8087";
 
-// helpers για status
 const normalizeStatus = (s) =>
     String(s ?? "")
         .replace(/\u00A0/g, " ")
@@ -25,11 +25,9 @@ const Questions = ({ selectedJobAdId }) => {
     const [questionDesc, setQuestionDesc] = React.useState('');
     const [selectedQuestionId, setSelectedQuestionId] = React.useState(null);
 
-    // status του job ad για lock στα actions
     const [status, setStatus] = React.useState(null);
     const canEdit = React.useMemo(() => isEditableStatus(status), [status]);
 
-    // --- όλα τα skills (για picker) ---
     React.useEffect(() => {
         fetch(`${API}/skills`)
             .then((r) => (r.ok ? r.json() : Promise.reject('Failed to fetch skills')))
@@ -42,7 +40,6 @@ const Questions = ({ selectedJobAdId }) => {
             });
     }, []);
 
-    // --- details για συγκεκριμένη ερώτηση ---
     React.useEffect(() => {
         if (!selectedQuestionId) {
             setQuestionDesc('');
@@ -62,7 +59,6 @@ const Questions = ({ selectedJobAdId }) => {
             });
     }, [selectedQuestionId]);
 
-    // --- jobAd status για lock κουμπιών ---
     React.useEffect(() => {
         if (!selectedJobAdId) {
             setStatus(null);
@@ -74,17 +70,15 @@ const Questions = ({ selectedJobAdId }) => {
             .catch(() => setStatus(null));
     }, [selectedJobAdId]);
 
-    // --- save update ---
     const handleSave = async () => {
         if (!selectedQuestionId) return;
-
         try {
             const resp = await fetch(`${API}/api/v1/question/${selectedQuestionId}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     description: questionDesc || "",
-                    skillNames: requiredSkills || []   // array από titles
+                    skillNames: requiredSkills || []
                 })
             });
             if (!resp.ok) throw new Error("update failed");
@@ -99,51 +93,52 @@ const Questions = ({ selectedJobAdId }) => {
     }
 
     return (
-        <Row className="g-3 align-items-stretch">
-            <Col md="5" className="d-flex flex-column">
-                <Row className="mb-2" style={{ paddingLeft: '10px' }}>
-                    <Col>
-                        <label className="description-labels">Choose a Step...</label>
-                    </Col>
+        <Row className="g-3 q-fill" style={{ height: '100%' }}>
+            {/* Left: Steps tree */}
+            <Col md="5" className="q-col-flex">
+                <Row className="mb-2 q-section-label">
+                    <Col><label className="description-labels">Choose a Step...</label></Col>
                 </Row>
 
-                <div className="flex-grow-1 d-flex">
+                <div className="q-fill q-no-overflow-x">
                     <StepsTree
                         selectedJobAdId={selectedJobAdId}
                         onSelectQuestion={setSelectedQuestionId}
-                        canEdit={canEdit}         // 👈 περνάμε το lock στα actions του tree
+                        canEdit={canEdit}
                     />
                 </div>
             </Col>
 
-            <Col md="7" className="d-flex flex-column">
-                <Row className="g-3 flex-grow-1">
-                    <Col md="7" className="d-flex flex-column">
-                        <Description
-                            name={'Question Description'}
-                            description={questionDesc}
-                            onDescriptionChange={(val) => setQuestionDesc(val)}
-                        />
+            {/* Right: Description + Skills */}
+            <Col md="7" className="q-col-flex">
+                <Row className="g-3 q-fill">
+                    {/* Description */}
+                    <Col md="7" className="q-col-flex">
+                        <div className="q-fill">
+                            <Description
+                                name="Question Description"
+                                description={questionDesc}
+                                onDescriptionChange={setQuestionDesc}
+                                readOnly={!canEdit}
+                            />
+                        </div>
                     </Col>
 
-                    <Col md="5" className="d-flex flex-column">
-                        <Row className="g-3 flex-grow-1">
-                            <Col className="d-flex flex-column">
-                                <SkillSelector
-                                    allskills={allSkills}
-                                    requiredskills={requiredSkills}
-                                    setRequiredskills={setRequiredSkills}
-                                />
-                            </Col>
-                        </Row>
+                    {/* Skills picker (editable) */}
+                    <Col md="5" className="q-col-flex">
+                        <div className="q-right-scroll">
+                            <SkillSelector
+                                allskills={allSkills}
+                                requiredskills={requiredSkills}
+                                setRequiredskills={setRequiredSkills}
+                            />
+                        </div>
 
-                        {/* Κουμπί Update να φαίνεται ΜΟΝΟ όταν επιτρέπεται edit */}
                         {canEdit && (
-                            <div className="mt-auto d-flex justify-content-center">
+                            <div className="d-flex justify-content-center q-mt-16">
                                 <Button
                                     color="secondary"
                                     className="delete-btn-req"
-                                    style={{ marginTop: '30px' }}
                                     onClick={handleSave}
                                     disabled={!selectedQuestionId}
                                 >

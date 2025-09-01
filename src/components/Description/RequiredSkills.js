@@ -1,3 +1,4 @@
+// RequiredSkills.jsx
 import { Col, Row, Button } from 'reactstrap';
 import Skills from './Skills';
 import './skills.css';
@@ -35,22 +36,20 @@ function RequiredSkills({ requiredskills, onSkillRemove }) {
                             overflow: 'hidden',
                             display: 'flex',
                             flexDirection: 'column',
-                            justifyContent: 'space-between'
                         }}
                     >
-                        <div>
+                        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
                             <Skills
                                 requiredskills={requiredskills}
                                 onSkillClick={handleSkillClick}
                                 selectedSkill={selectedSkill}
                             />
-
                         </div>
-                        <div className="d-flex justify-content-center">
+
+                        <div className="d-flex justify-content-center" style={{ paddingTop: 12 }}>
                             <Button
                                 color="secondary"
-                                className='delete-btn-req'
-                                style={{ marginTop: '12px' }}
+                                className="delete-btn-req"
                                 onClick={handleDelete}
                                 disabled={!selectedSkill}
                             >

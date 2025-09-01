@@ -37,7 +37,7 @@ function SkillSelector({ allskills, requiredskills, setRequiredskills }) {
     return (
         <Row>
             <Col>
-                <Row className="mb-2" style={{ paddingLeft: '10px' }}>
+                <Row className="mb-2" style={{ paddingLeft: 10 }}>
                     <Col>
                         <label className="description-labels">Skills:</label>
                     </Col>
@@ -48,11 +48,15 @@ function SkillSelector({ allskills, requiredskills, setRequiredskills }) {
                         <div
                             className="boxStyle"
                             style={{
-                                minHeight: '280px',
+                                minHeight: 280,
                                 overflow: 'hidden',
-                                padding: '10px'
+                                padding: 10,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 12,
                             }}
                         >
+                            {/* Search input (σταθερό ύψος) */}
                             <Input
                                 type="text"
                                 value={searchText}
@@ -69,44 +73,42 @@ function SkillSelector({ allskills, requiredskills, setRequiredskills }) {
                                 <div className="dropdown-suggestions">
                                     {filteredSkills.length > 0 ? (
                                         filteredSkills.map((skill, index) => {
-                                            const skillName =
-                                                typeof skill === "string" ? skill : skill?.title ?? "";
+                                            const skillName = typeof skill === "string" ? skill : skill?.title ?? "";
                                             return (
                                                 <div
                                                     key={index}
                                                     className="dropdown-item-skill"
                                                     onClick={() => handleSelect(skill)}
+                                                    title={skillName}
                                                 >
-                                                    {skillName}
+                                                    <span className="dropdown-item-skill-text">{skillName}</span>
                                                 </div>
+
                                             );
                                         })
                                     ) : (
-                                        <div className="dropdown-item-skill no-match">
-                                            No match
-                                        </div>
+                                        <div className="dropdown-item-skill no-match">No match</div>
                                     )}
                                 </div>
                             )}
 
-                            <div className="selected-skills-container mt-3">
+                            {/* Container που κάνει ΚΑΘΕΤΟ scroll αν μαζευτούν πολλά badges */}
+                            <div
+                                className="selected-skills-container"
+                                style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}
+                            >
                                 {requiredskills.map((skill, index) => {
-                                    const skillName =
-                                        typeof skill === "string" ? skill : skill?.title ?? "";
+                                    const skillName = typeof skill === "string" ? skill : skill?.title ?? "";
                                     return (
-                                        <Badge
-                                            key={index}
-                                            color="info"
-                                            pill
-                                            className="skill-badge"
-                                        >
-                                            {skillName}
+                                        <Badge key={index} color="info" pill className="skill-badge">
+                                            <span className="skill-badge-text" title={skillName}>{skillName}</span>
                                             <Button
                                                 close
                                                 className="badge-close"
                                                 onClick={() => handleRemove(skill)}
                                             />
                                         </Badge>
+
                                     );
                                 })}
                             </div>
