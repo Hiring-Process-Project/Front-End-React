@@ -1,70 +1,55 @@
-/* Γενικά helpers */
+/* ---------- Flex helpers ---------- */
 .q-col-flex {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    /* κρίσιμο για nested scrolls */
 }
 
 .q-fill {
     flex: 1;
     min-height: 0;
+    /* κρίσιμο για nested scrolls */
 }
 
 .q-no-x {
     overflow-x: hidden;
 }
 
-/* Center column wrapper: γεμίζει όλο το ύψος */
-.q-center-col {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-}
-
-.q-center-fill {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-/* Το “κουτί” των steps ΔΕΝ έχει δικό του scroll, απλά γεμίζει */
+/* ---------- Κάρτα Steps (χωρίς δικό της scroll) ---------- */
 .q-steps-card {
     background: #E5E7EB;
-    border: 1px solid #bbbbbb;
+    border: 1px solid #bbb;
     border-radius: 15px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, .15);
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
     min-height: 0;
-    flex: 1;
-    /* ✅ γεμίζει όλο τον διαθέσιμο χώρο */
+    /* επιτρέπει στο παιδί να σκρολάρει */
     overflow: hidden;
+    /* κόβει εσωτερική μπάρα */
     padding-top: 8px;
 }
 
-/* Ο ΜΟΝΑΔΙΚΟΣ scroller */
+/* ✅ ΜΟΝΑΔΙΚΟΣ scroller στη λίστα (ύψος με JS) */
 .q-steps-scroll {
-    flex: 1;
-    /* ✅ παίρνει όλο το ύψος μέσα στο card */
+    flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-gutter: stable;
     -webkit-overflow-scrolling: touch;
-    padding: 8px 12px 0 12px;
+    padding: 8px 12px;
 }
 
-/* Κουμπιά ΕΚΤΟΣ scroller */
+/* Κουμπιά κάτω από τη λίστα (εκτός scroller) */
 .q-actions {
     margin-top: 10px;
     display: flex;
     justify-content: center;
     gap: 12px;
 }
-
-/* (τα υπόλοιπα styles όπως τα έχεις: q-step-header, q-droppable, q-draggable, κτλ.) */
-
 
 /* ---------- Step & Question cosmetics ---------- */
 .q-step-header {
@@ -137,7 +122,7 @@
     padding-left: 4px;
 }
 
-/* ---------- Right (Skills scroller πάνω, Update κάτω) ---------- */
+/* ---------- Δεξιά στήλη (skills) ---------- */
 .q-right-scroll {
     flex: 1;
     min-height: 0;
