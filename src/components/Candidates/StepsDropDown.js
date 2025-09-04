@@ -5,15 +5,6 @@ import './Candidates.css';
 const API_BASE =
     process.env.REACT_APP_API_BASE || 'http://localhost:8087';
 
-/**
- * Props:
- *  - steps: [...]
- *  - ratings (optional): fallback only
- *  - onSelect(step, question)
- *  - showScore (default: true)
- *  - interviewReportId (optional)
- *  - candidateId (optional)
- */
 export default function StepsDropDown({
     steps = [],
     ratings = {},
@@ -153,13 +144,6 @@ export default function StepsDropDown({
         if (totalQuestions > 0 && Object.keys(metricsByQ).length > 0) {
             let ratedQuestions = 0;
             let sum = 0, cnt = 0;
-            // for (const q of qs) {
-            //     const m = q?.id ? metricsByQ[q.id] : null;
-            //     if (m) {
-            //         if (m.totalSkills > 0 && m.ratedSkills === m.totalSkills) ratedQuestions += 1;
-            //         if (Number.isFinite(m.averageScore)) { sum += m.averageScore; cnt += 1; }
-            //     }
-            // }
 
             for (const q of qs) {
                 const m = q?.id ? metricsByQ[q.id] : null;

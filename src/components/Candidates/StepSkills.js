@@ -54,11 +54,6 @@ const fullWidthBox = {
     fontSize: 11,
 };
 
-/**
- * Props:
- *  - step: { name, skills: [{id, name}], context?: { candidateId, questionId } }
- *  - mode: "edit" | "view"
- */
 export default function StepSkills({ step, mode = "edit", onAfterSave }) {
     const skills = Array.isArray(step?.skills) ? step.skills : [];
     const candidateId = step?.context?.candidateId ?? null;

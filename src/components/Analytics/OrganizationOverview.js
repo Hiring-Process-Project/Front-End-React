@@ -32,7 +32,6 @@ const SkillList = ({ title, items }) => (
 
 /** Απλό stacked bar με legend */
 function StackedRateBar({ title, segments }) {
-    // clip σε [0,100] και φτιάξε πλάτη (%)
     const totalShown = Math.max(
         0,
         Math.min(

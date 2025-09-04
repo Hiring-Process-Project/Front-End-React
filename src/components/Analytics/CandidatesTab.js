@@ -12,7 +12,6 @@ const Kpi = ({ title, value, sub }) => (
 );
 
 const fmt = (n, digits = 1) => (Number.isFinite(Number(n)) ? Number(n).toFixed(digits) : '—');
-const fmtPercent = (n) => (Number.isFinite(Number(n)) ? `${Number(n).toFixed(1)}%` : '—');
 
 function buildDisplayName(c) {
     let name = c?.fullName ?? c?.name ?? null;

@@ -1,4 +1,3 @@
-// src/components/OccupationOverview.jsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { Row, Col, Card, CardBody, Spinner, Progress } from 'reactstrap';
 
@@ -119,8 +118,8 @@ export default function OccupationOverview({ deptId, occId, base = '/api' }) {
         rejectionRate = 0,
         candidatesPerJobAd = 0,
         scoreDistribution = [],
-        totalCandidates = 0,   // ΝΕΟ
-        jobAdDifficulty = [],  // ΝΕΟ [{jobAd, averageScore}]
+        totalCandidates = 0,   
+        jobAdDifficulty = [],  
     } = data;
 
     return (

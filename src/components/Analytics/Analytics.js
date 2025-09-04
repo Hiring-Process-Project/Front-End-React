@@ -1,4 +1,3 @@
-// src/components/Analytics/Analytics.js
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { TabContent, TabPane, UncontrolledTooltip } from 'reactstrap';
 import OverviewTab from './OverviewTab';

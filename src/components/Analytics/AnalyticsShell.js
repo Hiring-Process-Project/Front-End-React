@@ -1,4 +1,3 @@
-// src/components/Analytics/AnalyticsShell.jsx
 import React, { useEffect, useState } from 'react';
 import AnalyticsTabsHeader from './AnalyticsTabsHeader';
 import StepsTab from './StepsTab';

@@ -1,4 +1,3 @@
-// src/components/Analytics/JobAdOverview.jsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { Row, Col, Card, CardBody, Spinner, Progress, ListGroup, ListGroupItem } from 'reactstrap';
 
@@ -124,7 +123,7 @@ export default function JobAdOverview({ jobAdId, base = '/api' }) {
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState('');
 
-    // νέο: πληροφορίες υποψηφίων του συγκεκριμένου job ad
+    // πληροφορίες υποψηφίων του συγκεκριμένου job ad
     const [candInfo, setCandInfo] = useState({ total: 0, complete: false });
 
     useEffect(() => {
@@ -139,7 +138,7 @@ export default function JobAdOverview({ jobAdId, base = '/api' }) {
         return () => ac.abort();
     }, [jobAdId, base]);
 
-    // νέο: φερε τους candidates για total + hired check
+    // φερε τους candidates για total + hired check
     useEffect(() => {
         if (!jobAdId) return;
         const ac = new AbortController();
@@ -165,7 +164,7 @@ export default function JobAdOverview({ jobAdId, base = '/api' }) {
         rejectionRate = 0,
         avgCandidateScore = 0,
         scoreDistribution = [],
-        stepAverages = [],            // <- changed: was stepAvg
+        stepAverages = [],
         questionDifficulty = [],
         skillDifficulty = [],
     } = data;

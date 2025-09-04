@@ -1,13 +1,5 @@
-import React from 'react';
 import { Nav, NavItem, NavLink } from 'reactstrap';
 
-/**
- * Header για τα tabs του Analytics.
- * - Μαύρο κείμενο
- * - Κενό μεταξύ tabs
- * - cursor: pointer
- * - Χωρίς bold στο active
- */
 export default function AnalyticsTabsHeader({ activeTab, setActiveTab }) {
     const baseStyle = {
         color: '#111',
