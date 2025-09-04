@@ -1,61 +1,77 @@
 /* ====== ROOT & columns ====== */
 .iv-root-row {
     height: 100%;
-    min-height: 0;
+    min-height: 0
 }
 
 .iv-col {
     display: flex;
     flex-direction: column;
-    min-height: 0;
+    min-height: 0
 }
 
 .iv-fill {
     flex: 1;
-    min-height: 0;
+    min-height: 0
 }
 
 .iv-no-x {
-    overflow-x: hidden;
+    overflow-x: hidden
 }
 
-/* ====== Left title above steps ====== */
-.iv-left-title {
-    padding-left: 10px;
-    margin-bottom: 14px;
-}
-
-/* ====== Left card (steps list) ====== */
+/* ====== Left card ====== */
 .iv-card {
     padding: 0;
     min-height: 375px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    /* κλειδώνει το εξωτερικό */
     flex-grow: 1;
 }
 
-.iv-card-scroll {
-    flex: 1;
+/* ====== Header πάνω από τη λίστα steps ====== */
+.iv-steps-head {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 8px 10px;
+    border-bottom: 1px solid #b7babc;
+}
+
+/* ✅ Ο ΜΟΝΑΔΙΚΟΣ scroller για τα STEPS (μέσα στο component) */
+.iv-dnd-scroll {
+    flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
+    /* εδώ η μπάρα */
     overflow-x: hidden;
-    padding: 2px 10px 0;
+    display: flex !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
 }
 
-/* ====== Footer actions κάτω από steps ====== */
-.iv-footer {
+/* κόψε τα negative margins της .row όταν τη χρησιμοποιούμε ως scroller */
+.row.iv-dnd-scroll {
+    margin-left: 0 !important;
+    margin-right: 0 !important
+}
+
+/* ====== Container της λίστας DnD (χωρίς δικό του scroll) ====== */
+.iv-dnd-list {
     padding: 8px 10px;
-    display: flex;
-    justify-content: center;
-    gap: 15px;
+    overflow: initial
 }
 
-/* ====== Right column ====== */
+/* ====== Right column / skills ====== */
 .iv-right-fill {
     flex: 1;
     min-height: 0;
-    overflow: hidden;
+    overflow: hidden
 }
 
 .iv-right-scroll {
@@ -63,75 +79,8 @@
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
-}
-
-.iv-update-row {
-    margin-top: 22px;
-}
-
-/* ====== Steps header row ====== */
-.iv-steps-head {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    padding: 8px 10px;
-    border-bottom: 1px solid rgb(183, 186, 188);
-}
-
-/* ====== Steps droppable list container ====== */
-.iv-dnd-list {
-    padding: 8px 10px;
-    overflow: auto;
-}
-
-/* ====== (Optional) Step item cosmetics if needed by StepsDnd
-   (κρατάς τα δικά σου από StepsDnd ή συμπληρώνεις εδώ) ====== */
-.iv-step-item {
-    /* only if θες να το χρησιμοποιήσεις */
-    border: 1px solid #e0e0e0;
-    border-radius: 12px;
-    background: #f7f7f7;
-    margin-bottom: 10px;
-}
-
-.iv-step-header {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    cursor: pointer;
-}
-
-.iv-step-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 24px;
-    padding-left: 12px;
-}
-
-.iv-drag-handle {
-    user-select: none;
-    cursor: grab;
-    font-size: 14px;
-    opacity: .7;
-}
-
-.iv-step-body {
-    padding: 0 12px 12px;
-}
-
-.iv-step-hint {
-    font-size: 12px;
-    opacity: .7;
-    margin-bottom: 6px;
-    display: block;
-}
-
-.iv-save-row {
-    display: flex;
-    justify-content: end;
-    gap: 8px;
-    margin-top: 8px;
+    scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
 }

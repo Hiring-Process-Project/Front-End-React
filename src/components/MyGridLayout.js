@@ -129,52 +129,35 @@ export default function MyGridLayout() {
     };
 
     return (
-        // 1) Το εξωτερικό container γεμίζει 100vh και ΚΟΒΕΙ το window scroll (βοηθάει και το global CSS)
-        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        /* ✅ κλείδωσε το page σε 100vh & χωρίς window scroll */
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <Header
                 selectedTab={selectedTab}
                 setSelectedTab={handleSelectTab}
                 disabledTabs={disabledTabs}
             />
 
-            {/* 2) Περιεχόμενο: flex:1 + minHeight:0 για να μην “σπρώχνει” ύψος */}
             <div
                 style={{
                     flex: 1,
-                    padding: '2rem',
-                    paddingTop: '20px',
+                    padding: '1.25rem',
+                    paddingTop: '16px',
                     display: 'flex',
+                    overflowY: 'auto',      // ✅ εδώ το γενικό scroll
+                    overflowX: 'hidden',
                     flexDirection: 'column',
                     minHeight: 0,
                 }}
             >
-                {/* 3) Η Row πρέπει να μπορεί να συμπιεστεί (minHeight:0) */}
                 <Row style={{ flex: 1, minHeight: 0, width: '100%' }}>
-                    {/* Sidebar: φρόντισε στο root component του SidebarCard να έχει minHeight:0 και
-              το δικό του overflowY:'auto' αν χρειαστεί */}
-                    {/* <SidebarCard
-                        onJobAdSelect={setSelectedJobAdId}
-                        selectedJobAdId={selectedJobAdId}
-                        reloadKey={reloadKey}
-                        onDepartmentSelect={setSelectedDepartment}
-                        onClearOrganization={() => {
-                            setSelectedDepartment(null);
-                            setSelectedOccupation(null);
-                        }}
-                        selectedDepartmentId={selectedDepartment?.id ?? null}
-                        onOccupationSelect={setSelectedOccupation}
-                        selectedOccupationId={selectedOccupation?.id ?? null}
-                    /> */}
                     <SidebarCard
                         onJobAdSelect={(id) => {
-                            // Επιλογή Job Ad ⇒ καθάρισε occupation (μένει το department)
                             setSelectedJobAdId(id);
                             if (id != null) setSelectedOccupation(null);
                         }}
                         selectedJobAdId={selectedJobAdId}
                         reloadKey={reloadKey}
                         onDepartmentSelect={(dept) => {
-                            // Επιλογή Department ⇒ καθάρισε occupation & jobAd
                             setSelectedDepartment(dept);
                             setSelectedOccupation(null);
                             setSelectedJobAdId(null);
@@ -186,14 +169,12 @@ export default function MyGridLayout() {
                         }}
                         selectedDepartmentId={selectedDepartment?.id ?? null}
                         onOccupationSelect={(occ) => {
-                            // δέχεται είτε object είτε number ⇒ κράτα object στο state
                             const obj = (occ && typeof occ === 'object') ? occ : { id: Number(occ) || null };
                             setSelectedOccupation(obj);
                             setSelectedJobAdId(null);
                         }}
                         selectedOccupationId={selectedOccupation?.id ?? null}
                     />
-
 
                     {/* Δεξί panel */}
                     <Col md="8" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -202,14 +183,12 @@ export default function MyGridLayout() {
                             style={{
                                 backgroundColor: '#F6F6F6',
                                 flex: 1,
-                                minHeight: 0,       // ✅ επιτρέπει στο CardBody να διαχειριστεί ύψος
+                                minHeight: 0,
                                 display: 'flex',
                                 flexDirection: 'column',
-                                overflow: 'hidden',  // ❗️ ΜΗ scroll εδώ
+                                overflow: 'hidden',
                             }}
                         >
-                            {/* 4) Το CardBody επίσης δεν κάνει scroll.
-                     Τα child components (DescriptionCard, Interview, κ.λπ.) έχουν δικό τους εσωτερικό scroll. */}
                             <CardBody
                                 style={{
                                     flex: 1,
@@ -235,13 +214,9 @@ export default function MyGridLayout() {
                                     />
                                 )}
 
-                                {selectedTab === 'questions' && (
-                                    <Questions selectedJobAdId={selectedJobAdId} />
-                                )}
+                                {selectedTab === 'questions' && <Questions selectedJobAdId={selectedJobAdId} />}
 
-                                {selectedTab === 'interview' && (
-                                    <Interview selectedJobAdId={selectedJobAdId} />
-                                )}
+                                {selectedTab === 'interview' && <Interview selectedJobAdId={selectedJobAdId} />}
 
                                 {selectedTab === 'candidates' &&
                                     (isPending ? (
@@ -261,7 +236,6 @@ export default function MyGridLayout() {
                                             occupationData={selectedOccupation}
                                             jobAdData={selectedJobAdId ? { id: selectedJobAdId } : null}
                                             onGoToOrganization={() => {
-                                                // καθάρισε όλες τις επιλογές όταν πατιέται το κουμπί Organization
                                                 setSelectedJobAdId(null);
                                                 setSelectedDepartment(null);
                                                 setSelectedOccupation(null);
@@ -269,14 +243,12 @@ export default function MyGridLayout() {
                                         />
                                     ))}
 
-
                                 {selectedTab === 'hire' &&
                                     (isPending ? (
                                         <LockNotice statusLabel={statusLabel} />
                                     ) : (
                                         <Hire key={selectedJobAdId ?? 'no-job'} jobAdId={selectedJobAdId} />
                                     ))}
-
                             </CardBody>
                         </Card>
                     </Col>

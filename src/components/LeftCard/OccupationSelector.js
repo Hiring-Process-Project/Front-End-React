@@ -3,7 +3,6 @@ import { Col, Row } from 'reactstrap';
 import DepartmentDropdown from './DepartmentDropDown';
 import "./sidebar.css";
 
-
 function OccupationSelector({
     Name,
     departments = [],
@@ -22,21 +21,15 @@ function OccupationSelector({
         return departments
             .map((dept) => ({
                 ...dept,
-                occupations: (dept.occupations || []).filter((occ) => String(occ.name || '').toLowerCase().includes(q)),
+                occupations: (dept.occupations || []).filter((occ) =>
+                    String(occ.name || '').toLowerCase().includes(q)
+                ),
             }))
             .filter((dept) => (dept.occupations || []).length > 0);
     }, [departments, searchText]);
 
     return (
-        <Col
-            className="d-flex flex-column"
-            style={{
-                minHeight: 0,
-                height: "100%",
-                padding: '0 0.5rem',
-                overflow: "hidden",
-            }}
-        >
+        <Col className="d-flex flex-column occ-col" style={{ minHeight: 0 }}>
             <Row style={{ borderBottom: '1px solid #B7BABC' }} className="pb-2">
                 <Col xs="12" md="4" className="mb-2 mb-md-0">
                     <label className="search-label">{Name}</label>
@@ -52,7 +45,8 @@ function OccupationSelector({
                 </Col>
             </Row>
 
-            <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingTop: 6 }}>
+            {/* εδώ ΜΗ scroll – το scroll είναι στον γονιό (.sidebar-scroll) */}
+            <div style={{ flex: 1, minHeight: 0, paddingTop: 6 }}>
                 <DepartmentDropdown
                     departments={filteredDepartments}
                     onJobAdSelect={onJobAdSelect}

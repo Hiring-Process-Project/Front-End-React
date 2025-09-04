@@ -1,25 +1,41 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import StepsDnd from "./StepsDnd";
 import "./interview.css";
 
-/**
- * Backends:
- * - PUT   /api/v1/step/{stepId}/description
- * - PATCH /api/v1/step/interviews/{interviewId}/steps/reorder
- */
 const API_STEP = "http://localhost:8087/api/v1/step";
 
 export default function InterviewSteps({
-    interviewsteps = [],           // [{ id, title, description }]
-    onSelect,                      // (index, stepId, stepObj)
+    interviewsteps = [],
+    onSelect,
     selectedIndex: controlledSelectedIndex,
     interviewId,
     reloadSteps,
-    onLocalReorder,                // (from, to) => void
-    canEdit = true,                // έλεγχος editability από γονέα
+    onLocalReorder,
+    canEdit = true,
+    /** extra "ανάσα" κάτω, όπως στο sidebar */
+    reserve = 80,
 }) {
     const [internalSelectedIndex, setInternalSelectedIndex] = useState(null);
     const selectedIndex = controlledSelectedIndex ?? internalSelectedIndex;
+
+    /* ---- exact ίδιο fitting με το sidebar ---- */
+    const scrollRef = useRef(null);
+    useLayoutEffect(() => {
+        const fit = () => {
+            const el = scrollRef.current;
+            if (!el) return;
+
+            const rect = el.getBoundingClientRect();
+            // αν έχει footer κάτω στο card (Create/Delete), αφαιρείται αυτόματα μέσω reserve
+            const height = window.innerHeight - rect.top - reserve;
+            el.style.height = `${Math.max(160, height)}px`;
+            el.style.overflowY = "auto";
+            el.style.overflowX = "hidden";
+        };
+        fit();
+        window.addEventListener("resize", fit);
+        return () => window.removeEventListener("resize", fit);
+    }, [reserve, interviewsteps.length]);
 
     useEffect(() => {
         if (
@@ -40,7 +56,6 @@ export default function InterviewSteps({
         onSelect?.(index, step?.id ?? null, step ?? null);
     };
 
-    // === Server reorder (PATCH) ===
     const applyServerReorder = async (_stepId, from, to) => {
         if (from === to) return;
         if (!interviewId) throw new Error("Missing interviewId for reorder");
@@ -58,11 +73,9 @@ export default function InterviewSteps({
             const txt = await r.text().catch(() => "");
             throw new Error(`reorder-failed (${r.status}) ${txt}`);
         }
-
         await reloadSteps?.();
     };
 
-    // === Update description (PUT) ===
     const updateDescription = async (stepId, description) => {
         const r = await fetch(`${API_STEP}/${stepId}/description`, {
             method: "PUT",
@@ -83,18 +96,21 @@ export default function InterviewSteps({
                 <label className="active-label" style={{ margin: 0 }}>Category:</label>
             </div>
 
-            <div className="iv-dnd-list">
-                <StepsDnd
-                    steps={interviewsteps}
-                    selectedIndex={selectedIndex ?? 0}
-                    onSelect={handleSelect}
-                    onReorder={onLocalReorder}
-                    onApplyServerReorder={applyServerReorder}
-                    onUpdateDescription={canEdit ? updateDescription : undefined}
-                    readOnlyDescription={!canEdit}
-                    showSaveButton={!!canEdit}
-                    dndDisabled={!canEdit}
-                />
+            {/* 🟩 Ο scroller είναι εδώ, όπως στο sidebar */}
+            <div ref={scrollRef} className="iv-dnd-scroll row">
+                <div className="iv-dnd-list">
+                    <StepsDnd
+                        steps={interviewsteps}
+                        selectedIndex={selectedIndex ?? 0}
+                        onSelect={handleSelect}
+                        onReorder={onLocalReorder}
+                        onApplyServerReorder={applyServerReorder}
+                        onUpdateDescription={canEdit ? updateDescription : undefined}
+                        readOnlyDescription={!canEdit}
+                        showSaveButton={!!canEdit}
+                        dndDisabled={!canEdit}
+                    />
+                </div>
             </div>
         </div>
     );

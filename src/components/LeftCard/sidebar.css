@@ -1,61 +1,88 @@
-/* sidebar.css */
-
-/* Η στήλη της sidebar πιάνει όλο το διαθέσιμο ύψος */
+/* Στήλη sidebar */
 .sidebar-col {
     display: flex;
     flex-direction: column;
     min-height: 0;
-    /* επιτρέπει στα παιδιά να κάνουν scroll */
 }
 
-/* Το Card της sidebar τεντώνει κατακόρυφα */
+/* Κάρτα */
 .sidebar-card {
     flex: 1;
     min-height: 0;
     display: flex;
 }
 
-/* Το CardBody επίσης γεμίζει και δεν έχει δικό του scroll */
+/* CardBody: column layout, ΧΩΡΙΣ scroll εδώ */
 .sidebar-body {
     flex: 1;
     min-height: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    /* αποφυγή διπλών scrollbars */
 }
 
-/* Εδώ ζει ο OccupationSelector: αυτό κάνει το εσωτερικό scroll */
+/* 🟩 Η λίστα: ΠΡΕΠΕΙ να γεμίζει και να έχει overflow */
 .sidebar-scroll {
-    flex: 1;
+    flex: 1 1 auto;
+    /* <-- κρίσιμο: παίρνει ύψος */
     min-height: 0;
-    overflow: auto;
-    /* κάθετο scroll στη λίστα */
+    /* <-- επιτρέπει στο flex child να "σπάσει" */
+    overflow-y: auto;
+    /* <-- εδώ η μπάρα */
+    overflow-x: hidden;
+    display: flex !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
 }
 
-/* OccupationSelector container (αν δεν το έχεις ήδη) */
+/* Container του selector */
 .occ-col {
-    display: flex;
-    flex-direction: column;
     min-height: 0;
-    padding-right: 0.5rem;
-    padding-left: 0.5rem;
+    padding-right: .5rem;
+    padding-left: .5rem;
     margin-right: 16px;
     margin-left: 8px;
     padding-top: 5px;
+    display: flex;
+    flex-direction: column;
 }
 
-/* κάνε το DepartmentDropdown να γεμίζει και να κυλά */
+/* Μετά το header (search), η λίστα να γεμίζει */
 .occ-col>.row+* {
-    flex: 1;
+    flex: 1 1 auto;
     min-height: 0;
     display: flex;
     flex-direction: column;
 }
 
-/* Responsive πλάτος: full-width σε mobile */
-@media (max-width: 768px) {
+/* Απλό wrapper – ΔΕΝ βάζουμε scroll εδώ */
+.occ-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: block;
+}
+
+/* Προαιρετικό: τα negative margins του .row μπορεί να πετάνε οριζόντια μπάρα */
+.row.sidebar-scroll {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+@media (max-width:768px) {
     .sidebar-col {
         margin-bottom: 12px;
     }
+}
+
+
+
+/* το ύψος του .sidebar-scroll το βάζει JS inline */
+.sidebar-scroll {
+    min-height: 0 !important;
+}
+
+/* κόψε τα negative margins του .row */
+.row.sidebar-scroll {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
 }

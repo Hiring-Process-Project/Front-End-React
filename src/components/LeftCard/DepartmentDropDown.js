@@ -22,42 +22,37 @@ function DepartmentDropdown({
     };
 
     const handleDepartmentClick = (dept, index) => {
-        onDepartmentSelect?.({
-            id: dept.departmentId ?? null,
-            name: dept.department,
-        });
+        onDepartmentSelect?.({ id: dept.departmentId ?? null, name: dept.department });
         setOpenDepartmentIndex(openDepartmentIndex === index ? null : index);
     };
 
     return (
-        <div className="occupation-container">
-            <div className="scroll-wrapper">
-                {departments.map((dept, index) => (
-                    <div key={`${dept.department}-${dept.departmentId ?? index}`} className="occupation-box">
-                        <Button
-                            onClick={() => handleDepartmentClick(dept, index)}
-                            className={`department-btn ${isActiveDept(dept) ? 'active' : ''}`}
-                            block
-                            title="Select department"
-                        >
-                            <div className="department-header">
-                                <span className="truncate-1">{dept.department}</span>
-                            </div>
-                        </Button>
+        <div className="dept-root">
+            {departments.map((dept, index) => (
+                <div key={`${dept.department}-${dept.departmentId ?? index}`} className="occupation-box">
+                    <Button
+                        onClick={() => handleDepartmentClick(dept, index)}
+                        className={`department-btn ${isActiveDept(dept) ? 'active' : ''}`}
+                        block
+                        title="Select department"
+                    >
+                        <div className="department-header">
+                            <span className="truncate-1">{dept.department}</span>
+                        </div>
+                    </Button>
 
-                        <Collapse isOpen={openDepartmentIndex === index}>
-                            <OccupationDropdown
-                                occupations={dept.occupations}
-                                onJobAdSelect={onJobAdSelect}
-                                selectedJobAdId={selectedJobAdId}
-                                parentDepartmentId={dept.departmentId ?? selectedDepartmentId ?? null}
-                                onOccupationSelect={onOccupationSelect}
-                                selectedOccupationId={selectedOccupationId}
-                            />
-                        </Collapse>
-                    </div>
-                ))}
-            </div>
+                    <Collapse isOpen={openDepartmentIndex === index}>
+                        <OccupationDropdown
+                            occupations={dept.occupations}
+                            onJobAdSelect={onJobAdSelect}
+                            selectedJobAdId={selectedJobAdId}
+                            parentDepartmentId={dept.departmentId ?? selectedDepartmentId ?? null}
+                            onOccupationSelect={onOccupationSelect}
+                            selectedOccupationId={selectedOccupationId}
+                        />
+                    </Collapse>
+                </div>
+            ))}
         </div>
     );
 }
