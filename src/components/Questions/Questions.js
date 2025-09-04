@@ -5,21 +5,19 @@ import Description from '../Description/Description';
 import SkillSelector from '../Description/SkillSelector';
 import './questions.css';
 
-const API = "http://localhost:8087";
+const API = 'http://localhost:8087';
 
 const normalizeStatus = (s) =>
-    String(s ?? "")
-        .replace(/\u00A0/g, " ")
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, "");
-
+    String(s ?? '').replace(/\u00A0/g, ' ').trim().toLowerCase().replace(/\s+/g, '');
 const isEditableStatus = (raw) => {
-    const norm = normalizeStatus(raw);
-    return norm === "pending" || norm === "pedding" || norm === "draft";
+    const n = normalizeStatus(raw);
+    return n === 'pending' || n === 'pedding' || n === 'draft';
 };
 
-const Questions = ({ selectedJobAdId }) => {
+// πόσο χώρο θες να μείνει κάτω από τη λίστα (π.χ. για κουμπιά)
+const RESERVE_LEFT = 80;
+
+export default function Questions({ selectedJobAdId }) {
     const [allSkills, setAllSkills] = React.useState([]);
     const [requiredSkills, setRequiredSkills] = React.useState([]);
     const [questionDesc, setQuestionDesc] = React.useState('');
@@ -28,18 +26,15 @@ const Questions = ({ selectedJobAdId }) => {
     const [status, setStatus] = React.useState(null);
     const canEdit = React.useMemo(() => isEditableStatus(status), [status]);
 
+    // ---- load all skills ----
     React.useEffect(() => {
         fetch(`${API}/skills`)
-            .then((r) => (r.ok ? r.json() : Promise.reject('Failed to fetch skills')))
-            .then((data) =>
-                setAllSkills((data || []).map((s) => s?.title).filter(Boolean))
-            )
-            .catch((e) => {
-                console.error(e);
-                setAllSkills([]);
-            });
+            .then((r) => (r.ok ? r.json() : Promise.reject()))
+            .then((data) => setAllSkills((data || []).map((s) => s?.title).filter(Boolean)))
+            .catch(() => setAllSkills([]));
     }, []);
 
+    // ---- selected question details ----
     React.useEffect(() => {
         if (!selectedQuestionId) {
             setQuestionDesc('');
@@ -47,18 +42,18 @@ const Questions = ({ selectedJobAdId }) => {
             return;
         }
         fetch(`${API}/api/v1/question/${selectedQuestionId}/details`)
-            .then((r) => (r.ok ? r.json() : Promise.reject('Failed to fetch question details')))
+            .then((r) => (r.ok ? r.json() : Promise.reject()))
             .then((d) => {
                 setQuestionDesc(d?.description || '');
                 setRequiredSkills(((d?.skills) || []).map((s) => s?.title).filter(Boolean));
             })
-            .catch((e) => {
-                console.error(e);
+            .catch(() => {
                 setQuestionDesc('');
                 setRequiredSkills([]);
             });
     }, [selectedQuestionId]);
 
+    // ---- status lock ----
     React.useEffect(() => {
         if (!selectedJobAdId) {
             setStatus(null);
@@ -74,45 +69,87 @@ const Questions = ({ selectedJobAdId }) => {
         if (!selectedQuestionId) return;
         try {
             const resp = await fetch(`${API}/api/v1/question/${selectedQuestionId}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    description: questionDesc || "",
-                    skillNames: requiredSkills || []
-                })
+                    description: questionDesc || '',
+                    skillNames: requiredSkills || [],
+                }),
             });
-            if (!resp.ok) throw new Error("update failed");
-        } catch (e) {
-            console.error(e);
-            alert("Αποτυχία ενημέρωσης.");
+            if (!resp.ok) throw new Error();
+        } catch {
+            alert('Αποτυχία ενημέρωσης.');
         }
     };
 
+    /* ========= ΜΟΝΑΔΙΚΟΣ SCROLLER ΣΤΗ ΜΕΣΑΙΑ ΣΤΗΛΗ ========= */
+    const stepsScrollRef = React.useRef(null);
+    React.useLayoutEffect(() => {
+        const fit = () => {
+            const el = stepsScrollRef.current;
+            if (!el) return;
+
+            // αν υπάρχουν κουμπιά κάτω, αφαίρεσε το πραγματικό ύψος τους
+            const actions = el.parentElement?.parentElement?.querySelector('.q-actions');
+            const actionsH = actions ? actions.getBoundingClientRect().height : 0;
+
+            const top = el.getBoundingClientRect().top;
+            const h = window.innerHeight - top - Math.max(RESERVE_LEFT, actionsH);
+            el.style.height = `${Math.max(160, h)}px`;
+            el.style.overflowY = 'auto';
+            el.style.overflowX = 'hidden';
+        };
+
+        fit();
+        window.addEventListener('resize', fit);
+        return () => window.removeEventListener('resize', fit);
+    }, [selectedJobAdId]);
+
     if (!selectedJobAdId) {
-        return <p style={{ padding: "1rem" }}>Επέλεξε ένα Job Ad για να δεις τα Questions.</p>;
+        return <p style={{ padding: '1rem' }}>Επέλεξε ένα Job Ad για να δεις τα Questions.</p>;
     }
 
     return (
         <Row className="g-3 q-fill" style={{ height: '100%' }}>
-            {/* Left: Steps tree */}
+            {/* LEFT: Steps/Questions list (γεμίζει μέχρι κάτω) */}
             <Col md="5" className="q-col-flex">
-                <Row className="mb-2 q-section-label">
-                    <Col><label className="description-labels">Choose a Step...</label></Col>
+                <Row className="mb-2">
+                    <Col>
+                        <label className="description-labels">Choose a Step...</label>
+                    </Col>
                 </Row>
 
-                <div className="q-fill q-no-overflow-x">
-                    <StepsTree
-                        selectedJobAdId={selectedJobAdId}
-                        onSelectQuestion={setSelectedQuestionId}
-                        canEdit={canEdit}
-                    />
+                <div className="q-steps-card">
+                    {/* ✅ ΜΟΝΑΔΙΚΟΣ scroller */}
+                    <div ref={stepsScrollRef} className="q-steps-scroll q-no-x">
+                        <StepsTree
+                            selectedJobAdId={selectedJobAdId}
+                            canEdit={canEdit}
+                            selectedQuestionId={selectedQuestionId}
+                            onSelectQuestion={setSelectedQuestionId}
+                        />
+                    </div>
                 </div>
+
+                {canEdit && (
+                    <div className="q-actions">
+                        <Button color="secondary" style={{ minWidth: 110, height: 36 }}>
+                            Create New
+                        </Button>
+                        <Button
+                            color="danger"
+                            style={{ minWidth: 110, height: 36 }}
+                            disabled={!selectedQuestionId}
+                        >
+                            Delete
+                        </Button>
+                    </div>
+                )}
             </Col>
 
-            {/* Right: Description + Skills */}
+            {/* RIGHT: Description + Skills */}
             <Col md="7" className="q-col-flex">
                 <Row className="g-3 q-fill">
-                    {/* Description */}
                     <Col md="7" className="q-col-flex">
                         <div className="q-fill">
                             <Description
@@ -124,7 +161,6 @@ const Questions = ({ selectedJobAdId }) => {
                         </div>
                     </Col>
 
-                    {/* Skills picker (editable) */}
                     <Col md="5" className="q-col-flex">
                         <div className="q-right-scroll">
                             <SkillSelector
@@ -151,6 +187,4 @@ const Questions = ({ selectedJobAdId }) => {
             </Col>
         </Row>
     );
-};
-
-export default Questions;
+}

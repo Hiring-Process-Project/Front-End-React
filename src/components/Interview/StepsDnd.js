@@ -9,13 +9,13 @@ export default function StepsDnd({
     onReorder,
     onApplyServerReorder,
 
-    // Αν είναι undefined δεν γίνεται καθόλου update
+    // αν είναι undefined, δεν καλούμε update
     onUpdateDescription,
 
-    // ΝΕΑ flags
-    readOnlyDescription = false, // κάνει το textarea readOnly/disabled
-    showSaveButton = true,       // εμφανίζει/κρύβει το κουμπί Save
-    dndDisabled = false,         // απενεργοποιεί drag-n-drop
+    // flags
+    readOnlyDescription = false,
+    showSaveButton = true,
+    dndDisabled = false,
 }) {
     const [openIndex, setOpenIndex] = useState(null);
     const [draft, setDraft] = useState({});
@@ -27,7 +27,7 @@ export default function StepsDnd({
     };
 
     const handleDragEnd = async (result) => {
-        if (dndDisabled) return; // κόβουμε DnD όταν είναι κλειδωμένο
+        if (dndDisabled) return;
         const { source, destination } = result || {};
         if (!destination) return;
         const from = source.index;
@@ -52,17 +52,14 @@ export default function StepsDnd({
     };
 
     const startEdit = (stepId, initial) => {
-        if (readOnlyDescription) return; // δεν αλλάζουμε draft
+        if (readOnlyDescription) return;
         setDraft((d) => ({ ...d, [stepId]: initial ?? "" }));
     };
 
     const commitEdit = async (stepId) => {
-        // αν δεν επιτρέπεται update ή δεν έχει στηθεί callback, σταματάμε
         if (readOnlyDescription || !onUpdateDescription) return;
-
         const text = draft[stepId] ?? "";
         if (savingId === stepId) return;
-
         setSavingId(stepId);
         try {
             await onUpdateDescription(stepId, text);
@@ -114,38 +111,18 @@ export default function StepsDnd({
                                                     cursor: "pointer",
                                                 }}
                                             >
-                                                <div
-                                                    style={{
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        gap: 10,
-                                                        minHeight: 24,
-                                                        paddingLeft: "12px",
-                                                    }}
-                                                >
-                                                    {/* Drag handle μόνο όταν επιτρέπεται DnD */}
+                                                <div style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 24, paddingLeft: 12 }}>
                                                     {!dndDisabled && (
                                                         <span
                                                             {...dragProvided.dragHandleProps}
                                                             title="Drag to reorder"
                                                             onClick={(e) => e.stopPropagation()}
-                                                            style={{
-                                                                userSelect: "none",
-                                                                cursor: "grab",
-                                                                fontSize: 14,
-                                                                opacity: 0.7,
-                                                            }}
+                                                            style={{ userSelect: "none", cursor: "grab", fontSize: 14, opacity: 0.7 }}
                                                         >
                                                             ⠿
                                                         </span>
                                                     )}
-                                                    <span
-                                                        style={{
-                                                            fontSize: 14,
-                                                            fontWeight: isSelected ? 600 : 500,
-                                                            color: "#2b2b2b",
-                                                        }}
-                                                    >
+                                                    <span style={{ fontSize: 14, fontWeight: isSelected ? 600 : 500, color: "#2b2b2b" }}>
                                                         {`Step ${idx + 1}`}
                                                     </span>
                                                 </div>
@@ -155,7 +132,7 @@ export default function StepsDnd({
                                                         fontSize: 14,
                                                         color: "#2b2b2b",
                                                         textAlign: "left",
-                                                        paddingLeft: "25px",
+                                                        paddingLeft: 25,
                                                         overflow: "hidden",
                                                         textOverflow: "ellipsis",
                                                         whiteSpace: "nowrap",
@@ -167,14 +144,7 @@ export default function StepsDnd({
 
                                             {isOpen && (
                                                 <div style={{ padding: "0 12px 12px" }}>
-                                                    <label
-                                                        style={{
-                                                            fontSize: 12,
-                                                            opacity: 0.7,
-                                                            marginBottom: 6,
-                                                            display: "block",
-                                                        }}
-                                                    >
+                                                    <label style={{ fontSize: 12, opacity: 0.7, marginBottom: 6, display: "block" }}>
                                                         Step Description
                                                     </label>
                                                     <Input
@@ -186,14 +156,9 @@ export default function StepsDnd({
                                                         placeholder="Write a short description for this step…"
                                                         readOnly={readOnlyDescription}
                                                         disabled={readOnlyDescription}
-                                                        style={{
-                                                            resize: "none",
-                                                            overflowWrap: "anywhere",
-                                                            boxSizing: "border-box",
-                                                        }}
+                                                        style={{ resize: "none", overflowWrap: "anywhere", boxSizing: "border-box" }}
                                                     />
 
-                                                    {/* Save button μόνο όταν το επιτρέπεις */}
                                                     {showSaveButton && onUpdateDescription && (
                                                         <div className="d-flex justify-content-end" style={{ gap: 8, marginTop: 8 }}>
                                                             <Button
@@ -214,7 +179,6 @@ export default function StepsDnd({
                                 </Draggable>
                             );
                         })}
-
                         {provided.placeholder}
                     </div>
                 )}

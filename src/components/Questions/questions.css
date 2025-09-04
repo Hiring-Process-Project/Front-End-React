@@ -1,69 +1,57 @@
-/* ---------- Generic flex & height helpers ---------- */
+/* ---------- Flex helpers ---------- */
 .q-col-flex {
     display: flex;
     flex-direction: column;
     min-height: 0;
-    /* επιτρέπει στα παιδιά να σκρολάρουν */
+    /* κρίσιμο για nested scrolls */
 }
 
 .q-fill {
     flex: 1;
     min-height: 0;
+    /* κρίσιμο για nested scrolls */
 }
 
-.q-row-fill {
+.q-no-x {
+    overflow-x: hidden;
+}
+
+/* ---------- Κάρτα Steps (χωρίς δικό της scroll) ---------- */
+.q-steps-card {
+    background: #E5E7EB;
+    border: 1px solid #bbb;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, .15);
     display: flex;
     flex-direction: column;
-    flex: 1;
+    flex: 1 1 auto;
     min-height: 0;
+    /* επιτρέπει στο παιδί να σκρολάρει */
+    overflow: hidden;
+    /* κόβει εσωτερική μπάρα */
+    padding-top: 8px;
 }
 
-.q-no-overflow-x {
-    overflow-x: hidden;
-}
-
-.q-scroll-y {
-    overflow-y: auto;
-}
-
-/* ---------- Section labels ---------- */
-.q-section-label {
-    padding-left: 10px;
-}
-
-/* ---------- Wrapper γύρω από components με δικό τους scroll ---------- */
-.q-scroll-wrapper {
-    flex: 1;
+/* ✅ ΜΟΝΑΔΙΚΟΣ scroller στη λίστα (ύψος με JS) */
+.q-steps-scroll {
+    flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
+    padding: 8px 12px;
 }
 
-/* ---------- StepsTree (Card) ---------- */
-.q-card-bg {
-    background-color: #E5E7EB;
-}
-
-.q-card {
-    background-color: #E5E7EB;
+/* Κουμπιά κάτω από τη λίστα (εκτός scroller) */
+.q-actions {
+    margin-top: 10px;
     display: flex;
-    flex-direction: column;
-    min-height: 0;
-    /* για να δουλέψει το εσωτερικό scroll */
+    justify-content: center;
+    gap: 12px;
 }
 
-.q-card-body {
-    background-color: #E5E7EB;
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    /* εσωτερικό scroll */
-    overflow-x: hidden;
-    scrollbar-gutter: stable both-edges;
-    padding-right: 8px;
-}
-
-/* ---------- Step header ---------- */
+/* ---------- Step & Question cosmetics ---------- */
 .q-step-header {
     cursor: pointer;
     background: #fff;
@@ -75,14 +63,12 @@
     box-sizing: border-box;
 }
 
-/* ---------- Droppable container ---------- */
 .q-droppable {
     padding: 8px 12px;
     border-left: 2px solid #aaa;
     margin-top: 6px;
 }
 
-/* ---------- Draggable question item ---------- */
 .q-draggable {
     background: #f9f9f9;
     border: 1px solid #eee;
@@ -117,7 +103,7 @@
     align-items: center;
     justify-content: center;
     cursor: grab;
-    opacity: 0.7;
+    opacity: .7;
     user-select: none;
 }
 
@@ -130,22 +116,13 @@
     font-size: 14px;
 }
 
-/* ---------- “No questions” hint ---------- */
 .q-empty {
     font-size: 12px;
-    opacity: 0.6;
+    opacity: .6;
     padding-left: 4px;
 }
 
-/* ---------- Actions κάτω από το StepsTree ---------- */
-.q-actions {
-    padding-bottom: 10px;
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-}
-
-/* ---------- Right column (Skills πάνω από κουμπί) ---------- */
+/* ---------- Δεξιά στήλη (skills) ---------- */
 .q-right-scroll {
     flex: 1;
     min-height: 0;
@@ -153,7 +130,6 @@
     overflow-x: hidden;
 }
 
-/* ---------- Small utilities ---------- */
 .q-mt-16 {
     margin-top: 16px;
 }

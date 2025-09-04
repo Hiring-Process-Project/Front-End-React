@@ -1,43 +1,98 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, {
+    useEffect, useMemo, useState, useCallback,
+    useLayoutEffect, useRef
+} from "react";
 import { Row, Col, Button } from "reactstrap";
+
 import InterviewSteps from "./InterviewSteps";
 import JobDescription from "../Description/Description";
 import AddStepModal from "./AddStepModal";
 import SkillSelectorReadOnly from "../Description/SkillSelectorReadOnly";
-import ConfirmModal from "../Hire/ConfirmModal"; // <-- πρόσθεσε το modal
+import ConfirmModal from "../Hire/ConfirmModal";
+
 import "./interview.css";
 
 const API = "http://localhost:8087";
-
-// helpers για status
 const normalizeStatus = (s) =>
     String(s ?? "").replace(/\u00A0/g, " ").trim().toLowerCase().replace(/\s+/g, "");
 const isEditableStatus = (raw) => {
-    const norm = normalizeStatus(raw);
-    return norm === "pending" || norm === "pedding" || norm === "draft";
+    const n = normalizeStatus(raw);
+    return n === "pending" || n === "pedding" || n === "draft";
 };
 
-function Interview({ selectedJobAdId }) {
+export default function Interview({ selectedJobAdId }) {
     const [interviewId, setInterviewId] = useState(null);
     const [description, setDescription] = useState("");
-    const [steps, setSteps] = useState([]); // [{id,title,description}]
+    const [steps, setSteps] = useState([]);
     const [selectedStepIndex, setSelectedStepIndex] = useState(0);
     const [stepSkills, setStepSkills] = useState([]);
     const [error, setError] = useState(null);
     const [saving, setSaving] = useState(false);
     const [showAddStep, setShowAddStep] = useState(false);
 
-    // status από backend
     const [status, setStatus] = useState(null);
     const canEdit = useMemo(() => isEditableStatus(status), [status]);
 
-    // state για confirm modal (delete step)
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
-    const actionBtnStyle = { minWidth: 104, height: 34, padding: "4px 10px", fontSize: 13.5 };
+    /* ===== SCROLL refs & helpers ===== */
+    const stepsScrollRef = useRef(null);
+    const skillsScrollRef = useRef(null);
+    const touchYRef = useRef(null);
 
-    // Φόρτωση interview details + job status
+    const RESERVE_LEFT = 80;   // χώρο για Create/Delete
+    const RESERVE_RIGHT = 16;  // μικρό κενό
+
+    const fitHeights = useCallback(() => {
+        const fitOne = (el, reserve) => {
+            if (!el) return;
+            const top = el.getBoundingClientRect().top;
+            const h = window.innerHeight - top - reserve;
+            el.style.height = `${Math.max(180, h)}px`;
+            el.style.overflowY = "auto";
+            el.style.overflowX = "hidden";
+        };
+        fitOne(stepsScrollRef.current, RESERVE_LEFT);
+        fitOne(skillsScrollRef.current, RESERVE_RIGHT);
+    }, []);
+
+    useLayoutEffect(() => {
+        fitHeights();
+        window.addEventListener("resize", fitHeights);
+        return () => window.removeEventListener("resize", fitHeights);
+    }, [fitHeights, steps.length, showAddStep, selectedStepIndex]);
+
+    // Wheel handler: αν κύλησε ο εσωτερικός scroller, μπλόκαρε το default/bubbling
+    const makeWheelHandler = (ref) => (e) => {
+        const el = ref.current;
+        if (!el) return;
+        const before = el.scrollTop;
+        el.scrollTop = before + e.deltaY;
+        if (el.scrollTop !== before) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    };
+
+    // Touch handlers (mobile/precision touchpads)
+    const makeTouchStart = () => (e) => {
+        touchYRef.current = e.touches?.[0]?.clientY ?? 0;
+    };
+    const makeTouchMove = (ref) => (e) => {
+        const el = ref.current;
+        if (!el) return;
+        const y = e.touches?.[0]?.clientY ?? 0;
+        const prev = el.scrollTop;
+        el.scrollTop += (touchYRef.current ?? y) - y;
+        touchYRef.current = y;
+        if (el.scrollTop !== prev) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    };
+
+    /* ===== DATA ===== */
     useEffect(() => {
         if (!selectedJobAdId) return;
 
@@ -49,37 +104,27 @@ function Interview({ selectedJobAdId }) {
         setSelectedStepIndex(0);
         setStatus(null);
 
-        // 1) interview details
         fetch(`${API}/jobAds/${selectedJobAdId}/interview-details`)
-            .then((r) => {
-                if (!r.ok) throw new Error("Failed to fetch interview details");
-                return r.json();
-            })
-            .then((data) => {
-                const iid = data?.id ?? null;
-                setInterviewId(iid);
-                setDescription(data?.description ?? "");
+            .then((r) => (r.ok ? r.json() : Promise.reject()))
+            .then((d) => {
+                setInterviewId(d?.id ?? null);
+                setDescription(d?.description ?? "");
             })
             .catch(() => setError("Δεν ήταν δυνατή η φόρτωση των στοιχείων interview."));
 
-        // 2) job status για lock
         fetch(`${API}/jobAds/details?jobAdId=${selectedJobAdId}`)
             .then((r) => (r.ok ? r.json() : Promise.reject()))
             .then((d) => setStatus(d?.status ?? null))
             .catch(() => setStatus(null));
     }, [selectedJobAdId]);
 
-    // Φέρε skills για συγκεκριμένο step
     const fetchStepSkills = useCallback((stepId) => {
         if (stepId == null) {
             setStepSkills([]);
             return;
         }
         fetch(`${API}/api/v1/step/${stepId}/skills`)
-            .then((r) => {
-                if (!r.ok) throw new Error("Failed to fetch step skills");
-                return r.json();
-            })
+            .then((r) => (r.ok ? r.json() : Promise.reject()))
             .then((data) => {
                 const names = (data || []).map((x) => x.skillName).filter(Boolean);
                 setStepSkills(names);
@@ -87,54 +132,40 @@ function Interview({ selectedJobAdId }) {
             .catch(() => setStepSkills([]));
     }, []);
 
-    // Φόρτωσε ταξινομημένα steps
-    const reloadSteps = useCallback(
-        async () => {
-            if (!interviewId) return;
-            try {
-                const r = await fetch(`${API}/api/v1/step/interviews/${interviewId}/steps`);
-                if (!r.ok) throw new Error("Failed to fetch ordered steps");
-                const data = await r.json();
-                const safe = (data || []).map((s) => ({
-                    id: s.id ?? s.stepId ?? null,
-                    title: s.title ?? s.tittle ?? "",
-                    description: s.description ?? "",
-                }));
-                setSteps(safe);
+    const reloadSteps = useCallback(async () => {
+        if (!interviewId) return;
+        try {
+            const r = await fetch(`${API}/api/v1/step/interviews/${interviewId}/steps`);
+            if (!r.ok) throw new Error();
+            const data = await r.json();
+            const safe = (data || []).map((s) => ({
+                id: s.id ?? s.stepId ?? null,
+                title: s.title ?? s.tittle ?? "",
+                description: s.description ?? "",
+            }));
+            setSteps(safe);
 
-                const idx = Math.min(selectedStepIndex, Math.max(0, safe.length - 1));
-                setSelectedStepIndex(idx);
-
-                const currentId = safe[idx]?.id ?? null;
-                if (currentId != null) fetchStepSkills(currentId);
-                else setStepSkills([]);
-            } catch (e) {
-                console.error(e);
-            }
-        },
-        [interviewId, selectedStepIndex, fetchStepSkills]
-    );
-
-    useEffect(() => {
-        if (interviewId != null) reloadSteps();
-    }, [interviewId, reloadSteps]);
-
-    // Επιλογή step
-    const handleSelectStep = useCallback(
-        (index, stepIdFromChild) => {
-            const idx = index ?? 0;
+            const idx = Math.min(selectedStepIndex, Math.max(0, safe.length - 1));
             setSelectedStepIndex(idx);
-            const stepId = stepIdFromChild ?? steps[idx]?.id ?? null;
-            if (stepId != null) fetchStepSkills(stepId);
+            const currentId = safe[idx]?.id ?? null;
+            if (currentId != null) fetchStepSkills(currentId);
             else setStepSkills([]);
-        },
-        [steps, fetchStepSkills]
-    );
+        } catch { }
+    }, [interviewId, selectedStepIndex, fetchStepSkills]);
+
+    useEffect(() => { if (interviewId != null) reloadSteps(); }, [interviewId, reloadSteps]);
+
+    const handleSelectStep = useCallback((index, stepIdFromChild) => {
+        const idx = index ?? 0;
+        setSelectedStepIndex(idx);
+        const stepId = stepIdFromChild ?? steps[idx]?.id ?? null;
+        if (stepId != null) fetchStepSkills(stepId);
+        else setStepSkills([]);
+    }, [steps, fetchStepSkills]);
 
     const getCurrentStepId = () => steps[selectedStepIndex]?.id ?? null;
     const getCurrentStepTitle = () => steps[selectedStepIndex]?.title || "";
 
-    // Αισιόδοξο reorder στο UI
     const onLocalReorder = useCallback((from, to) => {
         setSteps((prev) => {
             if (!prev || from < 0 || to < 0 || from >= prev.length || to >= prev.length) return prev;
@@ -154,51 +185,39 @@ function Interview({ selectedJobAdId }) {
     const handleUpdate = async () => {
         if (!interviewId) return;
         setSaving(true);
-        setError("");
-
         try {
-            let descOk = false;
+            let ok = false;
             try {
                 const r = await fetch(`${API}/interviews/${interviewId}/description`, {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ description }),
+                    method: "PUT", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ description })
                 });
-                if (r.ok) descOk = true;
-            } catch { /* noop */ }
-
-            if (!descOk) {
+                if (r.ok) ok = true;
+            } catch { }
+            if (!ok) {
                 const r2 = await fetch(`${API}/interviews/${interviewId}`, {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ description }),
+                    method: "PUT", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ description })
                 });
-                if (!r2.ok) throw new Error("failed-to-update-interview-description");
+                if (!r2.ok) throw new Error();
             }
         } finally {
             setSaving(false);
         }
     };
 
-    // Ανοίγουμε το confirm όταν πατηθεί Delete
     const openDeleteConfirm = () => setConfirmOpen(true);
 
-    // Διαγραφή step (τρέχει όταν πατηθεί "Διαγραφή" στο modal)
     const handleDeleteCurrentStepConfirmed = async () => {
         const stepId = getCurrentStepId();
-        if (!stepId) {
-            setConfirmOpen(false);
-            return;
-        }
+        if (!stepId) { setConfirmOpen(false); return; }
 
         setDeleting(true);
-
         const prevSteps = steps;
         const currentIndex = selectedStepIndex;
         const nextSteps = prevSteps.filter((s) => s.id !== stepId);
         const newIndex = Math.max(0, Math.min(currentIndex, nextSteps.length - 1));
 
-        // optimistic UI
         setSteps(nextSteps);
         setSelectedStepIndex(newIndex);
         const nextSelectedId = nextSteps[newIndex]?.id ?? null;
@@ -207,11 +226,9 @@ function Interview({ selectedJobAdId }) {
 
         try {
             const res = await fetch(`${API}/api/v1/step/${stepId}`, { method: "DELETE" });
-            if (!res.ok) throw new Error("Failed to delete step");
+            if (!res.ok) throw new Error();
             setConfirmOpen(false);
-        } catch (e) {
-            console.error(e);
-            // rollback
+        } catch {
             setSteps(prevSteps);
             setSelectedStepIndex(currentIndex);
             const rollbackId = prevSteps[currentIndex]?.id ?? null;
@@ -223,44 +240,41 @@ function Interview({ selectedJobAdId }) {
         }
     };
 
-    if (!selectedJobAdId) {
-        return <p style={{ padding: "1rem" }}>Επέλεξε ένα Job Ad για να δεις το Interview.</p>;
-    }
-    if (error) {
-        return <p style={{ padding: "1rem", color: "red" }}>{error}</p>;
-    }
+    if (!selectedJobAdId) return <p style={{ padding: "1rem" }}>Επέλεξε ένα Job Ad για να δεις το Interview.</p>;
+    if (error) return <p style={{ padding: "1rem", color: "red" }}>{error}</p>;
+
+    const actionBtnStyle = { minWidth: 104, height: 34, padding: "4px 10px", fontSize: 13.5 };
 
     return (
         <>
             <Row className="g-3 iv-root-row">
-                {/* Left: Steps */}
+                {/* LEFT: Steps */}
                 <Col md="5" className="iv-col">
-                    <label className="description-labels iv-left-title">Interview Steps</label>
+                    <label className="description-labels" style={{ paddingLeft: 10, marginBottom: 14 }}>
+                        Interview Steps
+                    </label>
 
-                    <div className="boxStyle iv-card">
-                        <div className="iv-card-scroll">
-                            <InterviewSteps
-                                interviewsteps={steps}
-                                onSelect={handleSelectStep}
-                                selectedIndex={selectedStepIndex}
-                                interviewId={interviewId}
-                                reloadSteps={reloadSteps}
-                                onLocalReorder={onLocalReorder}
-                                canEdit={canEdit}
-                            />
-                        </div>
+                    {/* Το card δεν κάνει scroll. Το κάνει ΜΕΣΑ το InterviewSteps (όπως το sidebar). */}
+                    <div className="boxStyle iv-card" style={{ overflow: "hidden" }}>
+                        <InterviewSteps
+                            interviewsteps={steps}
+                            onSelect={handleSelectStep}
+                            selectedIndex={selectedStepIndex}
+                            interviewId={interviewId}
+                            reloadSteps={reloadSteps}
+                            onLocalReorder={onLocalReorder}
+                            canEdit={canEdit}
+                            reserve={80}   // ίδια ιδέα με το bottomReserve του sidebar
+                        />
 
                         {canEdit && (
-                            <div className="boxFooter iv-footer">
-                                <Button color="secondary" style={actionBtnStyle} onClick={() => setShowAddStep(true)}>
+                            <div className="boxFooter iv-footer" style={{ padding: "8px 10px", display: "flex", justifyContent: "center", gap: 15 }}>
+                                <Button color="secondary" style={{ minWidth: 104, height: 34, padding: "4px 10px", fontSize: 13.5 }}
+                                    onClick={() => setShowAddStep(true)}>
                                     Create New
                                 </Button>
-                                <Button
-                                    color="danger"
-                                    style={actionBtnStyle}
-                                    onClick={openDeleteConfirm}          // <-- ανοίγει modal
-                                    disabled={!getCurrentStepId()}
-                                >
+                                <Button color="danger" style={{ minWidth: 104, height: 34, padding: "4px 10px", fontSize: 13.5 }}
+                                    onClick={openDeleteConfirm} disabled={!getCurrentStepId()}>
                                     Delete
                                 </Button>
                             </div>
@@ -268,7 +282,8 @@ function Interview({ selectedJobAdId }) {
                     </div>
                 </Col>
 
-                {/* Right: Description + Skills */}
+
+                {/* RIGHT: Description + Skills */}
                 <Col md="7" className="iv-col">
                     <Row className="g-3 iv-fill">
                         <Col md="7" className="iv-col">
@@ -284,18 +299,19 @@ function Interview({ selectedJobAdId }) {
                         </Col>
 
                         <Col md="5" className="iv-col">
-                            <div className="iv-right-scroll">
+                            <div
+                                ref={skillsScrollRef}
+                                className="iv-right-scroll"
+                                onWheel={makeWheelHandler(skillsScrollRef)}
+                                onTouchStart={makeTouchStart()}
+                                onTouchMove={makeTouchMove(skillsScrollRef)}
+                            >
                                 <SkillSelectorReadOnly requiredskills={stepSkills} />
                             </div>
 
                             {canEdit && (
-                                <div className="d-flex justify-content-center iv-update-row">
-                                    <Button
-                                        color="secondary"
-                                        className="delete-btn-req"
-                                        onClick={handleUpdate}
-                                        disabled={saving || !interviewId}
-                                    >
+                                <div className="d-flex justify-content-center" style={{ marginTop: 22 }}>
+                                    <Button color="secondary" className="delete-btn-req" onClick={handleUpdate} disabled={saving || !interviewId}>
                                         {saving ? "Saving..." : "Update"}
                                     </Button>
                                 </div>
@@ -303,29 +319,16 @@ function Interview({ selectedJobAdId }) {
                         </Col>
                     </Row>
                 </Col>
-
-                <AddStepModal
-                    isOpen={showAddStep}
-                    toggle={() => setShowAddStep((v) => !v)}
-                    interviewId={interviewId}
-                    onCreated={reloadSteps}
-                />
             </Row>
 
-            {/* Confirm Modal για διαγραφή Step */}
             <ConfirmModal
                 isOpen={confirmOpen}
                 title="Διαγραφή Step"
                 message={
                     <div>
                         Είσαι σίγουρος/η ότι θέλεις να διαγράψεις το step
-                        {getCurrentStepTitle() ? (
-                            <> <b> “{getCurrentStepTitle()}”</b>;</>
-                        ) : (
-                            <> αυτό;</>
-                        )}
-                        <br />
-                        Η ενέργεια δεν είναι αναστρέψιμη.
+                        {getCurrentStepTitle() ? <> <b> “{getCurrentStepTitle()}”</b>;</> : <> αυτό;</>}
+                        <br />Η ενέργεια δεν είναι αναστρέψιμη.
                     </div>
                 }
                 confirmText="Διαγραφή"
@@ -335,8 +338,13 @@ function Interview({ selectedJobAdId }) {
                 onConfirm={handleDeleteCurrentStepConfirmed}
                 onCancel={() => setConfirmOpen(false)}
             />
+
+            <AddStepModal
+                isOpen={showAddStep}
+                toggle={() => setShowAddStep((v) => !v)}
+                interviewId={interviewId}
+                onCreated={reloadSteps}
+            />
         </>
     );
 }
-
-export default Interview;
