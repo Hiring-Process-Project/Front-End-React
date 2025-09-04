@@ -1,5 +1,314 @@
+// import React, { useEffect, useMemo, useState } from 'react';
+// import { Row, Col, Card, CardBody, Spinner, Button } from 'reactstrap';
+
+// /* ---------- Small UI bits ---------- */
+// const Kpi = ({ title, value, sub }) => (
+//     <Card className="shadow-sm h-100">
+//         <CardBody>
+//             <div style={{ fontSize: 12, opacity: 0.7 }}>{title}</div>
+//             <div style={{ fontSize: 26, fontWeight: 800 }}>{value}</div>
+//             {sub && <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>{sub}</div>}
+//         </CardBody>
+//     </Card>
+// );
+
+// const fmt1 = (n) => (Number.isFinite(+n) ? (+n).toFixed(1) : '—');
+// const fmtPct = (n) => (Number.isFinite(+n) ? `${(+n).toFixed(1)}%` : '—');
+// const val = (...cands) => cands.find((x) => x !== undefined && x !== null);
+
+// /* Histogram (ίδιο με πριν) */
+// function Histogram({ buckets }) {
+//     const mapped = (Array.isArray(buckets) ? buckets : []).map((b, i) => ({
+//         label: b.range ?? `${b.from ?? i * 10}–${b.to ?? (i === 9 ? 100 : (i + 1) * 10)}`,
+//         value: Number(b.count ?? b.cnt ?? b.value ?? 0),
+//     }));
+//     const max = Math.max(1, ...mapped.map((x) => x.value));
+//     return (
+//         <div>
+//             <div className="mb-2" style={{ fontWeight: 600 }}>Score Distribution (0–100)</div>
+//             <div
+//                 className="d-flex align-items-end"
+//                 style={{
+//                     gap: 10,
+//                     height: 150,
+//                     padding: '8px 6px',
+//                     border: '1px solid #eee',
+//                     borderRadius: 8,
+//                     background: '#fff',
+//                 }}
+//             >
+//                 {mapped.map((b, i) => (
+//                     <div key={i} style={{ textAlign: 'center', flex: 1 }}>
+//                         <div
+//                             style={{
+//                                 height: `${(b.value / max) * 120}px`,
+//                                 background: '#e5e7eb',
+//                                 borderRadius: 6,
+//                             }}
+//                             title={`${b.label}: ${b.value}`}
+//                         />
+//                         <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>
+//                             {b.label.replace('–', '-')}
+//                         </div>
+//                     </div>
+//                 ))}
+//                 {mapped.length === 0 && (
+//                     <div className="text-muted" style={{ fontSize: 12 }}>—</div>
+//                 )}
+//             </div>
+//         </div>
+//     );
+// }
+
+// /* Endpoints: προτεραιότητα στο jobAd+step, μετά τα fallback */
+// const QUESTION_LIST_ENDPOINTS = (base, jobAdId, stepId) => ([
+//     `${base}/statistics/jobad/${jobAdId}/step/${stepId}/questions`,
+//     `${base}/steps/${stepId}/questions`,
+//     `${base}/questions/step/${stepId}`,
+// ]);
+
+// async function tryFetchJson(url) {
+//     try {
+//         const r = await fetch(url, { headers: { Accept: 'application/json' } });
+//         if (!r.ok) throw new Error(`HTTP ${r.status}`);
+//         return await r.json();
+//     } catch {
+//         return null;
+//     }
+// }
+
+// /* ===================== COMPONENT ===================== */
+// export default function QuestionsTab({
+//     apiBase = 'http://localhost:8087/api',
+//     jobAdId,
+//     stepId,
+//     selectedQuestionId,
+//     onSelectQuestion,
+// }) {
+//     const [qLoading, setQLoading] = useState(false);
+//     const [qErr, setQErr] = useState('');
+//     const [questions, setQuestions] = useState([]);
+
+//     const [statsLoading, setStatsLoading] = useState(false);
+//     const [statsErr, setStatsErr] = useState('');
+//     const [stats, setStats] = useState(null);
+
+//     const selectedQuestion = useMemo(
+//         () => questions.find(q => q.id === selectedQuestionId) || null,
+//         [questions, selectedQuestionId]
+//     );
+
+//     /* Φέρε τις ερωτήσεις του step */
+//     useEffect(() => {
+//         if (!stepId || !jobAdId) { setQuestions([]); return; }
+//         let ignore = false;
+//         setQLoading(true); setQErr('');
+//         (async () => {
+//             const urls = QUESTION_LIST_ENDPOINTS(apiBase, jobAdId, stepId);
+//             let got = null;
+//             for (const u of urls) {
+//                 got = await tryFetchJson(u);
+//                 if (got) break;
+//             }
+//             if (!ignore) {
+//                 if (!got) {
+//                     setQErr('Could not load questions for this step.');
+//                     setQuestions([]);
+//                 } else {
+//                     const arr = Array.isArray(got) ? got : [];
+//                     const norm = arr.map(q => ({
+//                         id: q.id ?? q.questionId ?? q.qid,
+//                         title: q.title ?? q.name ?? q.question ?? `Question ${q.id ?? ''}`,
+//                     })).filter(x => x.id != null);
+//                     setQuestions(norm);
+//                 }
+//             }
+//         })().finally(() => { if (!ignore) setQLoading(false); });
+//         return () => { ignore = true; };
+//     }, [apiBase, jobAdId, stepId]);
+
+//     /* Φέρε analytics ερώτησης */
+//     useEffect(() => {
+//         if (!jobAdId || !selectedQuestionId) { setStats(null); return; }
+//         let ignore = false;
+//         setStatsLoading(true); setStatsErr('');
+//         fetch(`${apiBase}/statistics/jobad/${jobAdId}/question/${selectedQuestionId}`, {
+//             headers: { Accept: 'application/json' },
+//         })
+//             .then(async (r) => {
+//                 if (!r.ok) throw new Error(await r.text().catch(() => `HTTP ${r.status}`));
+//                 return r.json();
+//             })
+//             .then((j) => { if (!ignore) setStats(j); })
+//             .catch((e) => { if (!ignore) setStatsErr(String(e.message || e)); })
+//             .finally(() => { if (!ignore) setStatsLoading(false); });
+//         return () => { ignore = true; };
+//     }, [apiBase, jobAdId, selectedQuestionId]);
+
+//     const avgScore = val(stats?.avgQuestionScore, stats?.avg_score, stats?.avgScore);
+//     const passRate = val(stats?.passRate, stats?.pass_rate);
+//     const distribution = stats?.distribution ?? [];
+
+//     const bestSkill = stats?.bestSkill
+//         ? {
+//             name: stats.bestSkill.skill ?? stats.bestSkill.title ?? stats.bestSkill.name,
+//             score: val(
+//                 stats.bestSkill.avgScore,
+//                 stats.bestSkill.averageScore,
+//                 stats.bestSkill.avg_score
+//             ),
+//         }
+//         : null;
+
+//     const worstSkill = stats?.worstSkill
+//         ? {
+//             name: stats.worstSkill.skill ?? stats.worstSkill.title ?? stats.worstSkill.name,
+//             score: val(
+//                 stats.worstSkill.avgScore,
+//                 stats.worstSkill.averageScore,
+//                 stats.worstSkill.avg_score
+//             ),
+//         }
+//         : null;
+
+//     return (
+//         <Row className="g-3">
+//             {/* LISTA ΕΡΩΤΗΣΕΩΝ — ίδιο στυλ με Steps/Candidates (buttons) */}
+//             <Col md="4">
+//                 <Card className="shadow-sm h-100">
+//                     <CardBody style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
+//                         <div style={{ fontWeight: 700, marginBottom: 4 }}>Questions</div>
+
+//                         <div
+//                             style={{
+//                                 maxHeight: 260,
+//                                 overflow: 'auto',
+//                                 border: '1px solid #e9ecef',
+//                                 borderRadius: 8,
+//                                 padding: 8,
+//                             }}
+//                         >
+//                             {qLoading && (
+//                                 <div className="d-flex align-items-center" style={{ gap: 8 }}>
+//                                     <Spinner size="sm" /> <span>Loading questions…</span>
+//                                 </div>
+//                             )}
+//                             {!qLoading && qErr && (
+//                                 <div className="text-danger" style={{ fontSize: 12 }}>{qErr}</div>
+//                             )}
+//                             {!qLoading && !qErr && questions.length === 0 && (
+//                                 <div className="text-muted" style={{ fontSize: 12 }}>No questions for this step.</div>
+//                             )}
+
+//                             {questions.map(q => {
+//                                 const active = q.id === selectedQuestionId;
+//                                 return (
+//                                     <Button
+//                                         key={q.id}
+//                                         onClick={() => onSelectQuestion?.(q.id)}
+//                                         className={`w-100 text-start ${active ? 'btn-secondary' : 'btn-light'}`}
+//                                         style={{ marginBottom: 6 }}
+//                                     >
+//                                         {q.title}
+//                                     </Button>
+//                                 );
+//                             })}
+//                         </div>
+//                     </CardBody>
+//                 </Card>
+//             </Col>
+
+//             {/* ANALYTICS ΕΡΩΤΗΣΗΣ */}
+//             <Col md="8">
+//                 <Card className="shadow-sm h-100">
+//                     <CardBody>
+//                         {!selectedQuestionId && (
+//                             <div className="text-muted">Select a question to see its analytics.</div>
+//                         )}
+
+//                         {selectedQuestionId && (
+//                             <>
+//                                 <div style={{ fontWeight: 700, marginBottom: 6 }}>
+//                                     Question:{' '}
+//                                     <span style={{ fontWeight: 600 }}>
+//                                         {selectedQuestion?.title ?? `#${selectedQuestionId}`}
+//                                     </span>
+//                                 </div>
+
+//                                 {statsLoading && (
+//                                     <div className="d-flex align-items-center" style={{ gap: 8 }}>
+//                                         <Spinner size="sm" /> <span>Loading…</span>
+//                                     </div>
+//                                 )}
+//                                 {statsErr && <div className="text-danger">Error: {statsErr}</div>}
+
+//                                 {!statsLoading && !statsErr && stats && (
+//                                     <>
+//                                         <Row className="g-3">
+//                                             <Col md="6">
+//                                                 <Kpi title="Avg Question Score" value={fmt1(avgScore)} sub="0–10" />
+//                                             </Col>
+//                                             <Col md="6">
+//                                                 <Kpi title="Pass Rate" value={fmtPct(passRate)} sub="Score ≥ 50%" />
+//                                             </Col>
+//                                         </Row>
+
+//                                         <Row className="g-3 mt-1">
+//                                             <Col md="6">
+//                                                 <Card className="shadow-sm h-100">
+//                                                     <CardBody>
+//                                                         <div style={{ fontWeight: 600, marginBottom: 8 }}>Best Skill</div>
+//                                                         <div className="d-flex align-items-center justify-content-between">
+//                                                             <span>{bestSkill?.name ?? '—'}</span>
+//                                                             <strong>{bestSkill ? fmt1(bestSkill.score) : '—'}</strong>
+//                                                         </div>
+//                                                     </CardBody>
+//                                                 </Card>
+//                                             </Col>
+//                                             <Col md="6">
+//                                                 <Card className="shadow-sm h-100">
+//                                                     <CardBody>
+//                                                         <div style={{ fontWeight: 600, marginBottom: 8 }}>Worst Skill</div>
+//                                                         <div className="d-flex align-items-center justify-content-between">
+//                                                             <span>{worstSkill?.name ?? '—'}</span>
+//                                                             <strong>{worstSkill ? fmt1(worstSkill.score) : '—'}</strong>
+//                                                         </div>
+//                                                     </CardBody>
+//                                                 </Card>
+//                                             </Col>
+//                                         </Row>
+
+//                                         <Row className="g-3 mt-1">
+//                                             <Col md="12">
+//                                                 <Card className="shadow-sm h-100">
+//                                                     <CardBody>
+//                                                         <Histogram buckets={distribution} />
+//                                                     </CardBody>
+//                                                 </Card>
+//                                             </Col>
+//                                         </Row>
+//                                     </>
+//                                 )}
+//                             </>
+//                         )}
+//                     </CardBody>
+//                 </Card>
+//             </Col>
+//         </Row>
+//     );
+// }
+
 import React, { useEffect, useMemo, useState } from 'react';
-import { Row, Col, Card, CardBody, Spinner, Button } from 'reactstrap';
+import {
+    Row,
+    Col,
+    Card,
+    CardBody,
+    Spinner,
+    Button,
+    ListGroup,
+    ListGroupItem,
+} from 'reactstrap';
 
 /* ---------- Small UI bits ---------- */
 const Kpi = ({ title, value, sub }) => (
@@ -18,14 +327,27 @@ const val = (...cands) => cands.find((x) => x !== undefined && x !== null);
 
 /* Histogram (ίδιο με πριν) */
 function Histogram({ buckets }) {
-    const mapped = (Array.isArray(buckets) ? buckets : []).map((b, i) => ({
-        label: b.range ?? `${b.from ?? i * 10}–${b.to ?? (i === 9 ? 100 : (i + 1) * 10)}`,
-        value: Number(b.count ?? b.cnt ?? b.value ?? 0),
-    }));
+    const mapped = (Array.isArray(buckets) ? buckets : []).map((b, i) => {
+        const from = b.from ?? i * 10;
+        const rawTo = b.to ?? (i + 1) * 10;
+        const to = rawTo === 100 ? 100 : rawTo - 1; // => 0-9, 10-19, …, 90-100
+
+        return {
+            label: `${from}-${to}`,
+            value: Number(b.count ?? b.cnt ?? b.value ?? 0),
+        };
+    });
+
     const max = Math.max(1, ...mapped.map((x) => x.value));
     return (
         <div>
-            <div className="mb-2" style={{ fontWeight: 600 }}>Score Distribution (0–100)</div>
+            <div className="mb-2" style={{ fontWeight: 600 }}>
+                Score Distribution (0–100)
+            </div>
+            {/* μικρή περιγραφή */}
+            <div style={{ fontSize: 11, color: '#6c757d', marginBottom: 6 }}>
+                Each bar = candidates in that score range
+            </div>
             <div
                 className="d-flex align-items-end"
                 style={{
@@ -52,20 +374,18 @@ function Histogram({ buckets }) {
                         </div>
                     </div>
                 ))}
-                {mapped.length === 0 && (
-                    <div className="text-muted" style={{ fontSize: 12 }}>—</div>
-                )}
+                {mapped.length === 0 && <div className="text-muted" style={{ fontSize: 12 }}>—</div>}
             </div>
         </div>
     );
 }
 
 /* Endpoints: προτεραιότητα στο jobAd+step, μετά τα fallback */
-const QUESTION_LIST_ENDPOINTS = (base, jobAdId, stepId) => ([
+const QUESTION_LIST_ENDPOINTS = (base, jobAdId, stepId) => [
     `${base}/statistics/jobad/${jobAdId}/step/${stepId}/questions`,
     `${base}/steps/${stepId}/questions`,
     `${base}/questions/step/${stepId}`,
-]);
+];
 
 async function tryFetchJson(url) {
     try {
@@ -94,15 +414,19 @@ export default function QuestionsTab({
     const [stats, setStats] = useState(null);
 
     const selectedQuestion = useMemo(
-        () => questions.find(q => q.id === selectedQuestionId) || null,
+        () => questions.find((q) => q.id === selectedQuestionId) || null,
         [questions, selectedQuestionId]
     );
 
     /* Φέρε τις ερωτήσεις του step */
     useEffect(() => {
-        if (!stepId || !jobAdId) { setQuestions([]); return; }
+        if (!stepId || !jobAdId) {
+            setQuestions([]);
+            return;
+        }
         let ignore = false;
-        setQLoading(true); setQErr('');
+        setQLoading(true);
+        setQErr('');
         (async () => {
             const urls = QUESTION_LIST_ENDPOINTS(apiBase, jobAdId, stepId);
             let got = null;
@@ -116,22 +440,32 @@ export default function QuestionsTab({
                     setQuestions([]);
                 } else {
                     const arr = Array.isArray(got) ? got : [];
-                    const norm = arr.map(q => ({
-                        id: q.id ?? q.questionId ?? q.qid,
-                        title: q.title ?? q.name ?? q.question ?? `Question ${q.id ?? ''}`,
-                    })).filter(x => x.id != null);
+                    const norm = arr
+                        .map((q) => ({
+                            id: q.id ?? q.questionId ?? q.qid,
+                            title: q.title ?? q.name ?? q.question ?? `Question ${q.id ?? ''}`,
+                        }))
+                        .filter((x) => x.id != null);
                     setQuestions(norm);
                 }
             }
-        })().finally(() => { if (!ignore) setQLoading(false); });
-        return () => { ignore = true; };
+        })().finally(() => {
+            if (!ignore) setQLoading(false);
+        });
+        return () => {
+            ignore = true;
+        };
     }, [apiBase, jobAdId, stepId]);
 
     /* Φέρε analytics ερώτησης */
     useEffect(() => {
-        if (!jobAdId || !selectedQuestionId) { setStats(null); return; }
+        if (!jobAdId || !selectedQuestionId) {
+            setStats(null);
+            return;
+        }
         let ignore = false;
-        setStatsLoading(true); setStatsErr('');
+        setStatsLoading(true);
+        setStatsErr('');
         fetch(`${apiBase}/statistics/jobad/${jobAdId}/question/${selectedQuestionId}`, {
             headers: { Accept: 'application/json' },
         })
@@ -139,37 +473,24 @@ export default function QuestionsTab({
                 if (!r.ok) throw new Error(await r.text().catch(() => `HTTP ${r.status}`));
                 return r.json();
             })
-            .then((j) => { if (!ignore) setStats(j); })
-            .catch((e) => { if (!ignore) setStatsErr(String(e.message || e)); })
-            .finally(() => { if (!ignore) setStatsLoading(false); });
-        return () => { ignore = true; };
+            .then((j) => {
+                if (!ignore) setStats(j);
+            })
+            .catch((e) => {
+                if (!ignore) setStatsErr(String(e.message || e));
+            })
+            .finally(() => {
+                if (!ignore) setStatsLoading(false);
+            });
+        return () => {
+            ignore = true;
+        };
     }, [apiBase, jobAdId, selectedQuestionId]);
 
     const avgScore = val(stats?.avgQuestionScore, stats?.avg_score, stats?.avgScore);
     const passRate = val(stats?.passRate, stats?.pass_rate);
     const distribution = stats?.distribution ?? [];
-
-    const bestSkill = stats?.bestSkill
-        ? {
-            name: stats.bestSkill.skill ?? stats.bestSkill.title ?? stats.bestSkill.name,
-            score: val(
-                stats.bestSkill.avgScore,
-                stats.bestSkill.averageScore,
-                stats.bestSkill.avg_score
-            ),
-        }
-        : null;
-
-    const worstSkill = stats?.worstSkill
-        ? {
-            name: stats.worstSkill.skill ?? stats.worstSkill.title ?? stats.worstSkill.name,
-            score: val(
-                stats.worstSkill.avgScore,
-                stats.worstSkill.averageScore,
-                stats.worstSkill.avg_score
-            ),
-        }
-        : null;
+    const skillRanking = Array.isArray(stats?.skillRanking) ? stats.skillRanking : [];
 
     return (
         <Row className="g-3">
@@ -194,13 +515,17 @@ export default function QuestionsTab({
                                 </div>
                             )}
                             {!qLoading && qErr && (
-                                <div className="text-danger" style={{ fontSize: 12 }}>{qErr}</div>
+                                <div className="text-danger" style={{ fontSize: 12 }}>
+                                    {qErr}
+                                </div>
                             )}
                             {!qLoading && !qErr && questions.length === 0 && (
-                                <div className="text-muted" style={{ fontSize: 12 }}>No questions for this step.</div>
+                                <div className="text-muted" style={{ fontSize: 12 }}>
+                                    No questions for this step.
+                                </div>
                             )}
 
-                            {questions.map(q => {
+                            {questions.map((q) => {
                                 const active = q.id === selectedQuestionId;
                                 return (
                                     <Button
@@ -244,40 +569,38 @@ export default function QuestionsTab({
 
                                 {!statsLoading && !statsErr && stats && (
                                     <>
+                                        {/* 1η γραμμή: Avg, Pass Rate, Skill Ranking */}
                                         <Row className="g-3">
-                                            <Col md="6">
+                                            <Col md="4">
                                                 <Kpi title="Avg Question Score" value={fmt1(avgScore)} sub="0–10" />
                                             </Col>
-                                            <Col md="6">
-                                                <Kpi title="Pass Rate" value={fmtPct(passRate)} sub="Score ≥ 50%" />
+                                            <Col md="4">
+                                                <Kpi title="Score ≥ 50%" value={fmtPct(passRate)} />
                                             </Col>
-                                        </Row>
-
-                                        <Row className="g-3 mt-1">
-                                            <Col md="6">
+                                            <Col md="4">
                                                 <Card className="shadow-sm h-100">
                                                     <CardBody>
-                                                        <div style={{ fontWeight: 600, marginBottom: 8 }}>Best Skill</div>
-                                                        <div className="d-flex align-items-center justify-content-between">
-                                                            <span>{bestSkill?.name ?? '—'}</span>
-                                                            <strong>{bestSkill ? fmt1(bestSkill.score) : '—'}</strong>
-                                                        </div>
-                                                    </CardBody>
-                                                </Card>
-                                            </Col>
-                                            <Col md="6">
-                                                <Card className="shadow-sm h-100">
-                                                    <CardBody>
-                                                        <div style={{ fontWeight: 600, marginBottom: 8 }}>Worst Skill</div>
-                                                        <div className="d-flex align-items-center justify-content-between">
-                                                            <span>{worstSkill?.name ?? '—'}</span>
-                                                            <strong>{worstSkill ? fmt1(worstSkill.score) : '—'}</strong>
-                                                        </div>
+                                                        <div style={{ fontWeight: 600, marginBottom: 8 }}>Skill Ranking</div>
+                                                        <ListGroup flush>
+                                                            {(skillRanking.length ? skillRanking : []).map((s) => (
+                                                                <ListGroupItem
+                                                                    key={s.skill}
+                                                                    className="d-flex align-items-center justify-content-between"
+                                                                >
+                                                                    <span>{s.skill}</span>
+                                                                    <strong>{fmt1(s.avgScore ?? s.averageScore ?? s.avg_score)}</strong>
+                                                                </ListGroupItem>
+                                                            ))}
+                                                            {skillRanking.length === 0 && (
+                                                                <ListGroupItem className="text-muted">—</ListGroupItem>
+                                                            )}
+                                                        </ListGroup>
                                                     </CardBody>
                                                 </Card>
                                             </Col>
                                         </Row>
 
+                                        {/* Histogram */}
                                         <Row className="g-3 mt-1">
                                             <Col md="12">
                                                 <Card className="shadow-sm h-100">
@@ -296,4 +619,5 @@ export default function QuestionsTab({
             </Col>
         </Row>
     );
+
 }

@@ -37,14 +37,25 @@ const fmtPct = (n) => (Number.isFinite(+n) ? `${(+n).toFixed(1)}%` : '—');
 const val = (...cands) => cands.find((x) => x !== undefined && x !== null);
 
 function Histogram({ buckets }) {
-    const mapped = (Array.isArray(buckets) ? buckets : []).map((b, i) => ({
-        label: b.range ?? `${b.from ?? i * 10}–${b.to ?? (i === 9 ? 100 : (i + 1) * 10)}`,
-        value: Number(b.count ?? b.cnt ?? b.value ?? 0),
-    }));
+    const mapped = (Array.isArray(buckets) ? buckets : []).map((b, i) => {
+        const from = b.from ?? i * 10;
+        const rawTo = b.to ?? (i + 1) * 10;
+        const to = rawTo === 100 ? 100 : rawTo - 1; // => 0-9, 10-19, …, 90-100
+
+        return {
+            label: `${from}-${to}`,
+            value: Number(b.count ?? b.cnt ?? b.value ?? 0),
+        };
+    });
+
     const max = Math.max(1, ...mapped.map((x) => x.value));
     return (
         <div>
             <div className="mb-2" style={{ fontWeight: 600 }}>Score Distribution (0–100)</div>
+            {/* μικρή περιγραφή */}
+            <div style={{ fontSize: 11, color: '#6c757d', marginBottom: 6 }}>
+                Each bar = candidates in that score range
+            </div>
             <div className="d-flex align-items-end"
                 style={{ gap: 10, height: 150, padding: '8px 6px', border: '1px solid #eee', borderRadius: 8, background: '#fff' }}>
                 {mapped.map((b, i) => (
@@ -58,6 +69,7 @@ function Histogram({ buckets }) {
                 ))}
                 {mapped.length === 0 && <div className="text-muted" style={{ fontSize: 12 }}>—</div>}
             </div>
+
         </div>
     );
 }
@@ -203,7 +215,7 @@ export default function SkillsTab({
                                         <>
                                             <Row className="g-3">
                                                 <Col md="6"><Kpi title="Avg Skill Score" value={fmt1(avgSkillScore)} sub="0–10" /></Col>
-                                                <Col md="6"><Kpi title="Pass Rate" value={fmtPct(passRate)} sub="Score ≥ 50%" /></Col>
+                                                <Col md="6"><Kpi title="Score ≥ 50%" value={fmtPct(passRate)} /></Col>
                                             </Row>
 
                                             <Row className="g-3 mt-1">

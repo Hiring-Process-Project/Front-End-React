@@ -8,10 +8,15 @@ import QuestionsTab from './QuestionsTab';
 import SkillsTab from './SkillsTab';
 import AnalyticsTabsHeader from './AnalyticsTabsHeader';
 
-// const getId = (obj, keys) =>
-//     obj && typeof obj === 'object'
-//         ? keys.map(k => obj[k]).find(v => v !== undefined && v !== null)
-//         : null;
+const stateKey = (level, { deptId, occId, jobAdId, orgId = 3 }) => {
+    // v2: σταθερό κλειδί ανά scope id (χωρίς ανάμιξη άλλων ids)
+    switch (level) {
+        case 'jobAd': return `hf:analytics:v2:jobAd:${jobAdId ?? 'na'}`;
+        case 'occupation': return `hf:analytics:v2:occupation:${occId ?? 'na'}`;
+        case 'department': return `hf:analytics:v2:department:${deptId ?? 'na'}`;
+        default: return `hf:analytics:v2:organization:${orgId ?? 'na'}`;
+    }
+};
 
 const getId = (obj, keys) => {
     if (obj == null) return null;
@@ -28,6 +33,12 @@ const getId = (obj, keys) => {
     return null;
 };
 
+// normalize helper
+const toInt = (v) => {
+    if (v === null || v === undefined || v === '') return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+};
 
 export default function Analytics({
     orgId = 3,
@@ -35,47 +46,39 @@ export default function Analytics({
     departmentData,
     occupationData,
     jobAdData,
-    onGoToOrganization, // optional
+    onGoToOrganization,
 }) {
-    // Τρέχοντα ids από props
     const deptId = getId(departmentData || {}, ['id', 'departmentId']);
     const occId = getId(occupationData || {}, ['id', 'occupationId']);
     const jobId = getId(jobAdData || {}, ['id', 'jobAdId']);
 
-    // --- Ποιο scope ήταν το "τελευταίο που άλλαξε" (last change wins) ---
     const initialLastChanged = () => {
         if (jobId != null) return 'jobAd';
         if (occId != null) return 'occupation';
         if (deptId != null) return 'department';
         return 'organization';
     };
+
+    const initialLevel = initialLastChanged();
     const [lastChanged, setLastChanged] = useState(initialLastChanged);
+    const [forcedLevel, setForcedLevel] = useState(null);
 
-    // --- Χειροκίνητο force από το κουμπί Organization ---
-    // όταν είναι 'organization', υπερισχύει των props
-    const [forcedLevel, setForcedLevel] = useState(null); // 'organization' | null
-
-    // Κράτα προηγούμενες τιμές για να ανιχνεύουμε αλλαγές
     const prevDeptId = useRef(deptId);
     const prevOccId = useRef(occId);
     const prevJobId = useRef(jobId);
 
-    // jobId changed
     useEffect(() => {
         if (jobId !== prevJobId.current) {
             prevJobId.current = jobId;
             if (jobId != null) {
-                // Μόλις επιλέχθηκε jobAd → ακύρωσε τυχόν forced org και πήγαινε jobAd
                 setForcedLevel(null);
                 setLastChanged('jobAd');
             } else if (lastChanged === 'jobAd') {
-                // Έφυγε jobAd → πήγαινε σε επόμενο διαθέσιμο ή org
                 setLastChanged(occId != null ? 'occupation' : (deptId != null ? 'department' : 'organization'));
             }
         }
     }, [jobId, occId, deptId, lastChanged]);
 
-    // occId changed
     useEffect(() => {
         if (occId !== prevOccId.current) {
             prevOccId.current = occId;
@@ -88,7 +91,6 @@ export default function Analytics({
         }
     }, [occId, jobId, deptId, lastChanged]);
 
-    // deptId changed
     useEffect(() => {
         if (deptId !== prevDeptId.current) {
             prevDeptId.current = deptId;
@@ -101,9 +103,7 @@ export default function Analytics({
         }
     }, [deptId, jobId, occId, lastChanged]);
 
-    // Το τελικό scope level:
     const level = forcedLevel ?? lastChanged ?? 'organization';
-
     const jobAdId = useMemo(() => (level === 'jobAd' ? jobId : null), [level, jobId]);
 
     const scope = useMemo(() => {
@@ -115,63 +115,68 @@ export default function Analytics({
         }
     }, [level, orgId, jobAdData, occupationData, departmentData]);
 
-    // Tabs
+    // === Κατάσταση tabs & selections (επιμένει ανά scope id) ===
     const [activeTab, setActiveTab] = useState('overview');
-
-    // Εσωτερικές επιλογές
     const [selectedStepId, setSelectedStepId] = useState(null);
     const [selectedQuestionId, setSelectedQuestionId] = useState(null);
 
-    // Καθάρισε selections αν φύγεις από jobAd
-    useEffect(() => {
-        if (level !== 'jobAd') {
-            setSelectedStepId(null);
-            setSelectedQuestionId(null);
-        }
-    }, [level]);
-
-    // Καθάρισε selections όταν αλλάζει jobAd
-    useEffect(() => {
-        setSelectedStepId(null);
-        setSelectedQuestionId(null);
-    }, [jobAdId]);
-
     const handleSelectStep = (id) => {
-        setSelectedStepId(id);
+        setSelectedStepId(toInt(id));           // ensure number
         setSelectedQuestionId(null);
     };
-
     const handleSelectQuestion = (id) => {
-        setSelectedQuestionId(id);
+        setSelectedQuestionId(toInt(id));       // ensure number
     };
 
     const scopeLabel =
-        {
-            organization: 'Organization',
-            department: 'Department',
-            occupation: 'Occupation',
-            jobAd: 'Job Ad',
-        }[level];
+        ({ organization: 'Organization', department: 'Department', occupation: 'Occupation', jobAd: 'Job Ad' }[level]);
 
     const gotoOrganization = () => {
-        setSelectedStepId(null);
-        setSelectedQuestionId(null);
-        setForcedLevel('organization'); // υπερισχύει των props
-        onGoToOrganization && onGoToOrganization(); // ενημέρωσε γονέα αν θέλεις
+        // δεν σβήνουμε selections
+        setForcedLevel('organization');
+        onGoToOrganization && onGoToOrganization();
     };
 
-    // Remount key για φρέσκο fetch κάθε φορά που αλλάζει το scope
     const overviewKey = useMemo(() => {
         const id =
-            level === 'jobAd'
-                ? (jobAdId ?? 'na')
-                : level === 'occupation'
-                    ? (occId ?? 'na')
-                    : level === 'department'
-                        ? (deptId ?? 'na')
-                        : 'org';
+            level === 'jobAd' ? (jobAdId ?? 'na') :
+                level === 'occupation' ? (occId ?? 'na') :
+                    level === 'department' ? (deptId ?? 'na') : 'org';
         return `ov-${level}-${id}`;
     }, [level, jobAdId, occId, deptId]);
+
+    // Restore όταν αλλάζει scope/jobAd (ή αρχικά)
+    useEffect(() => {
+        const key = stateKey(level, { deptId, occId, jobAdId, orgId });
+        try {
+            const raw = sessionStorage.getItem(key);
+            if (raw) {
+                const saved = JSON.parse(raw);
+                setActiveTab(saved.activeTab || 'overview');
+                setSelectedStepId(toInt(saved.selectedStepId));
+                setSelectedQuestionId(toInt(saved.selectedQuestionId));
+            } else {
+                setActiveTab('overview');
+                setSelectedStepId(null);
+                setSelectedQuestionId(null);
+            }
+        } catch {
+            setActiveTab('overview');
+            setSelectedStepId(null);
+            setSelectedQuestionId(null);
+        }
+    }, [level, jobAdId, deptId, occId, orgId]);
+
+    // Persist μόνο σε sessionStorage (όχι URL)
+    useEffect(() => {
+        const key = stateKey(level, { deptId, occId, jobAdId, orgId });
+        const payload = {
+            activeTab,
+            selectedStepId: toInt(selectedStepId),
+            selectedQuestionId: toInt(selectedQuestionId),
+        };
+        try { sessionStorage.setItem(key, JSON.stringify(payload)); } catch { }
+    }, [activeTab, selectedStepId, selectedQuestionId, level, jobAdId, deptId, occId, orgId]);
 
     return (
         <>
@@ -181,8 +186,6 @@ export default function Analytics({
                 <div className="d-flex align-items-center mb-2" style={{ marginTop: 8 }}>
                     <div className="d-flex align-items-center" style={{ fontWeight: 600, gap: 8 }}>
                         <span>Scope: {scopeLabel}</span>
-
-                        {/* wrapper για να δουλεύει το tooltip και όταν το button είναι disabled */}
                         <span id="org-scope-reset" className="d-inline-flex">
                             <button
                                 type="button"
@@ -191,10 +194,7 @@ export default function Analytics({
                                 aria-label="Return to Organization scope"
                                 className="btn btn-outline-secondary btn-sm d-inline-flex align-items-center justify-content-center p-0"
                                 style={{
-                                    width: 22,
-                                    height: 22,
-                                    lineHeight: '22px',
-                                    borderRadius: '50%',
+                                    width: 22, height: 22, lineHeight: '22px', borderRadius: '50%',
                                     opacity: level === 'organization' ? 0.5 : 1,
                                     cursor: level === 'organization' ? 'not-allowed' : 'pointer',
                                 }}
@@ -202,7 +202,6 @@ export default function Analytics({
                                 ×
                             </button>
                         </span>
-
                         <UncontrolledTooltip placement="top" target="org-scope-reset">
                             {level === 'organization'
                                 ? "You're already in Organization scope"
@@ -212,18 +211,15 @@ export default function Analytics({
                 </div>
             )}
 
-
             <TabContent activeTab={activeTab} className="pt-3">
                 <TabPane tabId="overview">
                     <OverviewTab key={overviewKey} level={level} data={scope} base={apiBase} />
                 </TabPane>
 
                 <TabPane tabId="candidates">
-                    {level === 'jobAd' ? (
-                        <CandidatesTab apiBase={apiBase} jobAd={jobAdData} jobAdId={jobAdId} />
-                    ) : (
-                        <div className="text-muted">Pick a Job Ad to view candidates analytics.</div>
-                    )}
+                    {level === 'jobAd'
+                        ? <CandidatesTab apiBase={apiBase} jobAd={jobAdData} jobAdId={jobAdId} />
+                        : <div className="text-muted">Pick a Job Ad to view candidates analytics.</div>}
                 </TabPane>
 
                 <TabPane tabId="steps">
@@ -231,7 +227,7 @@ export default function Analytics({
                         <StepsTab
                             apiBase={apiBase}
                             jobAdId={jobAdId}
-                            selectedStepId={selectedStepId}
+                            selectedStepId={toInt(selectedStepId)}   // ΠΑΝΤΑ number
                             onSelectStep={handleSelectStep}
                         />
                     ) : (
@@ -241,12 +237,12 @@ export default function Analytics({
 
                 <TabPane tabId="questions">
                     {level === 'jobAd' ? (
-                        selectedStepId ? (
+                        toInt(selectedStepId) ? (
                             <QuestionsTab
                                 apiBase={apiBase}
                                 jobAdId={jobAdId}
-                                stepId={selectedStepId}
-                                selectedQuestionId={selectedQuestionId}
+                                stepId={toInt(selectedStepId)}         // ΠΑΝΤΑ number
+                                selectedQuestionId={toInt(selectedQuestionId)}
                                 onSelectQuestion={handleSelectQuestion}
                             />
                         ) : (
@@ -259,8 +255,8 @@ export default function Analytics({
 
                 <TabPane tabId="skills">
                     {level === 'jobAd' ? (
-                        selectedQuestionId ? (
-                            <SkillsTab apiBase={apiBase} questionId={selectedQuestionId} />
+                        toInt(selectedQuestionId) ? (
+                            <SkillsTab apiBase={apiBase} questionId={toInt(selectedQuestionId)} />
                         ) : (
                             <div className="text-muted">Pick a question to see its skills.</div>
                         )

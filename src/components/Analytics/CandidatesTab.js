@@ -73,47 +73,10 @@ export default function CandidatesTab({
 
     const candidateList = providedCandidates?.length ? providedCandidates : fetchedCandidates;
 
-    const [summary, setSummary] = useState(null);
-    const [sumLoading, setSumLoading] = useState(false);
-    const [sumErr, setSumErr] = useState('');
-
     const [selectedCandId, setSelectedCandId] = useState(null);
     const [candData, setCandData] = useState(null);
     const [candLoading, setCandLoading] = useState(false);
     const [candErr, setCandErr] = useState('');
-
-    // Job-ad summary
-    useEffect(() => {
-        if (!jobAdId) {
-            setSummary(null);
-            return;
-        }
-        const ac = new AbortController();
-        setSumLoading(true);
-        setSumErr('');
-        fetch(`${apiBase}/statistics/jobad/${jobAdId}/candidateSummary`, {
-            headers: { Accept: 'application/json' },
-            signal: ac.signal,
-        })
-            .then((r) =>
-                r.ok
-                    ? r.json()
-                    : r
-                        .text()
-                        .then((t) => Promise.reject(new Error(`HTTP ${r.status} ${r.statusText}: ${t}`)))
-            )
-            .then((json) => {
-                setSummary(json);
-                setSumLoading(false);
-            })
-            .catch((e) => {
-                if (e.name !== 'AbortError') {
-                    setSumErr(e.message || 'Failed');
-                    setSumLoading(false);
-                }
-            });
-        return () => ac.abort();
-    }, [apiBase, jobAdId]);
 
     // Candidates list
     useEffect(() => {
@@ -214,6 +177,7 @@ export default function CandidatesTab({
 
     return (
         <Row className="g-3">
+            {/* Αριστερά: μόνο λίστα υποψηφίων */}
             <Col lg="4">
                 <Card className="shadow-sm h-100">
                     <CardBody style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
@@ -260,28 +224,11 @@ export default function CandidatesTab({
                                 );
                             })}
                         </div>
-
-                        <div style={{ fontWeight: 600, marginTop: 8 }}>Summary</div>
-                        {sumLoading && (
-                            <div className="d-flex align-items-center" style={{ gap: 8 }}>
-                                <Spinner size="sm" /> <span>Loading…</span>
-                            </div>
-                        )}
-                        {sumErr && <div className="text-danger">Error: {sumErr}</div>}
-                        {summary && (
-                            <Row className="g-2">
-                                <Col xs="6">
-                                    <Kpi title="Approved" value={summary.approvedCount} />
-                                </Col>
-                                <Col xs="6">
-                                    <Kpi title="Pending" value={summary.pendingCount} />
-                                </Col>
-                            </Row>
-                        )}
                     </CardBody>
                 </Card>
             </Col>
 
+            {/* Δεξιά: Στατιστικά σε 2 στήλες. Κάθε κάρτα = 1 κελί (ίδιο πλάτος/ύψος ανά σειρά) */}
             <Col lg="8">
                 {!selectedCandId && (
                     <div className="text-muted">Select a candidate to see detailed analytics.</div>
@@ -298,21 +245,21 @@ export default function CandidatesTab({
 
                             {candData && (
                                 <>
-                                    {/* TOP ROW: Overall + Strengths + Weaknesses */}
+                                    {/* Row 1 */}
                                     <Row className="g-3">
-                                        <Col md="4">
-                                            <Kpi title="Overall Score" value={fmt(candData.overallScore, 1)} sub="0–10" />
+                                        <Col md="6">
+                                            <Kpi title="Overall Score" value={fmt(candData.overallScore, 1)} sub="/100" />
                                         </Col>
-                                        <Col md="4">
-                                            <MiniList title="Strengths (Top 3)" items={candData.strengthProfile} />
-                                        </Col>
-                                        <Col md="4">
-                                            <MiniList title="Weaknesses (Bottom 3)" items={candData.weaknessProfile} />
+                                        <Col md="6">
+                                            <MiniList title="Strengths (Top 3 Skills)" items={candData.strengthProfile} />
                                         </Col>
                                     </Row>
 
-                                    {/* ROW 2: Step / Question */}
+                                    {/* Row 2 */}
                                     <Row className="g-3 mt-1">
+                                        <Col md="6">
+                                            <MiniList title="Weaknesses (Bottom 3 Skills)" items={candData.weaknessProfile} />
+                                        </Col>
                                         <Col md="6">
                                             <Card className="shadow-sm h-100">
                                                 <CardBody>
@@ -334,7 +281,10 @@ export default function CandidatesTab({
                                                 </CardBody>
                                             </Card>
                                         </Col>
+                                    </Row>
 
+                                    {/* Row 3 */}
+                                    <Row className="g-3 mt-1">
                                         <Col md="6">
                                             <Card className="shadow-sm h-100">
                                                 <CardBody>
@@ -356,11 +306,8 @@ export default function CandidatesTab({
                                                 </CardBody>
                                             </Card>
                                         </Col>
-                                    </Row>
 
-                                    {/* ROW 3: Skills full width so no empty space */}
-                                    <Row className="g-3 mt-1">
-                                        <Col md="12">
+                                        <Col md="6">
                                             <Card className="shadow-sm h-100">
                                                 <CardBody>
                                                     <div style={{ fontWeight: 600, marginBottom: 8 }}>Score per Skill</div>

@@ -58,7 +58,7 @@ export default function StepsTab({
                     setStepsLoading(false);
                     setSelectedStepId(null);
                     onSelectStep?.(null);
-                    setStepsErr('');                // ✅ 1) καθάρισε error αν ήρθε επιτυχία
+                    setStepsErr('');
                     return;
                 } catch { /* try next endpoint */ }
             }
@@ -99,27 +99,55 @@ export default function StepsTab({
 
     if (!jobAdId) return <div className="text-muted">Select a Job Ad to view steps and step analytics.</div>;
 
-    /* --- Μίνι ιστόγραμμα όπως στο JobAdOverview --- */
+    /* --- Μίνι ιστόγραμμα | labels 0–9, 10–19, …, 90–100 + hover "<range> : <count>" --- */
     function StepScoreHistogram({ buckets = [] }) {
         const max = Math.max(1, ...buckets.map(b => Number(b.count) || 0));
+
+        // 0–9, 10–19, …, 90–100
+        const labelFor = (b, idx) => {
+            const from = Number(b?.from ?? idx * 10);
+            const rawTo = Number(b?.to ?? (idx === 9 ? 100 : (idx + 1) * 10));
+            const to = rawTo === 100 ? 100 : rawTo - 1;
+            return `${from}-${to}`;
+        };
+
         return (
             <Card className="shadow-sm h-100">
                 <CardBody>
                     <div style={{ fontWeight: 600, marginBottom: 8 }}>Score Distribution (0–100)</div>
-                    <div style={{ height: 150, display: 'flex', alignItems: 'end', gap: 8, padding: '8px 4px' }}>
+
+                    {/* μικρή περιγραφή */}
+                    <div style={{ fontSize: 11, color: '#6c757d', marginBottom: 6 }}>
+                        Each bar = candidates in that score range
+                    </div>
+
+                    {/* ίδιο «κουτί» με το άλλο Histogram */}
+                    <div
+                        className="d-flex align-items-end"
+                        style={{
+                            gap: 10,
+                            height: 150,
+                            padding: '8px 6px',
+                            border: '1px solid #eee',
+                            borderRadius: 8,
+                            background: '#fff',
+                        }}
+                    >
                         {buckets.map((b, i) => {
-                            const h = ((Number(b.count) || 0) / max) * 100;
-                            const label = b.range || `${b.from}–${b.to}`;
+                            const count = Number(b.count) || 0;
+                            const hPx = (count / max) * 120; // ύψος σε px (όπως στο Skills histogram)
+                            const label = labelFor(b, i);
+                            const title = `${label} : ${count}`;
+
                             return (
-                                <div key={b.from ?? i}
-                                    style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                                    <div style={{ width: '100%', height: 120, display: 'flex', alignItems: 'end' }}>
-                                        <div style={{
-                                            width: '100%', height: `${h}%`, background: '#e9ecef',
-                                            borderRadius: 4, boxShadow: 'inset 0 0 1px rgba(0,0,0,.15)'
-                                        }} />
+                                <div key={(b.from ?? i) + '-' + (b.to ?? i)} style={{ textAlign: 'center', flex: 1 }}>
+                                    <div
+                                        title={title}
+                                        style={{ height: `${hPx}px`, background: '#e9ecef', borderRadius: 6 }}
+                                    />
+                                    <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }} title={title}>
+                                        {label}
                                     </div>
-                                    <div style={{ fontSize: 10, whiteSpace: 'nowrap' }}>{label}</div>
                                 </div>
                             );
                         })}
@@ -146,7 +174,7 @@ export default function StepsTab({
                                 </div>
                             )}
 
-                            {/* ✅ 2) δείξε error μόνο αν δεν υπάρχουν steps */}
+                            {/* δείξε error μόνο αν δεν υπάρχουν steps */}
                             {!stepsLoading && stepsErr && steps.length === 0 && (
                                 <div className="text-danger" style={{ fontSize: 12 }}>{stepsErr}</div>
                             )}
@@ -197,7 +225,7 @@ export default function StepsTab({
                             {stats && (
                                 <>
                                     <Row className="g-3">
-                                        <Col md="6"><Kpi title="Pass Rate" value={fmtPercent(stats.passRate)} sub="score ≥ 50%" /></Col>
+                                        <Col md="6"><Kpi title="Candidates with score ≥ 50%" value={fmtPercent(stats.passRate)} /></Col>
                                         <Col md="6"><Kpi title="Avg Step Score" value={fmt(stats.avgStepScore, 1)} sub="0–10" /></Col>
                                     </Row>
 
@@ -206,7 +234,6 @@ export default function StepsTab({
                                             <StepScoreHistogram buckets={stats.scoreDistribution ?? []} />
                                         </Col>
                                     </Row>
-
 
                                     <Row className="g-3 mt-1">
                                         <Col md="6">
@@ -226,24 +253,6 @@ export default function StepsTab({
                                                 </CardBody>
                                             </Card>
                                         </Col>
-
-                                        {/* <Col md="6">
-                                            <Card className="shadow-sm h-100">
-                                                <CardBody>
-                                                    <div style={{ fontWeight: 600, marginBottom: 8 }}>Skill Ranking</div>
-                                                    <ListGroup flush>
-                                                        {(stats.skillRanking ?? []).map(s => (
-                                                            <ListGroupItem key={s.skill} className="d-flex align-items-center justify-content-between">
-                                                                <span>{s.skill}</span>
-                                                                <strong>{fmt(s.avgScore ?? s.averageScore, 1)}</strong>
-                                                            </ListGroupItem>
-                                                        ))}
-                                                        {(!stats.skillRanking || stats.skillRanking.length === 0) &&
-                                                            <ListGroupItem className="text-muted">—</ListGroupItem>}
-                                                    </ListGroup>
-                                                </CardBody>
-                                            </Card>
-                                        </Col> */}
                                     </Row>
                                 </>
                             )}

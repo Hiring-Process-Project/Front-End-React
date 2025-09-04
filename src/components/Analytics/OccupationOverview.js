@@ -39,30 +39,26 @@ function ApprovalRejection({ approvalRate = 0, rejectionRate = 0 }) {
 
 /* ---------- Score Histogram (0–100) ---------- */
 function ScoreHistogram({ buckets = [] }) {
-    const max = useMemo(() => Math.max(1, ...buckets.map((b) => Number(b.count) || 0)), [buckets]);
+    // max που διαβάζει count Ή cnt
+    const max = useMemo(
+        () => Math.max(1, ...buckets.map(b => Number(b.count ?? b.cnt) || 0)),
+        [buckets]
+    );
+
     return (
         <Card className="shadow-sm h-100">
             <CardBody>
                 <div style={{ fontWeight: 600, marginBottom: 8 }}>Score Distribution (0–100)</div>
                 <div style={{ height: 150, display: 'flex', alignItems: 'end', gap: 8, padding: '8px 4px' }}>
                     {buckets.map((b, i) => {
-                        const h = ((Number(b.count) || 0) / max) * 100;
-                        const label = b.range || `${b.from}–${b.to}`;
+                        const val = Number(b.count ?? b.cnt) || 0;
+                        const h = (val / max) * 100;
+                        const label = b.range || `${b.from ?? i * 10}–${b.to ?? (i === 9 ? 100 : (i + 1) * 10)}`;
+                        const key = b.from ?? `b-${i}`;
                         return (
-                            <div
-                                key={b.from ?? i}
-                                style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
-                            >
+                            <div key={key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                                 <div style={{ width: '100%', height: 120, display: 'flex', alignItems: 'end' }}>
-                                    <div
-                                        style={{
-                                            width: '100%',
-                                            height: `${h}%`,
-                                            background: '#e9ecef',
-                                            borderRadius: 4,
-                                            boxShadow: 'inset 0 0 1px rgba(0,0,0,.15)',
-                                        }}
-                                    />
+                                    <div style={{ width: '100%', height: `${h}%`, background: '#e9ecef', borderRadius: 4, boxShadow: 'inset 0 0 1px rgba(0,0,0,.15)' }} />
                                 </div>
                                 <div style={{ fontSize: 10, whiteSpace: 'nowrap' }}>{label}</div>
                             </div>
@@ -92,9 +88,7 @@ export default function OccupationOverview({ deptId, occId, base = '/api' }) {
             .then((r) =>
                 r.ok
                     ? r.json()
-                    : r
-                        .text()
-                        .then((t) => Promise.reject(new Error(`HTTP ${r.status} ${r.statusText}: ${t?.slice(0, 200)}`)))
+                    : r.text().then((t) => Promise.reject(new Error(`HTTP ${r.status} ${r.statusText}: ${t?.slice(0, 200)}`)))
             )
             .then((json) => {
                 setData(json);
@@ -125,22 +119,56 @@ export default function OccupationOverview({ deptId, occId, base = '/api' }) {
         rejectionRate = 0,
         candidatesPerJobAd = 0,
         scoreDistribution = [],
+        totalCandidates = 0,   // ΝΕΟ
+        jobAdDifficulty = [],  // ΝΕΟ [{jobAd, averageScore}]
     } = data;
 
     return (
         <>
+            {/* Row 1: Approval + KPIs */}
             <Row className="g-3">
                 <Col lg="6">
                     <ApprovalRejection approvalRate={approvalRate} rejectionRate={rejectionRate} />
                 </Col>
-                <Col lg="6">
-                    <Kpi title="Candidates per Job Ad" value={fmtNumber(candidatesPerJobAd)} sub="Average for this occupation" />
+                <Col lg="3">
+                    <Kpi title="Candidates" value={totalCandidates} sub="Total in this occupation" />
+                </Col>
+                <Col lg="3">
+                    <Kpi title="Avg Candidates / Job Ad" value={fmtNumber(candidatesPerJobAd)} sub="Average for this occupation" />
                 </Col>
             </Row>
 
+            {/* Row 2: Histogram + Job Ad Difficulty (inline, χωρίς νέο component) */}
             <Row className="g-3 mt-1">
-                <Col lg="12">
+                <Col lg="6">
                     <ScoreHistogram buckets={scoreDistribution} />
+                </Col>
+
+                <Col lg="6">
+                    <Card className="shadow-sm h-100">
+                        <CardBody>
+                            <div style={{ fontWeight: 600, marginBottom: 6 }}>
+                                Job Ad Difficulty <span style={{ fontSize: 12, opacity: .6 }}>(lower = harder)</span>
+                            </div>
+
+                            {Array.isArray(jobAdDifficulty) && jobAdDifficulty.length > 0 ? (
+                                <ul className="list-unstyled mb-0">
+                                    {jobAdDifficulty.map((it, i) => (
+                                        <li
+                                            key={i}
+                                            className="d-flex align-items-center justify-content-between py-1"
+                                            style={{ borderBottom: '1px solid #f1f3f5' }}
+                                        >
+                                            <span>{it.jobAd}</span>
+                                            <strong>{fmtNumber(it.averageScore)}</strong>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <div className="text-muted">—</div>
+                            )}
+                        </CardBody>
+                    </Card>
                 </Col>
             </Row>
         </>
