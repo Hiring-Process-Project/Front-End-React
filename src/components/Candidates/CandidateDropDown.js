@@ -13,23 +13,13 @@ function TinyToast({ show, text, type = "info", onHide }) {
     }, [show, onHide]);
 
     if (!show) return null;
-    const bg =
-        type === "success" ? "#16a34a" :
-            type === "warning" ? "#f59e0b" :
-                type === "error" ? "#dc2626" : "#334155";
+    const cls =
+        type === "success" ? "tiny-toast tiny-toast--success" :
+            type === "warning" ? "tiny-toast tiny-toast--warning" :
+                type === "error" ? "tiny-toast tiny-toast--error" : "tiny-toast tiny-toast--info";
 
     return (
-        <div
-            style={{
-                position: "fixed", right: 16, bottom: 16,
-                background: bg, color: "#fff",
-                padding: "6px 8px",
-                borderRadius: 8,
-                boxShadow: "0 6px 16px rgba(0,0,0,0.25)", zIndex: 9999,
-                fontWeight: 600, fontSize: 11
-            }}
-            role="status" aria-live="polite"
-        >
+        <div className={cls} role="status" aria-live="polite">
             {text}
         </div>
     );

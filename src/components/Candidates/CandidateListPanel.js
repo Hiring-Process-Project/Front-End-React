@@ -1,6 +1,6 @@
 import { Card, CardBody, Row, Col, Button } from "reactstrap";
 import './Candidates.css';
-import CandidateDropdown from "./CandidateDropDown"; // Εξασφαλίζεις ότι το έχετε σωστά εισαχθεί
+import CandidateDropdown from "./CandidateDropDown";
 
 const CandidateListPanel = ({
     loadingCandidates,
@@ -43,27 +43,20 @@ const CandidateListPanel = ({
         </Card>
 
         {/* Approve / Reject */}
-        <div
-            style={{
-                display: "flex",
-                justifyContent: "center",
-                gap: 12,
-                marginTop: 16,
-            }}
-        >
+        <div className="align-center mt-16">
             <Button
                 color="success"
-                style={{ minWidth: 120, height: 40 }}
+                className="btn-lg-fixed"
                 disabled={!selectedCandidate || isLocked}
-                onClick={() => openConfirm("APPROVED")} // <-- αλλαγή
+                onClick={() => openConfirm("APPROVED")}
             >
                 Approve
             </Button>
             <Button
                 color="danger"
-                style={{ minWidth: 120, height: 40 }}
+                className="btn-lg-fixed"
                 disabled={!selectedCandidate || isLocked}
-                onClick={() => openConfirm("REJECTED")} // <-- αλλαγή
+                onClick={() => openConfirm("REJECTED")}
             >
                 Reject
             </Button>

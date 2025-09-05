@@ -16,30 +16,11 @@ function LockBanner({ status, jobAdComplete = false }) {
 
     return (
         <div
-            style={{
-                marginTop: 6,
-                border: "1px solid #e5e7eb",
-                background: "#F6F6F6",
-                borderRadius: 12,
-                padding: "10px 12px",
-                textAlign: "center",
-                boxShadow: "0 3px 10px rgba(0,0,0,0.05)",
-                fontSize: 11,
-            }}
+            className="lock-banner mt-6"
             role="note"
             aria-live="polite"
         >
-            <div
-                style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 6,
-                    color: "#334155",
-                    fontWeight: 600,
-                    marginBottom: 4,
-                }}
-            >
+            <div className="lock-banner__title">
                 <span style={{ fontSize: 13 }} aria-hidden>🔒</span>
                 <span>Candidate Status</span>
                 {/* <span>{jobAdComplete ? "Job ad" : "Candidate status"}</span> */}
@@ -52,13 +33,11 @@ function LockBanner({ status, jobAdComplete = false }) {
                 </div>
             )} */}
 
-
-            <div style={{ fontWeight: 800, fontSize: 12.5, color: "#111827" }}>
+            <div className="lock-banner__status">
                 {up || "LOCKED"}
             </div>
 
-
-            <div style={{ marginTop: 4, color: "#475569", lineHeight: 1.35 }}>
+            <div className="lock-banner__desc">
                 {jobAdComplete
                     ? "The job ad is complete. Another candidate has been hired and evaluation editing is locked."
                     : "Scores are locked and cannot be edited."}
@@ -573,12 +552,12 @@ export default function Candidates({ jobAdId }) {
                                             interviewReportId={selectedCandidate?.interviewReportId}
                                         />
                                     ) : (
-                                        <div style={{ opacity: 0.6 }}>
+                                        <div className="text-muted">
                                             Select a candidate to see steps…
                                         </div>
                                     )}
                                     {loadingAssess && selectedCandidate && (
-                                        <div style={{ fontSize: 11, opacity: 0.7, marginTop: 8 }}>
+                                        <div className="mt-8" style={{ fontSize: 11, opacity: 0.7 }}>
                                             Loading ratings…
                                         </div>
                                     )}
@@ -617,7 +596,7 @@ export default function Candidates({ jobAdId }) {
 
                                         </>
                                     ) : (
-                                        <div style={{ opacity: 0.6 }}>
+                                        <div className="text-muted">
                                             Select a candidate to see skills…
                                         </div>
                                     )}
@@ -625,7 +604,7 @@ export default function Candidates({ jobAdId }) {
                             </Card>
                         </Col>
                     </Row>
-                    <Row style={{ marginTop: 16 }}>
+                    <Row className="mt-16">
                         <Col md="12">
                             <label className="description-labels">Comments about the candidate:</label>
                             {/* Αντικατάσταση με το νέο component */}

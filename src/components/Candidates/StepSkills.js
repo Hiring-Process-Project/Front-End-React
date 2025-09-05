@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Button, Input } from "reactstrap";
+import './Candidates.css';
 
 const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8087";
 
-/** Μικρό toast χωρίς libs */
+/** Tiny toast using CSS classes */
 function TinyToast({ show, text, type = "info", onHide }) {
     useEffect(() => {
         if (!show) return;
@@ -12,50 +13,78 @@ function TinyToast({ show, text, type = "info", onHide }) {
     }, [show, onHide]);
 
     if (!show) return null;
-    const bg =
-        type === "success" ? "#16a34a" :
-            type === "warning" ? "#f59e0b" :
-                type === "error" ? "#dc2626" : "#334155";
+    const variantClass =
+        type === "success"
+            ? "tiny-toast tiny-toast--success"
+            : type === "warning"
+                ? "tiny-toast tiny-toast--warning"
+                : type === "error"
+                    ? "tiny-toast tiny-toast--error"
+                    : "tiny-toast tiny-toast--info";
 
     return (
-        <div
-            style={{
-                position: "fixed", right: 16, bottom: 16,
-                background: bg, color: "#fff",
-                padding: "6px 8px",
-                borderRadius: 8,
-                boxShadow: "0 6px 16px rgba(0,0,0,0.25)", zIndex: 9999,
-                fontWeight: 600, fontSize: 11
-            }}
-            role="status" aria-live="polite"
-        >
+        <div className={variantClass} role="status" aria-live="polite">
             {text}
         </div>
     );
 }
 
-const normScore = (v) =>
-    (v === "" || v === null || typeof v === "undefined" ? "" : Number(v));
-const normText = (s) => (s ?? "");
-function valuesEqual(a, b) {
-    return normScore(a.score) === normScore(b.score)
-        && normText(a.comment) === normText(b.comment);
+/* ---------- helper: color from score ---------- */
+function scoreColor(value) {
+    if (!Number.isFinite(value)) return "#a8a8a8ff"; // gray N/A
+    if (value < 25) return "#dc2626"; // red
+    if (value < 50) return "#f97316"; // orange
+    if (value < 75) return "#eab308"; // yellow
+    return "#16a34a"; // green
 }
 
-/* ---------- κοινά στυλ για ίδια εμφάνιση/πλάτος ---------- */
-const BOX_BG = "#F6F6F6";
-const fullWidthBox = {
-    border: "1px solid #e5e7eb",
-    background: BOX_BG,
-    borderRadius: 12,
-    padding: "10px 12px",
-    boxShadow: "0 3px 10px rgba(0,0,0,0.05)",
-    margin: "0 -10px 2px -10px",
-    fontSize: 11,
-};
+/* Color swatch (keeps tiny inline styles only for dynamic parts)
+   shape: 'dot' | 'square' | 'bar' | 'vbar'
+*/
+function ColorSwatch({ value, shape = "dot", title }) {
+    const bg = scoreColor(
+        value === "" || value === null || typeof value === "undefined"
+            ? NaN
+            : Number(value)
+    );
+
+    const base = { display: "inline-block", background: bg };
+
+    const style =
+        shape === "bar"
+            ? { ...base, width: 40, height: 8, borderRadius: 4 }
+            : shape === "vbar"
+                ? { ...base, width: 8, height: 30, borderRadius: 4 }
+                : shape === "square"
+                    ? {
+                        ...base,
+                        width: 12,
+                        height: 12,
+                        borderRadius: 2,
+                        border: "1px solid rgba(0,0,0,0.08)",
+                    }
+                    : {
+                        ...base,
+                        width: 10,
+                        height: 10,
+                        borderRadius: "50%",
+                        border: "1px solid rgba(0,0,0,0.08)",
+                    };
+
+    return <span aria-hidden title={title} style={style} />;
+}
 
 export default function StepSkills({ step, mode = "edit", onAfterSave }) {
-    const skills = Array.isArray(step?.skills) ? step.skills : [];
+    // Skills memoization
+    const skills = useMemo(
+        () => (Array.isArray(step?.skills) ? step.skills : []),
+        [step?.skills]
+    );
+    const skillsMemoKey = useMemo(
+        () => skills.map((s) => s.id).join("|"),
+        [skills]
+    );
+
     const candidateId = step?.context?.candidateId ?? null;
     const questionId = step?.context?.questionId ?? null;
 
@@ -70,7 +99,7 @@ export default function StepSkills({ step, mode = "edit", onAfterSave }) {
     const showToast = (text, type = "info") => setToast({ show: true, text, type });
     const hideToast = () => setToast((t) => ({ ...t, show: false }));
 
-    /** GET από ΒΔ – χρησιμοποιείται και μετά από Save */
+    /** GET from API – used also after Save */
     const fetchEvaluations = useCallback(async () => {
         if (!candidateId || !questionId) {
             setRows({});
@@ -96,26 +125,26 @@ export default function StepSkills({ step, mode = "edit", onAfterSave }) {
 
             const next = {};
             for (const s of skills) {
-                next[s.id] = byId.get(s.id) ?? { score: "", comment: "", exists: false, dirty: false };
+                next[s.id] =
+                    byId.get(s.id) ?? { score: "", comment: "", exists: false, dirty: false };
             }
             setRows(next);
         } catch {
-            // σε αποτυχία δεν αδειάζουμε ό,τι φαίνεται
+            // keep current state on failure
         } finally {
             setLoading(false);
         }
     }, [candidateId, questionId, skills]);
 
-    // Κάθε φορά που αλλάζει candidate/question/skills → φόρτωσε ΜΟΝΟ ΒΔ
     useEffect(() => {
         if (!candidateId || !questionId) {
             setRows({});
             return;
         }
         fetchEvaluations();
-    }, [candidateId, questionId, skills.map(s => s.id).join(","), fetchEvaluations]);
+    }, [candidateId, questionId, skillsMemoKey, fetchEvaluations]);
 
-    // Επεξεργασία (τοπικά, χωρίς αποθήκευση μέχρι να πατηθεί Save)
+    // Local edits (not saved until Save pressed)
     const upsertLocal = (skillId, patch) => {
         setRows((prev) => {
             const cur = prev[skillId] || { score: "", comment: "", dirty: false, exists: false };
@@ -145,13 +174,13 @@ export default function StepSkills({ step, mode = "edit", onAfterSave }) {
         [rows]
     );
 
-    // === ΜΟΝΗ ΑΛΛΑΓΗ: απαιτούμε κάθε dirty row να έχει score 0..100 (όχι μόνο σχόλιο)
+    // require each dirty row to have valid score 0..100
     const allDirtyValid = useMemo(() => {
         const dirty = Object.values(rows).filter((r) => r?.dirty);
         if (dirty.length === 0) return false;
         for (const r of dirty) {
             if (r.score === "" || r.score === null || typeof r.score === "undefined") {
-                return false; // μόνο σχόλιο → όχι Save
+                return false; // comment-only → no Save
             }
             const sc = Number(r.score);
             if (!Number.isFinite(sc) || sc < 0 || sc > 100) return false;
@@ -165,7 +194,6 @@ export default function StepSkills({ step, mode = "edit", onAfterSave }) {
 
         setLoading(true);
 
-        // Για το μήνυμα: τι είναι create vs update με βάση την πρότερη κατάσταση
         const dirtyEntries = Object.entries(rows).filter(([, v]) => v?.dirty === true);
         const toCreate = dirtyEntries.filter(([, v]) => !v.exists);
         const toUpdate = dirtyEntries.filter(([, v]) => v.exists);
@@ -181,7 +209,7 @@ export default function StepSkills({ step, mode = "edit", onAfterSave }) {
                     payloadScore !== null &&
                     (!Number.isFinite(payloadScore) || payloadScore < 0 || payloadScore > 100)
                 ) {
-                    continue;
+                    continue; // skip invalid
                 }
 
                 const body = {
@@ -199,12 +227,10 @@ export default function StepSkills({ step, mode = "edit", onAfterSave }) {
                 });
 
                 if (!resp.ok) {
-                    // αν κάποιο αποτύχει, δεν αλλάζουμε οπτικά τίποτα – απλώς θα μείνει dirty
-                    continue;
+                    continue; // leave dirty on failure
                 }
             }
 
-            // Μετά το save: κάνε re-fetch από ΒΔ και ΠΡΟΒΑΛΕ ΜΟΝΟ ΤΑ ΑΠΟΘΗΚΕΥΜΕΝΑ
             await fetchEvaluations();
 
             // Toast policy
@@ -228,7 +254,7 @@ export default function StepSkills({ step, mode = "edit", onAfterSave }) {
         } catch { }
     };
 
-    // ====== Placeholder όταν δεν υπάρχουν skills ======
+    // ====== Placeholder when no skills ======
     const showPlaceholder = skills.length === 0;
     const placeholderText = readOnly
         ? "Select a question to see skills evaluation…"
@@ -236,73 +262,50 @@ export default function StepSkills({ step, mode = "edit", onAfterSave }) {
 
     if (showPlaceholder) {
         return (
-            <div style={{ background: "#e5e7eb", borderRadius: 12, padding: 10 }}>
-                {step?.name && (
-                    <div style={{ fontWeight: 600, fontSize: 11, marginBottom: 6, color: "#374151" }}>
-                        {step.name}
-                    </div>
-                )}
+            <div className="placeholder-wrap">
+                {step?.name && <div className="description-labels">{step.name}</div>}
 
-                <div style={fullWidthBox}>
-                    {placeholderText}
-                </div>
+                <div className="box box--fullwidth box__content-min50">{placeholderText}</div>
 
                 <TinyToast show={toast.show} text={toast.text} type={toast.type} onHide={hideToast} />
             </div>
         );
     }
 
-    // ====== Κανονικό UI ======
+    // ====== Main UI ======
     return (
-        <div
-            style={{
-                background: "#e5e7eb",
-                borderRadius: 12,
-                padding: 10,
-                fontSize: 11,
-            }}
-        >
-            {step?.name && (
-                <div style={{ fontWeight: 600, fontSize: 11, marginBottom: 6, color: "#374151" }}>
-                    {step.name}
-                </div>
-            )}
+        <div className="step-skills">
+            {step?.name && <div className="description-labels step-skills__title">{step.name}</div>}
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <div className="candidate-container mt-6">
                 {skills.map((s) => {
-                    const row = rows[s.id] || { score: "", comment: "", dirty: false, exists: false };
+                    const row =
+                        rows[s.id] || { score: "", comment: "", dirty: false, exists: false };
 
                     // ===== VIEW =====
                     if (readOnly) {
                         return (
-                            <div key={s.id} style={fullWidthBox}>
-                                <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 6 }}>{s.name}</div>
-                                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                                    <span style={{ opacity: 0.8, minWidth: 52 }}>Score:</span>
-                                    <span
-                                        style={{
-                                            fontWeight: 700,
-                                            padding: "1px 6px",
-                                            borderRadius: 6,
-                                            background: "#e5e7eb",
-                                            border: "1px solid #d1d5db",
-                                        }}
-                                    >
+                            <div key={s.id} className="box box--fullwidth step-skills__card">
+                                <div className="step-skills__item" style={{ fontWeight: 700 }}>{s.name}</div>
+
+                                {/* Score line: value + colored vertical bar */}
+                                <div className="ss-view-grid">
+                                    <span className="text-muted" style={{ minWidth: 52 }}>Score:</span>
+                                    <span className="ss-chip">
                                         {row.score === "" ? "—" : `${row.score}/100`}
                                     </span>
+                                    <div className="vbar-center">
+                                        <ColorSwatch value={row.score} shape="vbar" title="Score color" />
+                                    </div>
                                 </div>
-                                <div style={{ opacity: 0.8, marginBottom: 4 }}>Comment:</div>
-                                <div
-                                    style={{
-                                        background: "#fff",
-                                        border: "1px solid #e5e7eb",
-                                        borderRadius: 8,
-                                        padding: 8,
-                                        minHeight: 38,
-                                        whiteSpace: "pre-wrap",
-                                    }}
-                                >
-                                    {row.comment?.trim() ? row.comment : <span style={{ opacity: 0.6 }}>No comments.</span>}
+
+                                <div className="text-muted mt-6">Comment:</div>
+                                <div className="ss-comment">
+                                    {row.comment?.trim() ? (
+                                        row.comment
+                                    ) : (
+                                        <span className="text-muted">No comments.</span>
+                                    )}
                                 </div>
                             </div>
                         );
@@ -310,18 +313,11 @@ export default function StepSkills({ step, mode = "edit", onAfterSave }) {
 
                     // ===== EDIT =====
                     return (
-                        <div key={s.id} style={fullWidthBox}>
-                            <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 6 }}>{s.name}</div>
+                        <div key={s.id} className="box box--fullwidth step-skills__card">
+                            <div className="step-skills__item" style={{ fontWeight: 700 }}>{s.name}</div>
 
-                            <div
-                                style={{
-                                    display: "grid",
-                                    gridTemplateColumns: "auto 110px",
-                                    gap: 8,
-                                    alignItems: "center",
-                                    marginBottom: 8,
-                                }}
-                            >
+                            {/* Score input + colored vertical bar */}
+                            <div className="ss-edit-grid">
                                 <div>Score:</div>
                                 <Input
                                     type="number"
@@ -332,11 +328,19 @@ export default function StepSkills({ step, mode = "edit", onAfterSave }) {
                                     disabled={loading}
                                     value={row.score}
                                     onChange={(e) => handleChangeScore(s.id, e.target.value)}
-                                    style={{ fontSize: 11, height: 32 }}
+                                    className="input-sm"
+                                    style={{ height: 32 }}
                                 />
+                                <div className="vbar-center">
+                                    <ColorSwatch
+                                        value={row.score === "" ? NaN : Number(row.score)}
+                                        shape="vbar"
+                                        title="score color"
+                                    />
+                                </div>
                             </div>
 
-                            <div style={{ marginBottom: 6 }}>Comment:</div>
+                            <div className="mt-6">Comment:</div>
                             <Input
                                 type="textarea"
                                 rows={3}
@@ -344,7 +348,7 @@ export default function StepSkills({ step, mode = "edit", onAfterSave }) {
                                 value={row.comment}
                                 onChange={(e) => handleChangeComment(s.id, e.target.value)}
                                 placeholder="Write your comments..."
-                                style={{ resize: "vertical", fontSize: 11 }}
+                                className="textarea-sm step-skills__comments"
                             />
                         </div>
                     );
@@ -352,12 +356,12 @@ export default function StepSkills({ step, mode = "edit", onAfterSave }) {
             </div>
 
             {!readOnly && skills.length > 0 && (
-                <div style={{ display: "flex", justifyContent: "center", marginTop: 10 }}>
+                <div className="btn-row bottom-controls">
                     <Button
                         color="success"
                         onClick={handleSave}
                         disabled={!hasSomethingToSave || !allDirtyValid || loading}
-                        style={{ minWidth: 108, height: 34, fontSize: 11 }}
+                        className="btn-sm-fixed"
                     >
                         {loading ? "Saving..." : "Save"}
                     </Button>

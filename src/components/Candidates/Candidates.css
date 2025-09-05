@@ -1,3 +1,4 @@
+/* ========== PANELS ========== */
 .panel {
     overflow-y: auto;
     background-color: #E5E7EB;
@@ -14,7 +15,16 @@
     border-bottom: 1px solid rgb(183, 186, 188);
 }
 
-/* ========= ΚΟΙΝΑ =========== */
+/* Κοινή ετικέτα τίτλου περιοχών */
+.description-labels {
+    display: inline-block;
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #374151;
+}
+
+/* ========== ΚΟΙΝΑ LAYOUTS ========== */
 .candidate-container {
     display: flex;
     flex-direction: column;
@@ -22,11 +32,33 @@
     margin-top: 10px;
 }
 
-.question-box {
-    /* wrapper για κάθε accordion item */
+.align-center {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
 }
 
-/* βασικό “γκρι κουμπί” (Candidate/Question headers) */
+.mt-6 {
+    margin-top: 6px;
+}
+
+.mt-8 {
+    margin-top: 8px;
+}
+
+.mt-10 {
+    margin-top: 10px;
+}
+
+.mt-12 {
+    margin-top: 12px;
+}
+
+.mt-16 {
+    margin-top: 16px;
+}
+
+/* ========== PRIMARY HEADER BUTTONS (candidate/question headers) ========== */
 .candidate-btn,
 .question-btn {
     background-color: #F6F6F6 !important;
@@ -81,7 +113,9 @@
     text-align: right;
 }
 
-/* row τίτλου ερωτήσεων ή step */
+/* ========== QUESTION HEADER ROW ========== */
+.question-box {}
+
 .question-header {
     display: flex;
     align-items: center;
@@ -99,7 +133,7 @@
     word-break: break-word;
 }
 
-/* secondary buttons (steps/questions μέσα σε collapse) */
+/* ========== SECONDARY BUTTONS (steps/questions μέσα σε collapse) ========== */
 .step-btn {
     display: block;
     width: 100%;
@@ -123,7 +157,7 @@
     margin-top: 12px;
 }
 
-/* badges */
+/* ========== BADGES ========== */
 .steps-badge {
     background-color: #E5E7EB !important;
     color: #111827 !important;
@@ -143,7 +177,7 @@
     line-height: 1.2;
 }
 
-/* candidate details (collapse) */
+/* ========== CANDIDATE DETAILS (collapse) ========== */
 .candidate-details {
     background-color: #F6F6F6;
     border-radius: 12px;
@@ -155,7 +189,7 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
-/* status chips αν ποτέ τα χρησιμοποιήσεις με χρώμα */
+/* ========== STATUS CHIPS (προαιρετικά) ========== */
 .status-label {
     background-color: #dfe1e3;
     border-radius: 8px;
@@ -164,7 +198,125 @@
     font-weight: 500;
 }
 
-/* ===== StepSkills μικρές βοηθητικές ===== */
+/* ========== TOAST (TinyToast) ========== */
+.tiny-toast {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    color: #fff;
+    padding: 6px 8px;
+    border-radius: 8px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+    z-index: 9999;
+    font-weight: 600;
+    font-size: 11px;
+}
+
+.tiny-toast--info {
+    background: #334155;
+}
+
+.tiny-toast--success {
+    background: #16a34a;
+}
+
+.tiny-toast--warning {
+    background: #f59e0b;
+}
+
+.tiny-toast--error {
+    background: #dc2626;
+}
+
+/* ========== GENERIC BOXES (κοινό layout για γκρι κουτιά) ========== */
+.box {
+    border: 1px solid #e5e7eb;
+    background: #F6F6F6;
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 11px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+}
+
+.box--fullwidth {
+    margin: 0 -10px 2px -10px;
+}
+
+.box__content-min50 {
+    min-height: 50px;
+    white-space: pre-wrap;
+}
+
+.text-muted {
+    color: #6B7280;
+}
+
+.text-default {
+    color: #111827;
+}
+
+/* ========== LOCK BANNERS ========== */
+.lock-banner {
+    margin-top: 10px;
+    border: 1px solid #e5e7eb;
+    background: #F6F6F6;
+    border-radius: 12px;
+    padding: 10px 12px;
+    text-align: center;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+    font-size: 11px;
+}
+
+.lock-banner__title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: #334155;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.lock-banner__status {
+    font-weight: 800;
+    font-size: 12.5px;
+    color: #111827;
+}
+
+.lock-banner__desc {
+    margin-top: 4px;
+    color: #475569;
+    line-height: 1.35;
+}
+
+/* ========== INPUTS & BUTTONS (common tweaks) ========== */
+.input-sm {
+    font-size: 11px;
+}
+
+.textarea-sm {
+    font-size: 11px;
+    resize: vertical;
+}
+
+.btn-sm-fixed {
+    min-width: 108px;
+    height: 34px;
+    font-size: 11px;
+}
+
+.btn-lg-fixed {
+    min-width: 120px;
+    height: 40px;
+}
+
+.btn-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+/* ========== StepSkills helpers ========== */
 .step-skills {
     width: 100%;
 }
@@ -212,23 +364,72 @@
     overflow: hidden;
 }
 
-/* μικρό κενό πάνω από τη γραμμή με buttons+comments */
 .bottom-controls {
     margin-top: 16px;
-    /* όσο θέλεις: 12–24px */
 }
 
-/* κεντράρισμα των κουμπιών και απόσταση μεταξύ τους */
-.btn-row {
-    display: flex;
-    justify-content: center;
-    /* <-- κέντρο */
-    gap: 12px;
-    /* απόσταση μεταξύ κουμπιών */
-}
-
-/* προαιρετικό: λίγο κενό επιπλέον πριν το textarea */
 .comments-card {
     margin-top: 8px;
-    /* μικρό buffer από πάνω */
+}
+
+/* ========== StepSkills VIEW card inner layout ========== */
+.ss-view-grid {
+    display: grid;
+    grid-template-columns: auto auto 24px;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.ss-chip {
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: #e5e7eb;
+    border: 1px solid #d1d5db;
+    justify-self: start;
+}
+
+.ss-comment {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 8px;
+    min-height: 38px;
+    white-space: pre-wrap;
+}
+
+/* ========== StepSkills EDIT grid ========== */
+.ss-edit-grid {
+    display: grid;
+    grid-template-columns: auto 110px 24px;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+/* ========== Utility for vertical color bar holder ========== */
+.vbar-center {
+    display: flex;
+    justify-content: center;
+}
+
+/* ========== CandidateListPanel active labels (unchanged semantics) ========== */
+.active-label {
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* ========== Misc ========== */
+.placeholder-wrap {
+    background: #e5e7eb;
+    border-radius: 12px;
+    padding: 10px;
+}
+
+.placeholder-title {
+    font-weight: 600;
+    font-size: 11px;
+    margin-bottom: 6px;
+    color: #374151;
 }

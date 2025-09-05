@@ -1,4 +1,3 @@
-// src/pages/HireFlowPage.jsx
 import { useState } from "react";
 import { Row, Col } from "reactstrap";
 import SidebarCard from "../components/SidebarCard";

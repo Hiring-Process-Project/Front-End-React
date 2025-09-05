@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Input, Button, Card, CardBody } from "reactstrap";
 
-// Μικρό toast χωρίς libs
+/** Μικρό toast χωρίς libs */
 function TinyToast({ show, text, type = "info", onHide }) {
     useEffect(() => {
         if (!show) return;
@@ -11,29 +11,13 @@ function TinyToast({ show, text, type = "info", onHide }) {
 
     if (!show) return null;
 
-    const bg =
-        type === "success" ? "#16a34a" :
-            type === "warning" ? "#f59e0b" :
-                type === "error" ? "#dc2626" : "#334155";
+    const cls =
+        type === "success" ? "tiny-toast tiny-toast--success" :
+            type === "warning" ? "tiny-toast tiny-toast--warning" :
+                type === "error" ? "tiny-toast tiny-toast--error" : "tiny-toast tiny-toast--info";
 
     return (
-        <div
-            style={{
-                position: "fixed",
-                right: 16,
-                bottom: 16,
-                background: bg,
-                color: "#fff",
-                padding: "6px 8px",
-                borderRadius: 8,
-                boxShadow: "0 6px 16px rgba(0,0,0,0.25)",
-                zIndex: 9999,
-                fontWeight: 600,
-                fontSize: 11,
-            }}
-            role="status"
-            aria-live="polite"
-        >
+        <div className={cls} role="status" aria-live="polite">
             {text}
         </div>
     );
@@ -49,148 +33,110 @@ const CandidateComments = ({
 }) => {
     const [commentStatus, setCommentStatus] = useState(null);
     const [toast, setToast] = useState({ show: false, text: "", type: "info" });
-    const [isSaveDisabled, setIsSaveDisabled] = useState(true);
+
+    // ✅ baseline ανά candidate + flag αν ο χρήστης έχει επεξεργαστεί το πεδίο
+    const [originalComment, setOriginalComment] = useState("");
+    const [originalForCandidateId, setOriginalForCandidateId] = useState(null);
+    const [userEdited, setUserEdited] = useState(false);
 
     const showToast = (text, type = "info") => setToast({ show: true, text, type });
     const hideToast = () => setToast((t) => ({ ...t, show: false }));
 
-    // Προαιρετικό localStorage
+    // ✅ Όταν αλλάζει candidate: reset baseline & userEdited
     useEffect(() => {
-        const savedComment = localStorage.getItem("savedComment");
-        if (savedComment) {
-            setCandComment(savedComment);
-            setCommentStatus("Modified");
+        if (!selectedCandidate) {
+            setOriginalForCandidateId(null);
+            setOriginalComment("");
+            setUserEdited(false);
+            setCommentStatus(null);
+            return;
         }
-    }, [setCandComment]);
+        setOriginalForCandidateId(selectedCandidate.id);
+        setOriginalComment(candComment ?? ""); // baseline = ό,τι υπάρχει τώρα (ακόμη κι αν είναι κενό)
+        setUserEdited(false);
+        setCommentStatus("Saved");
+    }, [selectedCandidate?.id]);
 
+    // ✅ Αν φορτωθεί αργότερα το αρχικό σχόλιο από το backend,
+    // και ΔΕΝ έχει γράψει ο χρήστης, ευθυγράμμισε το baseline ώστε το Save να μείνει κλειδωμένο.
     useEffect(() => {
-        const savedComment = localStorage.getItem("savedComment");
-        if (candComment !== savedComment) {
-            setIsSaveDisabled(false);
-            setCommentStatus("Modified");
-        } else {
-            setIsSaveDisabled(true);
+        if (!selectedCandidate) return;
+        if (originalForCandidateId !== selectedCandidate.id) return;
+        if (userEdited) return; // μην πειράξεις το baseline αν ο χρήστης ήδη πληκτρολόγησε
+        if ((candComment ?? "") !== (originalComment ?? "")) {
+            setOriginalComment(candComment ?? "");
             setCommentStatus("Saved");
         }
-    }, [candComment]);
+    }, [candComment, selectedCandidate, originalForCandidateId, originalComment, userEdited]);
 
-    const handleSaveComment = () => {
-        saveCandidateComment();
-        if (candComment) {
-            localStorage.setItem("savedComment", candComment);
-            if (commentStatus !== "Modified") {
-                setCommentStatus("Saved");
-                showToast("Saved", "success");
-            } else {
-                setCommentStatus("Modified");
-                showToast("Modified", "info");
-            }
-            setIsSaveDisabled(true);
+    // ✅ Το Save ενεργοποιείται ΜΟΝΟ όταν ο χρήστης έχει επεξεργαστεί (userEdited)
+    // και υπάρχει πραγματική διαφορά από το baseline, και δεν υπάρχει lock.
+    const hasChanges = (candComment ?? "").trim() !== (originalComment ?? "").trim();
+    const isSaveDisabled = !selectedCandidate || !userEdited || !hasChanges || !!isCommentLocked;
+
+    const handleSaveComment = async () => {
+        try {
+            await Promise.resolve(saveCandidateComment?.());
+
+            // ➜ Αν πριν δεν υπήρχε αποθηκευμένο σχόλιο, αυτό είναι το πρώτο save
+            const firstSave = ((originalComment ?? "").trim().length === 0);
+
+            // Νέα “βάση” = ό,τι σώθηκε τώρα
+            setOriginalComment(candComment ?? "");
+            setUserEdited(false);
+
+            setCommentStatus(firstSave ? "Saved" : "Modified");
+            showToast(firstSave ? "Saved" : "Modified", firstSave ? "success" : "info");
+        } catch {
+            showToast("Save failed", "error");
         }
     };
+
 
     return (
         <Card className="panel panel--short">
             <CardBody>
                 {!selectedCandidate && (
-                    <div style={{ opacity: 0.6 }}>Select a candidate to write comments…</div>
+                    <div className="text-muted">Select a candidate to write comments…</div>
                 )}
 
                 {selectedCandidate && (
                     isCommentLocked ? (
                         <>
-                            {/* 1) ΠΑΝΩ: τα σχόλια σε read-only */}
-                            <div
-                                style={{
-                                    border: "1px solid #e5e7eb",
-                                    background: "#F6F6F6",
-                                    borderRadius: 12,
-                                    padding: "10px 12px",
-                                    fontSize: "11px",
-                                }}
-                            >
+                            {/* Read-only σχόλια */}
+                            <div className="box">
                                 <div
-                                    style={{
-                                        minHeight: 50,
-                                        whiteSpace: "pre-wrap",
-                                        color: candComment?.trim() ? "#111827" : "#6B7280",
-                                    }}
+                                    className={
+                                        "box__content-min50 " +
+                                        (candComment?.trim() ? "text-default" : "text-muted")
+                                    }
                                 >
                                     {candComment?.trim() ? candComment : <span>No comments.</span>}
                                 </div>
                             </div>
 
-                            {/* 2) ΚΑΤΩ: το banner.
-                    - Αν έχει κλείσει το job ad -> μήνυμα job-ad-complete
-                    - Αλλιώς -> panel Candidate Status
-               */}
+                            {/* Banner κλειδώματος */}
                             {jobAdCompleteLocked ? (
-                                <div
-                                    style={{
-                                        marginTop: 10,
-                                        border: "1px solid #e5e7eb",
-                                        background: "#F6F6F6",
-                                        borderRadius: 12,
-                                        padding: "10px 12px",
-                                        textAlign: "center",
-                                        boxShadow: "0 3px 10px rgba(0,0,0,0.05)",
-                                        fontSize: 11,
-                                    }}
-                                    role="note"
-                                    aria-live="polite"
-                                >
-                                    <div
-                                        style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            gap: 6,
-                                            color: "#334155",
-                                            fontWeight: 600,
-                                            marginBottom: 4,
-                                        }}
-                                    >
+                                <div className="lock-banner mt-10" role="note" aria-live="polite">
+                                    <div className="lock-banner__title">
                                         <span style={{ fontSize: 13 }} aria-hidden>🔒</span>
                                         <span>Comments</span>
                                     </div>
-                                    <div style={{ color: "#475569", lineHeight: 1.35 }}>
+                                    <div className="lock-banner__desc">
                                         The job ad is complete. Another candidate has been hired and
                                         comment editing is locked.
                                     </div>
                                 </div>
                             ) : (
-                                <div
-                                    style={{
-                                        marginTop: 10,
-                                        border: "1px solid #e5e7eb",
-                                        background: "#F6F6F6",
-                                        borderRadius: 12,
-                                        padding: "10px 12px",
-                                        textAlign: "center",
-                                        boxShadow: "0 3px 10px rgba(0,0,0,0.05)",
-                                        fontSize: 11,
-                                    }}
-                                    role="note"
-                                    aria-live="polite"
-                                >
-                                    <div
-                                        style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            gap: 6,
-                                            color: "#334155",
-                                            fontWeight: 600,
-                                            marginBottom: 4,
-                                        }}
-                                    >
+                                <div className="lock-banner mt-10" role="note" aria-live="polite">
+                                    <div className="lock-banner__title">
                                         <span style={{ fontSize: 13 }} aria-hidden>🔒</span>
                                         <span>Candidate Status</span>
                                     </div>
-                                    <div style={{ fontWeight: 800, fontSize: 12.5, color: "#111827" }}>
+                                    <div className="lock-banner__status">
                                         {(selectedCandidate?.status || "").toUpperCase()}
                                     </div>
-                                    <div style={{ marginTop: 4, color: "#475569", lineHeight: 1.35 }}>
+                                    <div className="lock-banner__desc">
                                         Comments are locked and cannot be edited.
                                     </div>
                                 </div>
@@ -203,26 +149,22 @@ const CandidateComments = ({
                                 rows={3}
                                 placeholder="Write comments about the candidate..."
                                 value={candComment}
-                                onChange={(e) => setCandComment(e.target.value)}
-                                style={{ resize: "vertical", fontSize: "11px" }}
+                                onChange={(e) => {
+                                    setUserEdited(true);          // ✅ σημαδεύουμε ότι ο χρήστης επεξεργάστηκε
+                                    setCandComment(e.target.value);
+                                }}
+                                className="textarea-sm"
                             />
-                            <div className="d-flex justify-content-end" style={{ marginTop: 8 }}>
+                            <div className="d-flex justify-content-end mt-8">
                                 <Button
-                                    style={{
-                                        backgroundColor: "#4CAF50",
-                                        color: "white",
-                                        borderRadius: "12px",
-                                        padding: "10px 20px",
-                                        fontSize: "11px",
-                                        textTransform: "none",
-                                        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-                                        transition: "all 0.3s ease",
-                                    }}
+                                    color="success"
                                     onClick={handleSaveComment}
                                     disabled={isSaveDisabled}
+                                    className="btn-sm-fixed"
                                 >
                                     Save
                                 </Button>
+
                             </div>
                         </>
                     )
