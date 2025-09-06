@@ -1,4 +1,4 @@
-/* ---------- Flex helpers ---------- */
+/* ========== Flex helpers (μην τα πειράξεις) ========== */
 .q-col-flex {
     display: flex;
     flex-direction: column;
@@ -16,7 +16,7 @@
     overflow-x: hidden;
 }
 
-/* ---------- Κάρτα Steps (χωρίς δικό της scroll) ---------- */
+/* ========== Κάρτα Steps (χωρίς δικό της scroll) ========== */
 .q-steps-card {
     background: #E5E7EB;
     border: 1px solid #bbb;
@@ -26,13 +26,13 @@
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
-    /* επιτρέπει στο παιδί να σκρολάρει */
+    /* το παιδί κάνει scroll */
     overflow: hidden;
-    /* κόβει εσωτερική μπάρα */
+    /* κόβει εσωτερικές μπάρες */
     padding-top: 8px;
 }
 
-/* ✅ ΜΟΝΑΔΙΚΟΣ scroller στη λίστα (ύψος με JS) */
+/* ✅ ΜΟΝΑΔΙΚΟΣ scroller στη λίστα (ύψος δίνεται από JS) */
 .q-steps-scroll {
     flex: 1 1 auto;
     min-height: 0;
@@ -51,7 +51,7 @@
     gap: 12px;
 }
 
-/* ---------- Step & Question cosmetics ---------- */
+/* ========== Step & Question cosmetics ========== */
 .q-step-header {
     cursor: pointer;
     background: #fff;
@@ -82,8 +82,8 @@
 }
 
 .q-draggable.is-selected {
-    background: #eef4ff;
-    border-color: #9db7ff;
+    background: #8f9092;
+    border-color: #8f9092;
 }
 
 .q-draggable.is-dragging {
@@ -112,9 +112,10 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    color: #2b2b2b;
+    color: black;
     font-size: 14px;
 }
+
 
 .q-empty {
     font-size: 12px;
@@ -122,12 +123,23 @@
     padding-left: 4px;
 }
 
-/* ---------- Δεξιά στήλη (skills) ---------- */
+/* ========== Δεξιά στήλη (skills) ========== */
+/* Σε μερικές οθόνες έχεις ήδη overflow από parent. Κρατάμε και αυτή την κλάση
+   γιατί τη χρησιμοποιείς και σε άλλα tabs. */
 .q-right-scroll {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+}
+
+/* ΝΕΟ: wrapper της κάρτας Skills.
+   Παίρνει fixed height από JS & αφήνει το πραγματικό scroll στη λίστα. */
+.q-skill-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    /* το scroll είναι στο .selected-skills-container */
 }
 
 .q-mt-16 {
