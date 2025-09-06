@@ -10,6 +10,9 @@ export default function StepsTree({
     onSelectQuestion,
     canEdit = false,
     selectedQuestionId,
+    // NEW: callbacks για να “εκθέτουμε” steps & active step
+    onStepsChange,
+    onSelectStep,
 }) {
     const [steps, setSteps] = useState([]);
     const [openStepId, setOpenStepId] = useState(null);
@@ -19,6 +22,9 @@ export default function StepsTree({
         if (!selectedJobAdId) {
             setSteps([]); setOpenStepId(null); setQuestionsByStep({});
             onSelectQuestion?.(null);
+            // NEW:
+            onStepsChange?.([]);
+            onSelectStep?.(null);
             return;
         }
         (async () => {
@@ -30,11 +36,21 @@ export default function StepsTree({
                     .map(s => ({ id: s.id ?? s.stepId ?? null, title: s.title ?? s.tittle ?? '' }))
                     .filter(s => s.id != null);
                 setSteps(safe);
+                // NEW: ενημέρωσε τον γονέα με τα steps
+                onStepsChange?.(safe);
+
                 if (safe[0]?.id) {
                     setOpenStepId(safe[0].id);
+                    // NEW: ενημέρωσε τον γονέα για το ενεργό step
+                    onSelectStep?.(safe[0].id);
                     await loadQuestions(safe[0].id);
                 }
-            } catch { setSteps([]); }
+            } catch {
+                setSteps([]);
+                onStepsChange?.([]);
+                setOpenStepId(null);
+                onSelectStep?.(null);
+            }
         })();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedJobAdId]);
@@ -51,9 +67,70 @@ export default function StepsTree({
 
     const toggleStep = async (stepId) => {
         setOpenStepId(prev => (prev === stepId ? null : stepId));
+        // NEW: ενημέρωσε ποιο step έγινε ενεργό (ή null αν κλείσει)
+        onSelectStep?.(openStepId === stepId ? null : stepId);
+
         await loadQuestions(stepId);
         onSelectQuestion?.(null);
     };
+    // NEW: άκου το custom event "question-deleted" για να αφαιρείς τη διαγραμμένη ερώτηση
+    useEffect(() => {
+        const handler = (ev) => {
+            const { questionId, stepId } = ev.detail || {};
+            if (!questionId) return;
+
+            setQuestionsByStep((prev) => {
+                const next = { ...prev };
+                if (stepId && next[stepId]) {
+                    next[stepId] = (next[stepId] || []).filter((q) => q.id !== questionId);
+                    return next;
+                }
+                // αλλιώς, ψάξε παντού
+                Object.keys(next).forEach((k) => {
+                    next[k] = (next[k] || []).filter((q) => q.id !== questionId);
+                });
+                return next;
+            });
+        };
+
+        window.addEventListener('question-deleted', handler);
+        return () => window.removeEventListener('question-deleted', handler);
+    }, []);
+
+    // NEW: άκου το custom event "question-created" για να προσθέτεις στο UI τη νέα ερώτηση
+    useEffect(() => {
+        const handler = (ev) => {
+            const { stepId, question } = ev.detail || {};
+            if (!stepId || !question) return;
+
+            setQuestionsByStep(prev => {
+                const arr = [...(prev[stepId] || [])];
+                // απόφυγε duplicates
+                if (!arr.some(q => q.id === question.id)) {
+                    // διατήρησε το shape όπως το χρησιμοποιείς στο render: {id, name|title}
+                    arr.push({ id: question.id, name: question.name ?? question.title ?? '(untitled)' });
+                }
+                return { ...prev, [stepId]: arr };
+            });
+
+            // αν το step δεν είναι ανοιχτό, άνοιξέ το για να φανεί αμέσως
+            setOpenStepId(curr => {
+                if (curr !== stepId) {
+                    onSelectStep?.(stepId);
+                    // lazy load αν δεν έχει φορτωθεί ήδη
+                    if (!questionsByStep[stepId]) {
+                        loadQuestions(stepId);
+                    }
+                    return stepId;
+                }
+                return curr;
+            });
+        };
+
+        window.addEventListener('question-created', handler);
+        return () => window.removeEventListener('question-created', handler);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [questionsByStep, loadQuestions]);
 
     const onDragEnd = async (result) => {
         const { source, destination, draggableId } = result || {};
@@ -79,7 +156,7 @@ export default function StepsTree({
                     method: 'PATCH', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ questionIds: arr })
                 });
-            } catch { }
+            } catch { /* noop */ }
             return;
         }
 
@@ -97,7 +174,7 @@ export default function StepsTree({
                 method: 'PATCH', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ toStepId, toIndex })
             });
-        } catch { }
+        } catch { /* noop */ }
     };
 
     return (
@@ -107,19 +184,32 @@ export default function StepsTree({
                     const list = questionsByStep[step.id] || [];
                     return (
                         <Col xs="12" key={step.id}>
-                            <div className="q-step-header" onClick={() => toggleStep(step.id)} title={step.title}>
+                            <div
+                                className="q-step-header"
+                                onClick={() => toggleStep(step.id)}
+                                title={step.title}
+                            >
                                 {step.title || '(Untitled step)'}
                             </div>
 
                             {openStepId === step.id && (
                                 <Droppable droppableId={`step-${step.id}`}>
                                     {(dropProvided) => (
-                                        <div ref={dropProvided.innerRef} {...dropProvided.droppableProps} className="q-droppable">
+                                        <div
+                                            ref={dropProvided.innerRef}
+                                            {...dropProvided.droppableProps}
+                                            className="q-droppable"
+                                        >
                                             {list.map((q, idx) => {
                                                 const label = q.name ?? q.title ?? '(untitled)';
                                                 const isSel = q.id === selectedQuestionId;
                                                 return (
-                                                    <Draggable key={q.id} draggableId={`q-${q.id}`} index={idx} isDragDisabled={!canEdit}>
+                                                    <Draggable
+                                                        key={q.id}
+                                                        draggableId={`q-${q.id}`}
+                                                        index={idx}
+                                                        isDragDisabled={!canEdit}
+                                                    >
                                                         {(dragProvided, snapshot) => (
                                                             <div
                                                                 ref={dragProvided.innerRef}
