@@ -1,0 +1,376 @@
+/* ===== Analytics header (scope) ===== */
+.analytics-scope-bar {
+    margin-top: 8px;
+}
+
+.analytics-scope-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
+/* μικρό κυκλικό κουμπί “×” */
+.btn-circle-sm {
+    width: 22px;
+    height: 22px;
+    line-height: 22px;
+    border-radius: 50%;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-circle-sm.is-disabled,
+.btn-circle-sm:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* (προαιρετικά) αν θες λίγη ενοποίηση με το υπόλοιπο theme σου: */
+.text-muted {
+    color: #6B7280;
+}
+
+/* ===== Tabs header ===== */
+.analytics-tabs .analytics-tablink {
+    color: #111;
+    margin-right: 14px;
+    cursor: pointer;
+    font-weight: 400;
+    user-select: none;
+}
+
+/* ===== Utilities ===== */
+.gap-8 {
+    gap: 8px;
+}
+
+.gap-12 {
+    gap: 12px;
+}
+
+.mb-6 {
+    margin-bottom: 6px;
+}
+
+.fs-10 {
+    font-size: 10px;
+}
+
+.fs-12 {
+    font-size: 12px;
+}
+
+.fw-600 {
+    font-weight: 600;
+}
+
+.fw-700 {
+    font-weight: 700;
+}
+
+.op-60 {
+    opacity: .6;
+}
+
+.op-70 {
+    opacity: .7;
+}
+
+/* ===== KPIs & section titles ===== */
+.kpi-title {
+    font-size: 12px;
+    opacity: .7;
+}
+
+.kpi-value {
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.kpi-sub {
+    font-size: 12px;
+    opacity: .6;
+    margin-top: 4px;
+}
+
+.section-title {
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+/* ===== CandidatesTab ===== */
+.ct-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+}
+
+.cand-list {
+    max-height: 220px;
+    overflow: auto;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 8px;
+}
+
+/* ===== Histogram ===== */
+.hist-wrap {
+    height: 150px;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 8px 4px;
+}
+
+.hist-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.hist-bar-container {
+    width: 100%;
+    height: 120px;
+    display: flex;
+    align-items: flex-end;
+}
+
+.hist-bar {
+    width: 100%;
+    height: var(--h, 0%);
+    background: #e9ecef;
+    border-radius: 4px;
+    box-shadow: inset 0 0 1px rgba(0, 0, 0, .15);
+    transition: height .3s ease;
+}
+
+.hist-label {
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+/* ===== DepartmentsSidebar ===== */
+.sidebar-header-title {
+    font-weight: 600;
+}
+
+.sidebar-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.sidebar-btn {
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+}
+
+/* ===== Analytics header (scope) ===== */
+.analytics-scope-bar {
+    margin-top: 8px;
+}
+
+.analytics-scope-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
+/* μικρό κυκλικό κουμπί “×” */
+.btn-circle-sm {
+    width: 22px;
+    height: 22px;
+    line-height: 22px;
+    border-radius: 50%;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-circle-sm.is-disabled,
+.btn-circle-sm:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* (προαιρετικά) αν θες λίγη ενοποίηση με το υπόλοιπο theme σου: */
+.text-muted {
+    color: #6B7280;
+}
+
+/* ===== Tabs header ===== */
+.analytics-tabs .analytics-tablink {
+    color: #111;
+    margin-right: 14px;
+    cursor: pointer;
+    font-weight: 400;
+    user-select: none;
+}
+
+/* ===== Utilities ===== */
+.gap-8 {
+    gap: 8px;
+}
+
+.gap-12 {
+    gap: 12px;
+}
+
+.mb-6 {
+    margin-bottom: 6px;
+}
+
+.fs-10 {
+    font-size: 10px;
+}
+
+.fs-12 {
+    font-size: 12px;
+}
+
+.fw-600 {
+    font-weight: 600;
+}
+
+.fw-700 {
+    font-weight: 700;
+}
+
+.op-60 {
+    opacity: .6;
+}
+
+.op-70 {
+    opacity: .7;
+}
+
+/* ===== KPIs & section titles ===== */
+.kpi-title {
+    font-size: 12px;
+    opacity: .7;
+}
+
+.kpi-value {
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.kpi-sub {
+    font-size: 12px;
+    opacity: .6;
+    margin-top: 4px;
+}
+
+.section-title {
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+/* ===== CandidatesTab ===== */
+.ct-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+}
+
+.cand-list {
+    max-height: 220px;
+    overflow: auto;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 8px;
+}
+
+/* ===== Histogram ===== */
+.hist-wrap {
+    height: 150px;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 8px 4px;
+}
+
+.hist-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.hist-bar-container {
+    width: 100%;
+    height: 120px;
+    display: flex;
+    align-items: flex-end;
+}
+
+.hist-bar {
+    width: 100%;
+    height: var(--h, 0%);
+    background: #e9ecef;
+    border-radius: 4px;
+    box-shadow: inset 0 0 1px rgba(0, 0, 0, .15);
+    transition: height .3s ease;
+}
+
+.hist-label {
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+/* ===== DepartmentsSidebar ===== */
+.sidebar-header-title {
+    font-weight: 600;
+}
+
+.sidebar-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.sidebar-btn {
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+}
+
+/* ===== Selectable list (used in SkillsTab) ===== */
+.selectable-list .list-group-item {
+    border: none;
+    margin-bottom: 8px;
+    border-radius: 10px;
+    background: #f8f9fa;
+    cursor: pointer;
+    transition: all .15s ease;
+}
+
+.selectable-list .list-group-item:hover {
+    background: #f1f3f5;
+}
+
+.selectable-list .list-group-item.active {
+    background: #495057 !important;
+    /* σκούρο γκρι */
+    color: #fff !important;
+    font-weight: 600;
+}
+
+.metric-number {
+    font-size: 20px;
+    /* ή 1rem */
+    font-weight: 700;
+    /* ίδιο bold */
+    line-height: 1;
+}

@@ -15,7 +15,7 @@ const Kpi = ({ title, value, sub }) => (
     <Card className="shadow-sm h-100">
         <CardBody>
             <div style={{ fontSize: 12, opacity: 0.7 }}>{title}</div>
-            <div style={{ fontSize: 26, fontWeight: 800 }}>{value}</div>
+            <div className="metric-number">{value}</div>
             {sub && <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>{sub}</div>}
         </CardBody>
     </Card>
@@ -30,8 +30,7 @@ function Histogram({ buckets }) {
     const mapped = (Array.isArray(buckets) ? buckets : []).map((b, i) => {
         const from = b.from ?? i * 10;
         const rawTo = b.to ?? (i + 1) * 10;
-        const to = rawTo === 100 ? 100 : rawTo - 1; // => 0-9, 10-19, …, 90-100
-
+        const to = rawTo === 100 ? 100 : rawTo - 1; // => 0-9, 10-19, …, 90–100
         return {
             label: `${from}-${to}`,
             value: Number(b.count ?? b.cnt ?? b.value ?? 0),
@@ -39,6 +38,8 @@ function Histogram({ buckets }) {
     });
 
     const max = Math.max(1, ...mapped.map((x) => x.value));
+    const total = mapped.reduce((s, x) => s + x.value, 0);
+
     return (
         <div>
             <div className="mb-2" style={{ fontWeight: 600 }}>
@@ -59,21 +60,25 @@ function Histogram({ buckets }) {
                     background: '#fff',
                 }}
             >
-                {mapped.map((b, i) => (
-                    <div key={i} style={{ textAlign: 'center', flex: 1 }}>
-                        <div
-                            style={{
-                                height: `${(b.value / max) * 120}px`,
-                                background: '#e5e7eb',
-                                borderRadius: 6,
-                            }}
-                            title={`${b.label}: ${b.value}`}
-                        />
-                        <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>
-                            {b.label.replace('–', '-')}
+                {mapped.map((b, i) => {
+                    const hPx = (b.value / max) * 120;
+                    const pct = total > 0 ? `${((b.value / total) * 100).toFixed(1)}%` : '0%';
+                    return (
+                        <div key={i} style={{ textAlign: 'center', flex: 1 }}>
+                            {/* ποσοστό επάνω από τη μπάρα */}
+                            <div style={{ height: 120, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
+                                <div style={{ fontSize: 10, opacity: 0.85, marginBottom: 4 }}>{pct}</div>
+                                <div
+                                    style={{ height: `${hPx}px`, background: '#e5e7eb', borderRadius: 6, width: '100%' }}
+                                    title={`${b.label}: ${b.value} (${pct})`}
+                                />
+                            </div>
+                            <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>
+                                {b.label.replace('–', '-')}
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
                 {mapped.length === 0 && <div className="text-muted" style={{ fontSize: 12 }}>—</div>}
             </div>
         </div>
@@ -192,6 +197,50 @@ export default function QuestionsTab({
     const distribution = stats?.distribution ?? [];
     const skillRanking = Array.isArray(stats?.skillRanking) ? stats.skillRanking : [];
 
+    // --- μετατροπή Avg Question Score σε 0–100 για εμφάνιση ---
+    const avgScore100 =
+        Number.isFinite(+avgScore) ? Math.max(0, Math.min(100, +avgScore * 10)) : null;
+
+    // --- NEW: value για το KPI "Score ≥ 50%" σε μορφή passed/total (XX.X%) ---
+    const passValue = (() => {
+        if (!stats) return '—';
+        const rate = Number(passRate);
+        const buckets = Array.isArray(distribution) ? distribution : [];
+        const total = buckets.reduce((a, b) => a + (Number(b.count) || 0), 0);
+
+        let passCount = Number(stats?.passCount);
+        if (!Number.isFinite(passCount)) {
+            passCount = buckets.reduce((a, b, i) => {
+                const from = Number(b?.from ?? i * 10);
+                return a + (from >= 50 ? (Number(b.count) || 0) : 0);
+            }, 0);
+            if (!Number.isFinite(passCount) && Number.isFinite(rate) && total > 0) {
+                passCount = Math.round((rate / 100) * total);
+            }
+        }
+
+        if (!(Number.isFinite(passCount) && total > 0)) return fmtPct(rate);
+
+        const pctText = Number.isFinite(rate) ? `(${rate.toFixed(1)}%)` : '';
+        return (
+            <>
+                <span>{passCount}/{total}</span>
+                {pctText && (
+                    <span
+                        style={{
+                            marginLeft: 8,
+                            fontWeight: 500,
+                            fontSize: 18,
+                            color: '#6c757d',
+                        }}
+                    >
+                        {pctText}
+                    </span>
+                )}
+            </>
+        );
+    })();
+
     return (
         <Row className="g-3">
             {/* LISTA ΕΡΩΤΗΣΕΩΝ — ίδιο στυλ με Steps/Candidates (buttons) */}
@@ -272,10 +321,14 @@ export default function QuestionsTab({
                                         {/* 1η γραμμή: Avg, Pass Rate, Skill Ranking */}
                                         <Row className="g-3">
                                             <Col md="4">
-                                                <Kpi title="Avg Question Score" value={fmt1(avgScore)} sub="0–10" />
+                                                {/* τίτλος + τιμή σε 0–100 */}
+                                                <Kpi
+                                                    title="Avg Question Score (0–100)"
+                                                    value={avgScore100 != null ? avgScore100.toFixed(1) : '—'}
+                                                />
                                             </Col>
                                             <Col md="4">
-                                                <Kpi title="Score ≥ 50%" value={fmtPct(passRate)} />
+                                                <Kpi title="Candidates with score ≥ 50%" value={passValue} />
                                             </Col>
                                             <Col md="4">
                                                 <Card className="shadow-sm h-100">

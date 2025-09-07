@@ -1,22 +1,14 @@
 import { Nav, NavItem, NavLink } from 'reactstrap';
+import './Analytics.css';
 
 export default function AnalyticsTabsHeader({ activeTab, setActiveTab }) {
-    const baseStyle = {
-        color: '#111',
-        marginRight: 14,
-        cursor: 'pointer',
-        fontWeight: 400,
-        userSelect: 'none',
-    };
-
     const linkClass = (name) => (activeTab === name ? 'active' : '');
 
     return (
         <Nav tabs className="analytics-tabs mb-2">
             <NavItem>
                 <NavLink
-                    className={linkClass('overview')}
-                    style={baseStyle}
+                    className={`analytics-tablink ${linkClass('overview')}`}
                     onClick={() => setActiveTab('overview')}
                 >
                     Overview
@@ -25,8 +17,7 @@ export default function AnalyticsTabsHeader({ activeTab, setActiveTab }) {
 
             <NavItem>
                 <NavLink
-                    className={linkClass('candidates')}
-                    style={baseStyle}
+                    className={`analytics-tablink ${linkClass('candidates')}`}
                     onClick={() => setActiveTab('candidates')}
                 >
                     Candidates
@@ -35,8 +26,7 @@ export default function AnalyticsTabsHeader({ activeTab, setActiveTab }) {
 
             <NavItem>
                 <NavLink
-                    className={linkClass('steps')}
-                    style={baseStyle}
+                    className={`analytics-tablink ${linkClass('steps')}`}
                     onClick={() => setActiveTab('steps')}
                 >
                     Steps
@@ -45,8 +35,7 @@ export default function AnalyticsTabsHeader({ activeTab, setActiveTab }) {
 
             <NavItem>
                 <NavLink
-                    className={linkClass('questions')}
-                    style={baseStyle}
+                    className={`analytics-tablink ${linkClass('questions')}`}
                     onClick={() => setActiveTab('questions')}
                 >
                     Questions
@@ -55,8 +44,7 @@ export default function AnalyticsTabsHeader({ activeTab, setActiveTab }) {
 
             <NavItem>
                 <NavLink
-                    className={linkClass('skills')}
-                    style={baseStyle}
+                    className={`analytics-tablink ${linkClass('skills')}`}
                     onClick={() => setActiveTab('skills')}
                 >
                     Skills

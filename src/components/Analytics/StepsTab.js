@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Row, Col, Card, CardBody, ListGroup, ListGroupItem, Spinner, Button } from 'reactstrap';
 
 const Kpi = ({ title, value, sub }) => (
     <Card className="shadow-sm h-100">
         <CardBody>
             <div style={{ fontSize: 12, opacity: 0.7 }}>{title}</div>
-            <div style={{ fontSize: 22, fontWeight: 700 }}>{value}</div>
+            <div className="metric-number">{value}</div>
             {sub && <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>{sub}</div>}
         </CardBody>
     </Card>
@@ -28,6 +28,12 @@ export default function StepsTab({
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState('');
+
+    // NEW: find selected step object for the header
+    const selectedStep = useMemo(
+        () => steps.find(s => s.id === selectedStepId) || null,
+        [steps, selectedStepId]
+    );
 
     // Fetch steps
     useEffect(() => {
@@ -99,11 +105,11 @@ export default function StepsTab({
 
     if (!jobAdId) return <div className="text-muted">Select a Job Ad to view steps and step analytics.</div>;
 
-    /* --- Μίνι ιστόγραμμα | labels 0–9, 10–19, …, 90–100 + hover "<range> : <count>" --- */
     function StepScoreHistogram({ buckets = [] }) {
-        const max = Math.max(1, ...buckets.map(b => Number(b.count) || 0));
+        const counts = buckets.map(b => Number(b.count) || 0);
+        const max = Math.max(1, ...counts);
+        const total = counts.reduce((a, n) => a + n, 0);
 
-        // 0–9, 10–19, …, 90–100
         const labelFor = (b, idx) => {
             const from = Number(b?.from ?? idx * 10);
             const rawTo = Number(b?.to ?? (idx === 9 ? 100 : (idx + 1) * 10));
@@ -115,13 +121,9 @@ export default function StepsTab({
             <Card className="shadow-sm h-100">
                 <CardBody>
                     <div style={{ fontWeight: 600, marginBottom: 8 }}>Score Distribution (0–100)</div>
-
-                    {/* μικρή περιγραφή */}
                     <div style={{ fontSize: 11, color: '#6c757d', marginBottom: 6 }}>
                         Each bar = candidates in that score range
                     </div>
-
-                    {/* ίδιο «κουτί» με το άλλο Histogram */}
                     <div
                         className="d-flex align-items-end"
                         style={{
@@ -135,16 +137,20 @@ export default function StepsTab({
                     >
                         {buckets.map((b, i) => {
                             const count = Number(b.count) || 0;
-                            const hPx = (count / max) * 120; // ύψος σε px (όπως στο Skills histogram)
+                            const hPx = (count / max) * 120;
                             const label = labelFor(b, i);
-                            const title = `${label} : ${count}`;
+                            const pct = total > 0 ? `${((count / total) * 100).toFixed(1)}%` : '0%';
+                            const title = `${label} : ${count} (${pct})`;
 
                             return (
                                 <div key={(b.from ?? i) + '-' + (b.to ?? i)} style={{ textAlign: 'center', flex: 1 }}>
-                                    <div
-                                        title={title}
-                                        style={{ height: `${hPx}px`, background: '#e9ecef', borderRadius: 6 }}
-                                    />
+                                    <div style={{ height: 120, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
+                                        <div style={{ fontSize: 10, opacity: 0.85, marginBottom: 4 }}>{pct}</div>
+                                        <div
+                                            title={title}
+                                            style={{ height: `${hPx}px`, background: '#e9ecef', borderRadius: 6, width: '100%' }}
+                                        />
+                                    </div>
                                     <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }} title={title}>
                                         {label}
                                     </div>
@@ -160,6 +166,52 @@ export default function StepsTab({
         );
     }
 
+    /* --- εμφανίση "passed/total(XX.X%)" --- */
+    const passValue = (() => {
+        if (!stats) return '—';
+        const rate = Number(stats.passRate);
+        const buckets = Array.isArray(stats.scoreDistribution) ? stats.scoreDistribution : [];
+        const total = buckets.reduce((a, b) => a + (Number(b.count) || 0), 0);
+
+        let passCount = Number(stats.passCount);
+        if (!Number.isFinite(passCount)) {
+            passCount = buckets.reduce((a, b, i) => {
+                const from = Number(b?.from ?? i * 10);
+                return a + (from >= 50 ? (Number(b.count) || 0) : 0);
+            }, 0);
+            if (!Number.isFinite(passCount) && Number.isFinite(rate) && total > 0) {
+                passCount = Math.round((rate / 100) * total);
+            }
+        }
+
+        if (!(Number.isFinite(passCount) && total > 0)) return fmtPercent(rate);
+
+        const pctText = Number.isFinite(rate) ? `(${rate.toFixed(1)}%)` : '';
+        return (
+            <>
+                <span>{passCount}/{total}</span>
+                {pctText && (
+                    <span
+                        style={{
+                            marginLeft: 8,
+                            fontWeight: 500,
+                            fontSize: 18,
+                            color: '#6c757d',
+                        }}
+                    >
+                        {pctText}
+                    </span>
+                )}
+            </>
+        );
+    })();
+
+    // Avg step score in 0–100 (×10)
+    const avgStepScore100 =
+        Number.isFinite(Number(stats?.avgStepScore))
+            ? Math.max(0, Math.min(100, Number(stats.avgStepScore) * 10))
+            : null;
+
     return (
         <Row className="g-3">
             <Col lg="4">
@@ -174,7 +226,6 @@ export default function StepsTab({
                                 </div>
                             )}
 
-                            {/* δείξε error μόνο αν δεν υπάρχουν steps */}
                             {!stepsLoading && stepsErr && steps.length === 0 && (
                                 <div className="text-danger" style={{ fontSize: 12 }}>{stepsErr}</div>
                             )}
@@ -215,6 +266,14 @@ export default function StepsTab({
                 {selectedStepId && (
                     <Card className="shadow-sm">
                         <CardBody>
+                            {/* NEW: Header like in Question */}
+                            <div style={{ fontWeight: 700, marginBottom: 6 }}>
+                                Step:{' '}
+                                <span style={{ fontWeight: 600 }}>
+                                    {selectedStep?.title ?? `#${selectedStepId}`}
+                                </span>
+                            </div>
+
                             {loading && (
                                 <div className="d-flex align-items-center" style={{ gap: 8 }}>
                                     <Spinner size="sm" /> <span>Loading step analytics…</span>
@@ -225,8 +284,13 @@ export default function StepsTab({
                             {stats && (
                                 <>
                                     <Row className="g-3">
-                                        <Col md="6"><Kpi title="Candidates with score ≥ 50%" value={fmtPercent(stats.passRate)} /></Col>
-                                        <Col md="6"><Kpi title="Avg Step Score" value={fmt(stats.avgStepScore, 1)} sub="0–10" /></Col>
+                                        <Col md="6"><Kpi title="Candidates with score ≥ 50%" value={passValue} /></Col>
+                                        <Col md="6">
+                                            <Kpi
+                                                title="Avg Step Score (0–100)"
+                                                value={avgStepScore100 != null ? avgStepScore100.toFixed(1) : '—'}
+                                            />
+                                        </Col>
                                     </Row>
 
                                     <Row className="g-3 mt-1">

@@ -6,9 +6,11 @@ import StepsTab from './StepsTab';
 import QuestionsTab from './QuestionsTab';
 import SkillsTab from './SkillsTab';
 import AnalyticsTabsHeader from './AnalyticsTabsHeader';
+import './Analytics.css';
+
+const TAB_KEY_GLOBAL = 'hf:analytics:v2:lastActiveTab';
 
 const stateKey = (level, { deptId, occId, jobAdId, orgId = 3 }) => {
-    // v2: σταθερό κλειδί ανά scope id (χωρίς ανάμιξη άλλων ids)
     switch (level) {
         case 'jobAd': return `hf:analytics:v2:jobAd:${jobAdId ?? 'na'}`;
         case 'occupation': return `hf:analytics:v2:occupation:${occId ?? 'na'}`;
@@ -32,7 +34,6 @@ const getId = (obj, keys) => {
     return null;
 };
 
-// normalize helper
 const toInt = (v) => {
     if (v === null || v === undefined || v === '') return null;
     const n = Number(v);
@@ -58,7 +59,6 @@ export default function Analytics({
         return 'organization';
     };
 
-    const initialLevel = initialLastChanged();
     const [lastChanged, setLastChanged] = useState(initialLastChanged);
     const [forcedLevel, setForcedLevel] = useState(null);
 
@@ -114,24 +114,48 @@ export default function Analytics({
         }
     }, [level, orgId, jobAdData, occupationData, departmentData]);
 
-    // === Κατάσταση tabs & selections (επιμένει ανά scope id) ===
-    const [activeTab, setActiveTab] = useState('overview');
+    // === Tabs & selections ===
+    const [activeTab, setActiveTab] = useState(
+        () => sessionStorage.getItem(TAB_KEY_GLOBAL) || 'overview'
+    );
+    useEffect(() => {
+        try { sessionStorage.setItem(TAB_KEY_GLOBAL, activeTab); } catch { }
+    }, [activeTab]);
+
     const [selectedStepId, setSelectedStepId] = useState(null);
     const [selectedQuestionId, setSelectedQuestionId] = useState(null);
 
     const handleSelectStep = (id) => {
-        setSelectedStepId(toInt(id));           // ensure number
+        setSelectedStepId(toInt(id));
         setSelectedQuestionId(null);
     };
     const handleSelectQuestion = (id) => {
-        setSelectedQuestionId(toInt(id));       // ensure number
+        setSelectedQuestionId(toInt(id));
     };
 
-    const scopeLabel =
-        ({ organization: 'Organization', department: 'Department', occupation: 'Occupation', jobAd: 'Job Ad' }[level]);
+    // --- Pretty scope label & breadcrumb (names) ---
+    const deptName = departmentData?.name ?? departmentData?.departmentName ?? null;
+    const occName = occupationData?.name ?? occupationData?.occupationName ?? null;
+    const jobName = jobAdData?.title ?? null;
+
+    // base label χωρίς ονόματα
+    const baseLabelMap = {
+        organization: 'Organization',
+        department: 'Department',
+        occupation: 'Occupation',
+        jobAd: 'Job Ad',
+    };
+    const scopeLabel = baseLabelMap[level];
+
+    // breadcrumb με όσα ονόματα υπάρχουν
+    const breadcrumb = ({
+        organization: '',
+        department: [deptName].filter(Boolean).join(' › '),
+        occupation: [deptName, occName].filter(Boolean).join(' › '),
+        jobAd: [deptName, occName, jobName].filter(Boolean).join(' › ')
+    }[level]) || '';
 
     const gotoOrganization = () => {
-        // δεν σβήνουμε selections
         setForcedLevel('organization');
         onGoToOrganization && onGoToOrganization();
     };
@@ -144,29 +168,26 @@ export default function Analytics({
         return `ov-${level}-${id}`;
     }, [level, jobAdId, occId, deptId]);
 
-    // Restore όταν αλλάζει scope/jobAd (ή αρχικά)
+    // Restore selections per scope (μην αλλάζεις activeTab)
     useEffect(() => {
         const key = stateKey(level, { deptId, occId, jobAdId, orgId });
         try {
             const raw = sessionStorage.getItem(key);
             if (raw) {
                 const saved = JSON.parse(raw);
-                setActiveTab(saved.activeTab || 'overview');
                 setSelectedStepId(toInt(saved.selectedStepId));
                 setSelectedQuestionId(toInt(saved.selectedQuestionId));
             } else {
-                setActiveTab('overview');
                 setSelectedStepId(null);
                 setSelectedQuestionId(null);
             }
         } catch {
-            setActiveTab('overview');
             setSelectedStepId(null);
             setSelectedQuestionId(null);
         }
     }, [level, jobAdId, deptId, occId, orgId]);
 
-    // Persist μόνο σε sessionStorage (όχι URL)
+    // Persist selections per scope
     useEffect(() => {
         const key = stateKey(level, { deptId, occId, jobAdId, orgId });
         const payload = {
@@ -182,21 +203,19 @@ export default function Analytics({
             <AnalyticsTabsHeader activeTab={activeTab} setActiveTab={setActiveTab} />
 
             {activeTab === 'overview' && (
-                <div className="d-flex align-items-center mb-2" style={{ marginTop: 8 }}>
-                    <div className="d-flex align-items-center" style={{ fontWeight: 600, gap: 8 }}>
+                <div className="analytics-scope-bar">
+                    <div className="analytics-scope-label">
                         <span>Scope: {scopeLabel}</span>
+                        {breadcrumb && (
+                            <span className="analytics-scope-breadcrumb">({breadcrumb})</span>
+                        )}
                         <span id="org-scope-reset" className="d-inline-flex">
                             <button
                                 type="button"
                                 onClick={gotoOrganization}
                                 disabled={level === 'organization'}
                                 aria-label="Return to Organization scope"
-                                className="btn btn-outline-secondary btn-sm d-inline-flex align-items-center justify-content-center p-0"
-                                style={{
-                                    width: 22, height: 22, lineHeight: '22px', borderRadius: '50%',
-                                    opacity: level === 'organization' ? 0.5 : 1,
-                                    cursor: level === 'organization' ? 'not-allowed' : 'pointer',
-                                }}
+                                className={`btn btn-outline-secondary btn-sm btn-circle-sm ${level === 'organization' ? 'is-disabled' : ''}`}
                             >
                                 ×
                             </button>
@@ -226,7 +245,7 @@ export default function Analytics({
                         <StepsTab
                             apiBase={apiBase}
                             jobAdId={jobAdId}
-                            selectedStepId={toInt(selectedStepId)}   // ΠΑΝΤΑ number
+                            selectedStepId={toInt(selectedStepId)}
                             onSelectStep={handleSelectStep}
                         />
                     ) : (
@@ -240,7 +259,7 @@ export default function Analytics({
                             <QuestionsTab
                                 apiBase={apiBase}
                                 jobAdId={jobAdId}
-                                stepId={toInt(selectedStepId)}         // ΠΑΝΤΑ number
+                                stepId={toInt(selectedStepId)}
                                 selectedQuestionId={toInt(selectedQuestionId)}
                                 onSelectQuestion={handleSelectQuestion}
                             />

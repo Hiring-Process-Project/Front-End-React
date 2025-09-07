@@ -6,6 +6,9 @@ import "./sidebar.css";
 
 const DEFAULT_BASE = "http://localhost:8087";
 
+// helper εκτός component
+const norm = (s) => String(s ?? "").normalize("NFKC").trim().toLowerCase();
+
 const SidebarCard = ({
     onJobAdSelect,
     selectedJobAdId,
@@ -23,7 +26,36 @@ const SidebarCard = ({
     const [isCreateOpen, setIsCreateOpen] = useState(false);
 
     const toggleCreate = () => setIsCreateOpen((v) => !v);
-    const norm = (s) => String(s ?? "").normalize("NFKC").trim().toLowerCase();
+
+    // locate full job object by id μέσα από το state
+    const findJobById = useCallback((id) => {
+        for (const d of departments) {
+            for (const o of d.occupations || []) {
+                for (const j of o.jobTitles || []) {
+                    if (Number(j.id) === Number(id)) {
+                        return {
+                            id: j.id,
+                            title: j.title,
+                            status: j.status,
+                            departmentId: d.departmentId ?? d.id ?? null,
+                            departmentName: d.department,
+                            occupationId: o.id ?? null,
+                            occupationName: o.name,
+                        };
+                    }
+                }
+            }
+        }
+        return null;
+    }, [departments]);
+
+    // ενιαίο API: επιστρέφουμε ΠΑΝΤΑ object (ή null)
+    const handleSelectJobAd = useCallback((jobOrId) => {
+        if (jobOrId == null) { onJobAdSelect?.(null); return; }
+        if (typeof jobOrId === "object") { onJobAdSelect?.(jobOrId); return; }
+        const obj = findJobById(jobOrId);
+        onJobAdSelect?.(obj ?? { id: Number(jobOrId) || null });
+    }, [findJobById, onJobAdSelect]);
 
     const loadDepartments = useCallback(async () => {
         try {
@@ -40,7 +72,7 @@ const SidebarCard = ({
                     const depList = await depRes.json();
                     deptNameToId = new Map(depList.map((d) => [norm(d.name), d.id]));
                 }
-            } catch { }
+            } catch { /* no-op */ }
 
             try {
                 const occRes = await fetch(`${baseUrl}/api/v1/occupations/names`, { cache: "no-store" });
@@ -48,7 +80,7 @@ const SidebarCard = ({
                     const occList = await occRes.json();
                     occNameToId = new Map(occList.map((o) => [norm(o.name), o.id]));
                 }
-            } catch { }
+            } catch { /* no-op */ }
 
             const grouped = jobs.reduce((acc, item) => {
                 const deptName = item.departmentName || "Unassigned";
@@ -65,6 +97,10 @@ const SidebarCard = ({
                     id: item.id,
                     title: item.jobTitle,
                     status: item.status,
+                    departmentId: deptId,
+                    departmentName: deptName,
+                    occupationId: occId,
+                    occupationName: occName,
                 });
                 return acc;
             }, {});
@@ -118,10 +154,8 @@ const SidebarCard = ({
             if (!el) return;
 
             const rect = el.getBoundingClientRect();
-            // ύψος “footer” (σειρά με το Create New)
             const footer = el.parentElement?.querySelector(".mt-3.row");
             const footerH = footer ? footer.getBoundingClientRect().height : 0;
-            // padding-bottom του CardBody
             const parentPB = parseFloat(getComputedStyle(el.parentElement).paddingBottom || "0");
 
             const height = window.innerHeight - rect.top - footerH - parentPB - bottomReserve;
@@ -152,7 +186,7 @@ const SidebarCard = ({
                             <OccupationSelector
                                 Name="Departments"
                                 departments={departments}
-                                onJobAdSelect={onJobAdSelect}
+                                onJobAdSelect={handleSelectJobAd}
                                 selectedJobAdId={selectedJobAdId}
                                 onDepartmentSelect={onDepartmentSelect}
                                 selectedDepartmentId={selectedDepartmentId}

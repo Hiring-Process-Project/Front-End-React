@@ -48,7 +48,7 @@ export default function MyGridLayout() {
     const [allskills, setAllSkills] = React.useState(['JavaScript', 'CSS', 'React']);
     const [selectedTab, setSelectedTab] = React.useState('description');
     const [selectedJobAdId, setSelectedJobAdId] = React.useState(null);
-
+    const [selectedJobAdMeta, setSelectedJobAdMeta] = React.useState(null);
     const [selectedDepartment, setSelectedDepartment] = React.useState(null);
     const [selectedOccupation, setSelectedOccupation] = React.useState(null);
 
@@ -129,7 +129,6 @@ export default function MyGridLayout() {
     };
 
     return (
-        /* ✅ κλείδωσε το page σε 100vh & χωρίς window scroll */
         <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <Header
                 selectedTab={selectedTab}
@@ -143,7 +142,7 @@ export default function MyGridLayout() {
                     padding: '1.25rem',
                     paddingTop: '16px',
                     display: 'flex',
-                    overflowY: 'auto',      // ✅ εδώ το γενικό scroll
+                    overflowY: 'auto',
                     overflowX: 'hidden',
                     flexDirection: 'column',
                     minHeight: 0,
@@ -151,32 +150,76 @@ export default function MyGridLayout() {
             >
                 <Row style={{ flex: 1, minHeight: 0, width: '100%' }}>
                     <SidebarCard
-                        onJobAdSelect={(id) => {
+                        onJobAdSelect={(jobOrId) => {
+                            // id από object ή number/string (προσοχή: null είναι "object")
+                            const id =
+                                (jobOrId && typeof jobOrId === 'object')
+                                    ? (Number(jobOrId.id) || null)
+                                    : (Number(jobOrId) || null);
+
+                            // id για ό,τι χρειάζεται μόνο id
                             setSelectedJobAdId(id);
-                            if (id != null) setSelectedOccupation(null);
+
+                            // meta για Analytics (τίτλοι/ονόματα)
+                            setSelectedJobAdMeta(
+                                (jobOrId && typeof jobOrId === 'object')
+                                    ? {
+                                        id,
+                                        title: jobOrId.title ?? null,
+                                        departmentId: jobOrId.departmentId ?? null,
+                                        departmentName: jobOrId.departmentName ?? null,
+                                        occupationId: jobOrId.occupationId ?? null,
+                                        occupationName: jobOrId.occupationName ?? null,
+                                        status: jobOrId.status ?? null,
+                                    }
+                                    : (id ? { id } : null)
+                            );
+
+                            // ενημέρωσε τα πάνω φίλτρα αν έχουμε πλήρες object
+                            if (jobOrId && typeof jobOrId === 'object') {
+                                if (jobOrId.departmentId || jobOrId.departmentName) {
+                                    setSelectedDepartment({
+                                        id: jobOrId.departmentId ?? null,
+                                        name: jobOrId.departmentName ?? null,
+                                    });
+                                }
+                                if (jobOrId.occupationId || jobOrId.occupationName) {
+                                    setSelectedOccupation({
+                                        id: jobOrId.occupationId ?? null,
+                                        name: jobOrId.occupationName ?? null,
+                                    });
+                                }
+                            } else {
+                                // αν ήρθε μόνο id, καθάρισε occupation για να μην είναι out-of-sync
+                                if (id != null) setSelectedOccupation(null);
+                            }
                         }}
+
+
                         selectedJobAdId={selectedJobAdId}
                         reloadKey={reloadKey}
                         onDepartmentSelect={(dept) => {
                             setSelectedDepartment(dept);
                             setSelectedOccupation(null);
                             setSelectedJobAdId(null);
+                            setSelectedJobAdMeta(null);
                         }}
                         onClearOrganization={() => {
                             setSelectedDepartment(null);
                             setSelectedOccupation(null);
                             setSelectedJobAdId(null);
+                            setSelectedJobAdMeta(null);
                         }}
                         selectedDepartmentId={selectedDepartment?.id ?? null}
                         onOccupationSelect={(occ) => {
                             const obj = (occ && typeof occ === 'object') ? occ : { id: Number(occ) || null };
                             setSelectedOccupation(obj);
                             setSelectedJobAdId(null);
+                            setSelectedJobAdMeta(null);
                         }}
                         selectedOccupationId={selectedOccupation?.id ?? null}
                     />
 
-                    {/* Δεξί panel */}
                     <Col md="8" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                         <Card
                             className="shadow-sm"
@@ -234,9 +277,10 @@ export default function MyGridLayout() {
                                             apiBase={`${baseUrl}/api`}
                                             departmentData={selectedDepartment}
                                             occupationData={selectedOccupation}
-                                            jobAdData={selectedJobAdId ? { id: selectedJobAdId } : null}
+                                            jobAdData={selectedJobAdMeta}
                                             onGoToOrganization={() => {
                                                 setSelectedJobAdId(null);
+                                                setSelectedJobAdMeta(null);
                                                 setSelectedDepartment(null);
                                                 setSelectedOccupation(null);
                                             }}

@@ -1,169 +1,191 @@
 import React, { useEffect, useState } from 'react';
 import { Row, Col, Card, CardBody, ListGroup, ListGroupItem, Spinner } from 'reactstrap';
 
-const fmtPercent = (n) => (Number.isFinite(Number(n)) ? `${Number(n).toFixed(1)}%` : '—');
-const fmtNumber = (n) => (Number.isFinite(Number(n)) ? Number(n) : '—');
-
-const Kpi = ({ title, value }) => (
+/* ---------- Small UI bits ---------- */
+const Kpi = ({ title, value, sub }) => (
     <Card className="shadow-sm h-100">
         <CardBody>
-            <div style={{ fontSize: 12, opacity: .7 }}>{title}</div>
-            <div style={{ fontSize: 22, fontWeight: 700 }}>{value}</div>
+            <div style={{ fontSize: 12, opacity: 0.7 }}>{title}</div>
+            <div className="metric-number">{value}</div>
+            {sub && <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>{sub}</div>}
         </CardBody>
     </Card>
 );
 
-const SkillList = ({ title, items }) => (
-    <Card className="shadow-sm h-100">
-        <CardBody>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>{title}</div>
-            <ListGroup flush>
-                {!items?.length && <ListGroupItem className="text-muted">—</ListGroupItem>}
-                {items?.map((s) => (
-                    <ListGroupItem key={s.skill} className="d-flex justify-content-between align-items-center">
-                        <span>{s.skill}</span>
-                        <strong>{Number(s.averageScore ?? 0).toFixed(1)}</strong>
-                    </ListGroupItem>
-                ))}
-            </ListGroup>
-        </CardBody>
-    </Card>
-);
+const fmt1 = (n) => (Number.isFinite(+n) ? (+n).toFixed(1) : '—');
+const SEG_COLORS = { ap: '#3b82f6', rj: '#ef4444', hr: '#16a34a', pd: '#6b7280' };
 
-/** Απλό stacked bar με legend */
-function StackedRateBar({ title, segments }) {
-    const totalShown = Math.max(
-        0,
-        Math.min(
-            100,
-            segments.reduce((a, s) => a + (Number.isFinite(s.value) ? s.value : 0), 0)
-        )
-    );
+function SegmentedBar({ approved = 0, rejected = 0, hired = 0, showHired = true }) {
+    let ap = Math.max(0, Math.min(100, +approved || 0));
+    let rj = Math.max(0, Math.min(100, +rejected || 0));
+    let hr = showHired ? Math.max(0, Math.min(100, +hired || 0)) : 0;
+
+    const sum = ap + rj + (showHired ? hr : 0);
+    if (sum > 100) {
+        const f = 100 / sum;
+        ap *= f; rj *= f; if (showHired) hr *= f;
+    }
+    const pending = Math.max(0, 100 - (ap + rj + (showHired ? hr : 0)));
+    const fmtPct = (n) => `${n.toFixed(1)}%`;
 
     return (
-        <Card className="shadow-sm h-100">
-            <CardBody>
-                <div style={{ fontWeight: 600, marginBottom: 8 }}>{title}</div>
-
-                <div
-                    aria-label={title}
-                    style={{
-                        height: 14,
-                        borderRadius: 999,
-                        background: '#e5e7eb',
-                        overflow: 'hidden',
-                        display: 'flex',
-                    }}
-                >
-                    {segments.map((s) => {
-                        const w = Math.max(0, Math.min(100, s.value || 0));
-                        return (
-                            <div
-                                key={s.label}
-                                title={`${s.label} ${fmtPercent(s.value)}`}
-                                style={{ width: `${w}%`, background: s.color }}
-                            />
-                        );
-                    })}
-                    {totalShown < 100 && (
-                        <div style={{ width: `${100 - totalShown}%`, background: '#e5e7eb' }} />
-                    )}
+        <div>
+            <div className="d-flex" style={{ gap: 16, flexWrap: 'wrap', fontSize: 12, marginBottom: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: 3, background: SEG_COLORS.ap, display: 'inline-block' }} />
+                    <span>Approved</span>
+                    <strong style={{ color: SEG_COLORS.ap }}>{fmtPct(ap)}</strong>
                 </div>
-
-                {/* legend */}
-                <div style={{
-                    display: 'flex',
-                    gap: 16,
-                    flexWrap: 'wrap',
-                    marginTop: 8,
-                    fontSize: 12
-                }}>
-                    {segments.map((s) => (
-                        <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{
-                                width: 10, height: 10, borderRadius: 3, background: s.color, display: 'inline-block'
-                            }} />
-                            <span style={{ opacity: .75 }}>{s.label}</span>
-                            <strong>{fmtPercent(s.value)}</strong>
-                        </div>
-                    ))}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: 3, background: SEG_COLORS.rj, display: 'inline-block' }} />
+                    <span>Rejected</span>
+                    <strong style={{ color: SEG_COLORS.rj }}>{fmtPct(rj)}</strong>
                 </div>
-            </CardBody>
-        </Card>
+                {showHired && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: 3, background: SEG_COLORS.hr, display: 'inline-block' }} />
+                        <span>Hired</span>
+                        <strong style={{ color: SEG_COLORS.hr }}>{fmtPct(hr)}</strong>
+                    </div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: 3, background: SEG_COLORS.pd, display: 'inline-block' }} />
+                    <span>Pending</span>
+                    <strong style={{ color: SEG_COLORS.pd }}>{fmtPct(pending)}</strong>
+                </div>
+            </div>
+
+            <div style={{ height: 18, background: '#e9ecef', borderRadius: 10, overflow: 'hidden', marginTop: 6, whiteSpace: 'nowrap' }}>
+                <div style={{ width: `${ap}%`, height: '100%', background: '#3b82f6', display: 'inline-block' }} />
+                <div style={{ width: `${rj}%`, height: '100%', background: '#ef4444', display: 'inline-block' }} />
+                {showHired && <div style={{ width: `${hr}%`, height: '100%', background: '#16a34a', display: 'inline-block' }} />}
+                <div style={{ width: `${pending}%`, height: '100%', background: '#6b7280', display: 'inline-block' }} />
+            </div>
+        </div>
     );
 }
 
-export default function OrganizationOverview({ orgId = 3, base = '/api' }) {
-    const [stats, setStats] = useState(null);
-    const [loading, setLoading] = useState(true);
+/* Histogram 0–100 */
+function Histogram({ buckets }) {
+    const mapped = (Array.isArray(buckets) ? buckets : []).map((b, i) => ({
+        label: b.range ?? `${b.from ?? i * 10}–${b.to ?? (i === 9 ? 100 : (i + 1) * 10)}`,
+        value: Number(b.count ?? b.cnt ?? b.value ?? 0),
+    }));
+    const max = Math.max(1, ...mapped.map((x) => x.value));
+    const total = mapped.reduce((s, x) => s + x.value, 0);
+
+    return (
+        <div>
+            <div className="mb-2" style={{ fontWeight: 600 }}>Score Distribution (0–100)</div>
+            <div style={{ fontSize: 11, color: '#6c757d', marginBottom: 6 }}>
+                Each bar = candidates in that score range
+            </div>
+            <div className="d-flex align-items-end" style={{ gap: 10, height: 150, padding: '8px 6px', border: '1px solid #eee', borderRadius: 8, background: '#fff' }}>
+                {mapped.map((b, i) => {
+                    const hPx = (b.value / max) * 120;
+                    const pct = total > 0 ? `${((b.value / total) * 100).toFixed(1)}%` : '0%';
+                    return (
+                        <div key={i} style={{ textAlign: 'center', flex: 1 }}>
+                            <div style={{ height: 120, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
+                                <div style={{ fontSize: 10, opacity: 0.85, marginBottom: 4 }}>{pct}</div>
+                                <div style={{ height: `${hPx}px`, background: '#e5e7eb', borderRadius: 6, width: '100%' }} title={`${b.label}: ${b.value} (${pct})`} />
+                            </div>
+                            <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>{b.label.replace('–', '-')}</div>
+                        </div>
+                    );
+                })}
+                {mapped.length === 0 && <div className="text-muted" style={{ fontSize: 12 }}>—</div>}
+            </div>
+        </div>
+    );
+}
+
+export default function OrganizationOverview({ orgId = 3, base = 'http://localhost:8087/api' }) {
+    const [loading, setLoading] = useState(false);
     const [err, setErr] = useState('');
+    const [stats, setStats] = useState(null);
 
     useEffect(() => {
-        const ac = new AbortController();
+        let ignore = false;
         setLoading(true); setErr('');
-
-        fetch(`${base}/statistics/organization/${orgId}`, {
-            headers: { Accept: 'application/json' },
-            signal: ac.signal,
-        })
-            .then((r) =>
-                r.ok
-                    ? r.json()
-                    : r.text().then((t) => Promise.reject(new Error(`HTTP ${r.status} ${r.statusText}: ${t?.slice(0, 200)}`)))
-            )
-            .then((data) => { setStats(data); setLoading(false); })
-            .catch((e) => { if (e.name !== 'AbortError') { setErr(e.message || 'Failed'); setLoading(false); } });
-
-        return () => ac.abort();
+        fetch(`${base}/statistics/organization/${orgId}`, { headers: { Accept: 'application/json' } })
+            .then(async (r) => { if (!r.ok) throw new Error(await r.text().catch(() => `HTTP ${r.status}`)); return r.json(); })
+            .then((j) => { if (!ignore) setStats(j); })
+            .catch((e) => { if (!ignore) setErr(String(e.message || e)); })
+            .finally(() => { if (!ignore) setLoading(false); });
+        return () => { ignore = true; };
     }, [orgId, base]);
 
-    if (loading) {
-        return (
-            <div className="d-flex align-items-center" style={{ gap: 8 }}>
-                <Spinner size="sm" /> <span>Loading organization analytics…</span>
-            </div>
-        );
-    }
+    if (loading) return <div className="d-flex align-items-center" style={{ gap: 8 }}><Spinner size="sm" /> Loading…</div>;
     if (err) return <div className="text-danger">Error: {err}</div>;
     if (!stats) return null;
 
-    const {
-        approvalRate = 0,
-        rejectionRate = 0,
-        hireRate = 0,
-        hireCount,
-        totalCandidates,
-        top5Skills = [],
-        weakest5Skills = [],
-    } = stats;
-
-    const apOnly = Math.max(0, Number(approvalRate) - Number(hireRate)); // Approved χωρίς τους Hired
-    const rj = Math.max(0, Number(rejectionRate));
-    const hr = Math.max(0, Number(hireRate));
-    let pending = Math.max(0, 100 - (apOnly + rj + hr));                // ό,τι μένει είναι Pending
-
-    const segments = [
-        { label: 'Approved', value: apOnly, color: '#3b82f6' }, // μπλε
-        { label: 'Rejected', value: rj, color: '#ef4444' }, // κόκκινο
-        { label: 'Hired', value: hr, color: '#16a34a' }, // ΠΡΑΣΙΝΟ
-        { label: 'Pending', value: pending, color: '#6b7280' }, // γκρι
-    ];
-
     return (
-        <>
+        <div>
             <Row className="g-3">
-                {/* Stacked bar + δύο KPI όπως στο layout σου */}
                 <Col md="6">
-                    <StackedRateBar title="Approval / Rejection / Hire / Pending" segments={segments} />
+                    <Card className="shadow-sm h-100"><CardBody>
+                        <SegmentedBar approved={stats.approvalRate} rejected={stats.rejectionRate} hired={stats.hireRate} />
+                    </CardBody></Card>
                 </Col>
-                <Col md="3"><Kpi title="Hires" value={fmtNumber(hireCount)} /></Col>
-                <Col md="3"><Kpi title="Candidates" value={fmtNumber(totalCandidates ?? stats.total)} /></Col>
+
+                <Col md="2">
+                    <Kpi title="Hires" value={stats.hireCount ?? stats.hires ?? '—'} />
+                </Col>
+                <Col md="2">
+                    <Kpi title="Candidates" value={stats.totalCandidates ?? stats.total ?? '—'} />
+                </Col>
+                {/* ΝΕΟ KPI */}
+                <Col md="2">
+                    <Kpi
+                        title="Avg Candidates / Job Ad"
+                        value={(Number.isFinite(+ (stats.avgCandidatesPerJobAd ?? stats.avg_cand_per_job ?? stats.candidatesPerJobAd))
+                            ? (+ (stats.avgCandidatesPerJobAd ?? stats.avg_cand_per_job ?? stats.candidatesPerJobAd)).toFixed(1)
+                            : '—')}
+                    />
+                </Col>
             </Row>
 
+            {/* Top / Weakest skills όπως ήταν */}
             <Row className="g-3 mt-1">
-                <Col lg="6"><SkillList title="Top 5 Skills" items={top5Skills} /></Col>
-                <Col lg="6"><SkillList title="Weakest 5 Skills" items={weakest5Skills} /></Col>
+                <Col md="6">
+                    <Card className="shadow-sm h-100"><CardBody>
+                        <div style={{ fontWeight: 600, marginBottom: 6 }}>Top Skills</div>
+                        <ListGroup flush>
+                            {(stats.top5Skills ?? stats.topSkills ?? []).map((s, i) => (
+                                <ListGroupItem key={`top-${i}`} className="d-flex align-items-center justify-content-between">
+                                    <span>{s.skill ?? s.title ?? s.name ?? '—'}</span>
+                                    <strong>{fmt1(s.avgScore ?? s.averageScore ?? s.avg_score)}</strong>
+                                </ListGroupItem>
+                            ))}
+                        </ListGroup>
+                    </CardBody></Card>
+                </Col>
+                <Col md="6">
+                    <Card className="shadow-sm h-100"><CardBody>
+                        <div style={{ fontWeight: 600, marginBottom: 6 }}>Weakest Skills</div>
+                        <ListGroup flush>
+                            {(stats.weakest5Skills ?? stats.weak5Skills ?? []).map((s, i) => (
+                                <ListGroupItem key={`weak-${i}`} className="d-flex align-items-center justify-content-between">
+                                    <span>{s.skill ?? s.title ?? s.name ?? '—'}</span>
+                                    <strong>{fmt1(s.avgScore ?? s.averageScore ?? s.avg_score)}</strong>
+                                </ListGroupItem>
+                            ))}
+                        </ListGroup>
+                    </CardBody></Card>
+                </Col>
             </Row>
-        </>
+
+            {/* Histogram κάτω από τα skills και σε μισό πλάτος */}
+            <Row className="g-3 mt-1">
+                <Col md="6">
+                    <Card className="shadow-sm h-100">
+                        <CardBody>
+                            <Histogram buckets={stats.scoreDistribution ?? stats.distribution ?? []} />
+                        </CardBody>
+                    </Card>
+                </Col>
+            </Row>
+        </div>
     );
 }
