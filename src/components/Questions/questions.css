@@ -145,3 +145,74 @@
 .q-mt-16 {
     margin-top: 16px;
 }
+
+
+
+/* safety ώστε να δουλέψει σωστά το εσωτερικό overflow */
+/* Το card-body της δεξιάς στήλης να ΜΗ scrollάρει.
+   Είναι flex ώστε να φιλοξενεί σωστά το q-right-card. */
+.q-col-flex {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.q-fill {
+    flex: 1;
+    min-height: 0;
+}
+
+.q-no-x {
+    overflow-x: hidden;
+}
+
+/* Left card */
+.q-steps-card {
+    background: #E5E7EB;
+    border: 1px solid #bbb;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, .15);
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    padding-top: 8px;
+}
+
+.q-steps-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 8px 12px;
+}
+
+.q-actions {
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+/* Right column – ΚΑΘΟΛΟΥ height calc */
+.q-right-card {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    padding-bottom: 12px;
+}
+
+.q-skill-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+
+.q-right-footer {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 8px 0 0;
+}

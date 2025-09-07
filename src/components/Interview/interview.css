@@ -84,3 +84,19 @@
     overscroll-behavior: contain;
     touch-action: pan-y;
 }
+
+/* Να μπορούν τα cols να «σπάνε» σωστά και να δουλέψει το εσωτερικό overflow */
+.iv-col {
+    min-height: 0;
+}
+
+/* Αν υπήρχε παλιό wrapper με scroll, μην το χρησιμοποιείς πια.
+   Το scroll γίνεται ΜΟΝΟ μέσα στη λίστα του SkillSelectorReadOnly. */
+.iv-right-scroll {
+    overflow: visible !important;
+    height: auto !important;
+}
+
+.actionBtnStyle {
+    font-size: 16px !important;
+}

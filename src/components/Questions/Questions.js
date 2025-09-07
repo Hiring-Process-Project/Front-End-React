@@ -19,6 +19,9 @@ const isEditableStatus = (raw) => {
 // πόσο χώρο θες να μείνει κάτω από τη λίστα (π.χ. για κουμπιά)
 const RESERVE_LEFT = 80;
 
+// ΠΡΟΣΘΗΚΗ: σταθερό κενό πάνω από το Update button (px)
+const GAP_ABOVE_UPDATE = 12;
+
 export default function Questions({ selectedJobAdId }) {
     const [allSkills, setAllSkills] = React.useState([]);
     const [requiredSkills, setRequiredSkills] = React.useState([]);
@@ -28,20 +31,17 @@ export default function Questions({ selectedJobAdId }) {
     const [status, setStatus] = React.useState(null);
     const canEdit = React.useMemo(() => isEditableStatus(status), [status]);
 
-    // κρατάμε τα steps & το ενεργό step για το modal / delete
     const [steps, setSteps] = React.useState([]);
     const [activeStepId, setActiveStepId] = React.useState(null);
 
-    // Create modal state
     const [showAdd, setShowAdd] = React.useState(false);
     const openCreateModal = () => setShowAdd(true);
     const closeCreateModal = () => setShowAdd(false);
 
-    // Delete confirm modal state
     const [confirmOpen, setConfirmOpen] = React.useState(false);
     const [deleting, setDeleting] = React.useState(false);
 
-    // ---- load all skills ----
+    /* ===== Skills list (για το δεξί panel) ===== */
     React.useEffect(() => {
         fetch(`${API}/skills`)
             .then((r) => (r.ok ? r.json() : Promise.reject()))
@@ -49,7 +49,7 @@ export default function Questions({ selectedJobAdId }) {
             .catch(() => setAllSkills([]));
     }, []);
 
-    // ---- selected question details ----
+    /* ===== Φόρτωση περιγραφής/skills ανά question ===== */
     React.useEffect(() => {
         if (!selectedQuestionId) {
             setQuestionDesc('');
@@ -68,7 +68,7 @@ export default function Questions({ selectedJobAdId }) {
             });
     }, [selectedQuestionId]);
 
-    // ---- status lock ----
+    /* ===== Κατάσταση Job Ad (για edit permissions) ===== */
     React.useEffect(() => {
         if (!selectedJobAdId) {
             setStatus(null);
@@ -80,6 +80,7 @@ export default function Questions({ selectedJobAdId }) {
             .catch(() => setStatus(null));
     }, [selectedJobAdId]);
 
+    /* ===== Αποθήκευση ===== */
     const handleSave = async () => {
         if (!selectedQuestionId) return;
         try {
@@ -97,7 +98,7 @@ export default function Questions({ selectedJobAdId }) {
         }
     };
 
-    // Delete flow (with custom ConfirmModal)
+    /* ===== Διαγραφή ===== */
     const askDelete = () => {
         if (!selectedQuestionId) return;
         setConfirmOpen(true);
@@ -108,19 +109,16 @@ export default function Questions({ selectedJobAdId }) {
             setConfirmOpen(false);
             return;
         }
-
         setDeleting(true);
         try {
             const r = await fetch(`${API}/api/v1/question/${selectedQuestionId}`, { method: 'DELETE' });
             if (!r.ok) throw new Error('delete-failed');
 
-            // καθάρισε δεξιά πλευρά & επιλογή
             const deletedId = selectedQuestionId;
             setSelectedQuestionId(null);
             setQuestionDesc('');
             setRequiredSkills([]);
 
-            // ενημέρωσε το StepsTree να αφαιρέσει το item από τη λίστα
             window.dispatchEvent(
                 new CustomEvent('question-deleted', {
                     detail: { questionId: deletedId, stepId: activeStepId || null },
@@ -136,7 +134,7 @@ export default function Questions({ selectedJobAdId }) {
         }
     };
 
-    /* ========= ΜΟΝΑΔΙΚΟΣ SCROLLER ΣΤΗ ΜΕΣΑΙΑ ΣΤΗΛΗ ========= */
+    /* ========= ΜΟΝΑΔΙΚΟΣ SCROLLER ΣΤΗ ΜΕΣΑΙΑ ΣΤΗΛΗ (Steps) ========= */
     const stepsScrollRef = React.useRef(null);
     React.useLayoutEffect(() => {
         const fit = () => {
@@ -156,6 +154,64 @@ export default function Questions({ selectedJobAdId }) {
         return () => window.removeEventListener('resize', fit);
     }, [selectedJobAdId, canEdit]);
 
+    /* ========= ΚΑΘΑΡΟ ΥΨΟΣ ΓΙΑ ΤΟ ΔΕΞΙ SKILLS PANEL ========= */
+    const rightDescWrapRef = React.useRef(null);  // wrapper του Description
+    const rightSkillsColRef = React.useRef(null); // η δεξιά col (skills + Update)
+    const updateBtnRef = React.useRef(null);      // block με το Update
+    const [skillsPanelHeight, setSkillsPanelHeight] = React.useState(null);
+
+    const recalcHeights = React.useCallback(() => {
+        const col = rightSkillsColRef.current;
+        if (!col) return;
+
+        const colH = col.clientHeight;
+
+        // πόσο ύψος «τρώνε» τα κουμπιά/footers κάτω από τη λίστα
+        let buttonsTotal = 0;
+        if (updateBtnRef.current) {
+            const cs = getComputedStyle(updateBtnRef.current);
+            buttonsTotal =
+                (updateBtnRef.current.offsetHeight || 0) +
+                parseFloat(cs.marginTop || '0') +
+                parseFloat(cs.marginBottom || '0');
+        }
+
+        const SKILLS_HEADER_H = 28;
+        const buffer = 8;
+
+        // ΠΡΙΝ: colH - buttonsTotal - SKILLS_HEADER_H - buffer
+        // ΜΕΤΑ: αφαιρούμε ΚΑΙ ένα σταθερό GAP ώστε το κουμπί να κατεβαίνει λίγο
+        let available = Math.max(
+            140,
+            colH - buttonsTotal - SKILLS_HEADER_H - buffer - GAP_ABOVE_UPDATE
+        );
+
+        // Προσπαθούμε να μη ξεπερνά το ύψος του αριστερού Description
+        if (rightDescWrapRef.current) {
+            const leftH = rightDescWrapRef.current.clientHeight;
+            if (leftH > 0) available = Math.min(available, leftH);
+        }
+
+        setSkillsPanelHeight(available);
+    }, []);
+
+    const kickRecalc = React.useCallback(() => {
+        recalcHeights();
+        requestAnimationFrame(() => recalcHeights());
+        setTimeout(recalcHeights, 0);
+        setTimeout(recalcHeights, 120);
+        if (document?.fonts?.ready) document.fonts.ready.then(() => recalcHeights());
+    }, [recalcHeights]);
+
+    React.useLayoutEffect(() => { kickRecalc(); }, [kickRecalc]);
+    React.useEffect(() => {
+        let raf = 0;
+        const onResize = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(kickRecalc); };
+        window.addEventListener('resize', onResize);
+        const t = setTimeout(kickRecalc, 0);
+        return () => { window.removeEventListener('resize', onResize); cancelAnimationFrame(raf); clearTimeout(t); };
+    }, [kickRecalc, requiredSkills.length]);
+
     if (!selectedJobAdId) {
         return <p style={{ padding: '1rem' }}>Επέλεξε ένα Job Ad για να δεις τα Questions.</p>;
     }
@@ -167,7 +223,7 @@ export default function Questions({ selectedJobAdId }) {
     return (
         <>
             <Row className="g-3 q-fill" style={{ height: '100%' }}>
-                {/* LEFT: Steps/Questions list (γεμίζει μέχρι κάτω) */}
+                {/* LEFT: Steps/Questions list */}
                 <Col md="5" className="q-col-flex">
                     <Row className="mb-2">
                         <Col>
@@ -191,19 +247,10 @@ export default function Questions({ selectedJobAdId }) {
 
                     {canEdit && (
                         <div className="q-actions">
-                            <Button
-                                color="secondary"
-                                style={{ minWidth: 110, height: 36 }}
-                                onClick={openCreateModal}
-                            >
+                            <Button color="secondary" style={{ minWidth: 110, height: 36 }} onClick={openCreateModal}>
                                 Create New
                             </Button>
-                            <Button
-                                color="danger"
-                                style={{ minWidth: 110, height: 36 }}
-                                disabled={!selectedQuestionId}
-                                onClick={askDelete}
-                            >
+                            <Button color="danger" style={{ minWidth: 110, height: 36 }} disabled={!selectedQuestionId} onClick={askDelete}>
                                 Delete
                             </Button>
                         </div>
@@ -213,8 +260,9 @@ export default function Questions({ selectedJobAdId }) {
                 {/* RIGHT: Description + Skills */}
                 <Col md="7" className="q-col-flex">
                     <Row className="g-3 q-fill">
+                        {/* Question Description */}
                         <Col md="7" className="q-col-flex">
-                            <div className="q-fill">
+                            <div className="q-fill" ref={rightDescWrapRef}>
                                 <Description
                                     name="Question Description"
                                     description={questionDesc}
@@ -224,20 +272,26 @@ export default function Questions({ selectedJobAdId }) {
                             </div>
                         </Col>
 
-                        <Col md="5" className="q-col-flex">
-                            <div className="q-right-scroll">
+                        {/* Skills (με εσωτερικό scroller, ίδιο με Interview/Description) */}
+                        <Col md="5" className="q-col-flex" ref={rightSkillsColRef}>
+                            <div style={{ flex: '0 0 auto', minHeight: 0, height: skillsPanelHeight ?? 'auto' }}>
                                 <SkillSelector
                                     allskills={allSkills}
                                     requiredskills={requiredSkills}
                                     setRequiredskills={setRequiredSkills}
+                                    panelHeight={skillsPanelHeight}
                                 />
                             </div>
 
                             {canEdit && (
-                                <div className="d-flex justify-content-center q-mt-16">
+                                <div
+                                    ref={updateBtnRef}
+                                    className="q-skills-update"
+                                    style={{ marginTop: 55, display: 'flex', justifyContent: 'center', width: '100%' }}
+                                >
                                     <Button
                                         color="secondary"
-                                        className="delete-btn-req"
+                                        className="q-update-btn"
                                         onClick={handleSave}
                                         disabled={!selectedQuestionId}
                                     >
@@ -269,7 +323,8 @@ export default function Questions({ selectedJobAdId }) {
                 message={
                     <div>
                         Είσαι σίγουρος/η ότι θέλεις να διαγράψεις αυτή την ερώτηση;
-                        <br />Η ενέργεια δεν είναι αναστρέψιμη.
+                        <br />
+                        Η ενέργεια δεν είναι αναστρέψιμη.
                     </div>
                 }
                 confirmText="Διαγραφή"

@@ -1,36 +1,136 @@
-import React, { useState, useMemo } from 'react';
-import { Badge, Input, Row, Col } from 'reactstrap';
-import './description.css';
-import './SkillSelector.css';
+// Description/SkillSelectorReadOnly.jsx
+import React, {
+    useState,
+    useMemo,
+    useRef,
+    useLayoutEffect,
+    useEffect,
+    useCallback,
+} from "react";
+import { Badge, Input, Row, Col } from "reactstrap";
+import "./description.css";
+import "./SkillSelector.css";
 
-function SkillSelectorReadOnly({ requiredskills = [] }) {
-    const [searchText, setSearchText] = useState('');
-    const filteredSkills = useMemo(() => {
-        const lower = searchText.trim().toLowerCase();
-        return lower ? requiredskills.filter((s) => (s || '').toLowerCase().includes(lower)) : requiredskills;
+/**
+ * panelHeight: καθαρό ύψος ΜΟΝΟ για το panel (ήδη αφαιρεμένα κουμπιά+header)
+ */
+export default function SkillSelectorReadOnly({
+    requiredskills = [],
+    panelHeight,
+}) {
+    const [searchText, setSearchText] = useState("");
+
+    const filtered = useMemo(() => {
+        const q = searchText.trim().toLowerCase();
+        return q
+            ? requiredskills.filter((s) => (s || "").toLowerCase().includes(q))
+            : requiredskills;
     }, [searchText, requiredskills]);
 
+    const boxRef = useRef(null);
+    const inputRef = useRef(null);
+    const listRef = useRef(null);
+    const [listH, setListH] = useState(240);
+
+    const recalcInsideBox = useCallback(() => {
+        const box = boxRef.current;
+        const inp = inputRef.current;
+        const list = listRef.current;
+        if (!box || !inp || !list) return;
+
+        const boxHeight =
+            typeof panelHeight === "number" ? panelHeight : box.clientHeight;
+
+        const csBox = getComputedStyle(box);
+        const padTop = parseFloat(csBox.paddingTop || "0");
+        const padBottom = parseFloat(csBox.paddingBottom || "0");
+        const paddings = padTop + padBottom;
+
+        const inputH = inp.offsetHeight || 38;
+        const mt = parseFloat(getComputedStyle(list).marginTop || "0"); // .mt-3
+
+        const inner = Math.max(100, boxHeight - paddings - inputH - mt);
+        setListH((prev) => (Math.abs(prev - inner) > 1 ? inner : prev));
+    }, [panelHeight]);
+
+    // robust mini-kick στο mount
+    const kickInside = useCallback(() => {
+        recalcInsideBox();
+        requestAnimationFrame(() => recalcInsideBox());
+        setTimeout(recalcInsideBox, 0);
+        setTimeout(recalcInsideBox, 120);
+        if (document?.fonts?.ready) {
+            document.fonts.ready.then(() => recalcInsideBox());
+        }
+    }, [recalcInsideBox]);
+
+    useLayoutEffect(() => { kickInside(); }, [kickInside]);
+
+    useEffect(() => {
+        let raf = 0;
+        const onResize = () => {
+            cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(kickInside);
+        };
+        window.addEventListener("resize", onResize);
+
+        const t = setTimeout(kickInside, 0);
+
+        return () => {
+            window.removeEventListener("resize", onResize);
+            cancelAnimationFrame(raf);
+            clearTimeout(t);
+        };
+    }, [kickInside, filtered.length, searchText, panelHeight]);
+
     return (
-        <Row style={{ height: '100%', minHeight: 0 }}>
+        <Row style={{ height: "100%", minHeight: 0 }}>
             <Col className="desc-col">
                 <Row className="mb-2 desc-label-row">
                     <Col><label className="description-labels">Skills:</label></Col>
                 </Row>
 
-                <Row style={{ height: 'calc(100% - 28px)', minHeight: 0 }}>
+                <Row style={{ height: "calc(100% - 28px)", minHeight: 0 }}>
                     <Col className="desc-col">
-                        <div className="boxStyle skills-box">
+                        <div
+                            ref={boxRef}
+                            className="boxStyle skills-box"
+                            style={{
+                                minHeight: 0,
+                                display: "flex",
+                                flexDirection: "column",
+                                overflow: "hidden",
+                                padding: 10,
+                            }}
+                        >
                             <Input
+                                innerRef={inputRef}
                                 type="text"
                                 value={searchText}
                                 onChange={(e) => setSearchText(e.target.value)}
                                 placeholder="Search within required skills..."
+                                style={{ flex: "0 0 38px", minHeight: 38 }}
                             />
-                            <div className="selected-skills-container mt-3 skills-scroll">
-                                {filteredSkills.length ? (
-                                    filteredSkills.map((skill, i) => (
+
+                            <div
+                                ref={listRef}
+                                className="selected-skills-container mt-3 skills-scroll"
+                                style={{
+                                    height: `${Math.round(listH)}px`,
+                                    minHeight: 0,
+                                    overflowY: "auto",
+                                    overflowX: "hidden",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 8,
+                                }}
+                            >
+                                {filtered.length ? (
+                                    filtered.map((skill, i) => (
                                         <Badge key={i} color="info" pill className="skill-badge">
-                                            <span className="skill-badge-text" title={skill}>{skill}</span>
+                                            <span className="skill-badge-text" title={skill}>
+                                                {skill}
+                                            </span>
                                         </Badge>
                                     ))
                                 ) : (
@@ -44,4 +144,3 @@ function SkillSelectorReadOnly({ requiredskills = [] }) {
         </Row>
     );
 }
-export default SkillSelectorReadOnly;

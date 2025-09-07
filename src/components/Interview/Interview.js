@@ -1,6 +1,10 @@
 import React, {
-    useEffect, useMemo, useState, useCallback,
-    useLayoutEffect, useRef
+    useEffect,
+    useMemo,
+    useState,
+    useCallback,
+    useLayoutEffect,
+    useRef,
 } from "react";
 import { Row, Col, Button } from "reactstrap";
 
@@ -36,63 +40,71 @@ export default function Interview({ selectedJobAdId }) {
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
-    /* ===== SCROLL refs & helpers ===== */
-    const stepsScrollRef = useRef(null);
-    const skillsScrollRef = useRef(null);
-    const touchYRef = useRef(null);
+    /* ====== ΥΠΟΛΟΓΙΣΜΟΣ ΥΨΟΥΣ ΓΙΑ ΤΟ SKILLS PANEL (όπως στο Description) ====== */
+    const rightDescWrapRef = useRef(null); // wrapper του JobDescription (για να ταιριάζει το ύψος)
+    const skillsColRef = useRef(null);     // όλη η δεξιά κολώνα που περιέχει τα skills (+ κουμπί)
+    const updateBtnRef = useRef(null);     // το block που έχει το Update
+    const [skillsPanelHeight, setSkillsPanelHeight] = useState(null);
 
-    const RESERVE_LEFT = 80;   // χώρο για Create/Delete
-    const RESERVE_RIGHT = 16;  // μικρό κενό
+    const recalcHeights = useCallback(() => {
+        const col = skillsColRef.current;
+        const btn = updateBtnRef.current;
+        if (!col) return;
 
-    const fitHeights = useCallback(() => {
-        const fitOne = (el, reserve) => {
-            if (!el) return;
-            const top = el.getBoundingClientRect().top;
-            const h = window.innerHeight - top - reserve;
-            el.style.height = `${Math.max(180, h)}px`;
-            el.style.overflowY = "auto";
-            el.style.overflowX = "hidden";
-        };
-        fitOne(stepsScrollRef.current, RESERVE_LEFT);
-        fitOne(skillsScrollRef.current, RESERVE_RIGHT);
+        const colH = col.clientHeight;
+
+        // Ύψος + margins του block με το Update
+        let buttonsTotal = 0;
+        if (btn) {
+            const csBtn = getComputedStyle(btn);
+            const btnH = btn.offsetHeight || 0;
+            const btnMt = parseFloat(csBtn.marginTop || "0");
+            const btnMb = parseFloat(csBtn.marginBottom || "0");
+            buttonsTotal = btnH + btnMt + btnMb;
+        }
+
+        // Header "Skills:" ~28px (ίδια με Description) + ένα μικρό buffer
+        const SKILLS_HEADER_H = 28;
+        const buffer = 8;
+
+        // Διαθέσιμο ύψος ΜΟΝΟ για το panel (input + λίστα)
+        let available = Math.max(140, colH - buttonsTotal - SKILLS_HEADER_H - buffer);
+
+        // Ταιριάζουμε και με το ύψος του panel της περιγραφής (όπως στο Questions)
+        if (rightDescWrapRef.current) {
+            const leftH = rightDescWrapRef.current.clientHeight;
+            if (leftH > 0) available = Math.min(available, leftH);
+        }
+
+        setSkillsPanelHeight(available);
     }, []);
 
-    useLayoutEffect(() => {
-        fitHeights();
-        window.addEventListener("resize", fitHeights);
-        return () => window.removeEventListener("resize", fitHeights);
-    }, [fitHeights, steps.length, showAddStep, selectedStepIndex]);
+    // Kick ώστε να είναι σωστό από το 1ο render (layout/fonts)
+    const kickRecalc = useCallback(() => {
+        recalcHeights();
+        requestAnimationFrame(() => recalcHeights());
+        setTimeout(recalcHeights, 0);
+        setTimeout(recalcHeights, 120);
+        if (document?.fonts?.ready) document.fonts.ready.then(() => recalcHeights());
+    }, [recalcHeights]);
 
-    // Wheel handler: αν κύλησε ο εσωτερικός scroller, μπλόκαρε το default/bubbling
-    const makeWheelHandler = (ref) => (e) => {
-        const el = ref.current;
-        if (!el) return;
-        const before = el.scrollTop;
-        el.scrollTop = before + e.deltaY;
-        if (el.scrollTop !== before) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-    };
+    useLayoutEffect(() => { kickRecalc(); }, [kickRecalc]);
+    useEffect(() => {
+        let raf = 0;
+        const onResize = () => {
+            cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(kickRecalc);
+        };
+        window.addEventListener("resize", onResize);
+        const t = setTimeout(kickRecalc, 0);
+        return () => {
+            window.removeEventListener("resize", onResize);
+            cancelAnimationFrame(raf);
+            clearTimeout(t);
+        };
+    }, [kickRecalc, steps.length, selectedStepIndex]);
 
-    // Touch handlers (mobile/precision touchpads)
-    const makeTouchStart = () => (e) => {
-        touchYRef.current = e.touches?.[0]?.clientY ?? 0;
-    };
-    const makeTouchMove = (ref) => (e) => {
-        const el = ref.current;
-        if (!el) return;
-        const y = e.touches?.[0]?.clientY ?? 0;
-        const prev = el.scrollTop;
-        el.scrollTop += (touchYRef.current ?? y) - y;
-        touchYRef.current = y;
-        if (el.scrollTop !== prev) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-    };
-
-    /* ===== DATA ===== */
+    /* ====== DATA ====== */
     useEffect(() => {
         if (!selectedJobAdId) return;
 
@@ -119,10 +131,7 @@ export default function Interview({ selectedJobAdId }) {
     }, [selectedJobAdId]);
 
     const fetchStepSkills = useCallback((stepId) => {
-        if (stepId == null) {
-            setStepSkills([]);
-            return;
-        }
+        if (stepId == null) { setStepSkills([]); return; }
         fetch(`${API}/api/v1/step/${stepId}/skills`)
             .then((r) => (r.ok ? r.json() : Promise.reject()))
             .then((data) => {
@@ -150,7 +159,7 @@ export default function Interview({ selectedJobAdId }) {
             const currentId = safe[idx]?.id ?? null;
             if (currentId != null) fetchStepSkills(currentId);
             else setStepSkills([]);
-        } catch { }
+        } catch { /* ignore */ }
     }, [interviewId, selectedStepIndex, fetchStepSkills]);
 
     useEffect(() => { if (interviewId != null) reloadSteps(); }, [interviewId, reloadSteps]);
@@ -189,15 +198,17 @@ export default function Interview({ selectedJobAdId }) {
             let ok = false;
             try {
                 const r = await fetch(`${API}/interviews/${interviewId}/description`, {
-                    method: "PUT", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ description })
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ description }),
                 });
                 if (r.ok) ok = true;
-            } catch { }
+            } catch { /* ignore */ }
             if (!ok) {
                 const r2 = await fetch(`${API}/interviews/${interviewId}`, {
-                    method: "PUT", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ description })
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ description }),
                 });
                 if (!r2.ok) throw new Error();
             }
@@ -269,11 +280,11 @@ export default function Interview({ selectedJobAdId }) {
 
                         {canEdit && (
                             <div className="boxFooter iv-footer" style={{ padding: "8px 10px", display: "flex", justifyContent: "center", gap: 15 }}>
-                                <Button color="secondary" style={{ minWidth: 104, height: 34, padding: "4px 10px", fontSize: 13.5 }}
+                                <Button color="secondary" style={actionBtnStyle}
                                     onClick={() => setShowAddStep(true)}>
                                     Create New
                                 </Button>
-                                <Button color="danger" style={{ minWidth: 104, height: 34, padding: "4px 10px", fontSize: 13.5 }}
+                                <Button color="danger" style={actionBtnStyle}
                                     onClick={openDeleteConfirm} disabled={!getCurrentStepId()}>
                                     Delete
                                 </Button>
@@ -282,12 +293,12 @@ export default function Interview({ selectedJobAdId }) {
                     </div>
                 </Col>
 
-
                 {/* RIGHT: Description + Skills */}
                 <Col md="7" className="iv-col">
                     <Row className="g-3 iv-fill">
+                        {/* Interview Description */}
                         <Col md="7" className="iv-col">
-                            <div className="iv-right-fill">
+                            <div className="iv-right-fill" ref={rightDescWrapRef}>
                                 <JobDescription
                                     name="Interview Description"
                                     description={description}
@@ -298,20 +309,24 @@ export default function Interview({ selectedJobAdId }) {
                             </div>
                         </Col>
 
-                        <Col md="5" className="iv-col">
-                            <div
-                                ref={skillsScrollRef}
-                                className="iv-right-scroll"
-                                onWheel={makeWheelHandler(skillsScrollRef)}
-                                onTouchStart={makeTouchStart()}
-                                onTouchMove={makeTouchMove(skillsScrollRef)}
-                            >
-                                <SkillSelectorReadOnly requiredskills={stepSkills} />
+                        {/* Skills (με εσωτερικό scroller όπως στο Description) */}
+                        <Col md="5" className="iv-col" ref={skillsColRef}>
+                            <div style={{ flex: "0 0 auto", minHeight: 0, height: skillsPanelHeight ?? "auto" }}>
+                                <SkillSelectorReadOnly requiredskills={stepSkills} panelHeight={skillsPanelHeight} />
                             </div>
 
                             {canEdit && (
-                                <div className="d-flex justify-content-center" style={{ marginTop: 22 }}>
-                                    <Button color="secondary" className="delete-btn-req" onClick={handleUpdate} disabled={saving || !interviewId}>
+                                <div
+                                    ref={updateBtnRef}
+                                    className="d-flex justify-content-center"
+                                    style={{ marginTop: 22 }}
+                                >
+                                    <Button
+                                        color="secondary"
+                                        className="delete-btn-req"
+                                        onClick={handleUpdate}
+                                        disabled={saving || !interviewId}
+                                    >
                                         {saving ? "Saving..." : "Update"}
                                     </Button>
                                 </div>

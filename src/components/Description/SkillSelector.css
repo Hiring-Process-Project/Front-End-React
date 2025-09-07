@@ -11,6 +11,7 @@ input[type="text"].form-control {
     box-sizing: border-box;
 }
 
+
 /* Dropdown: να μην «πετάει» οριζόντιο scroll και να μην ξεχειλίζει */
 .dropdown-suggestions {
     position: absolute;
@@ -18,13 +19,12 @@ input[type="text"].form-control {
     border: 1px solid #ccc;
     border-radius: 10px;
     z-index: 10;
-    width: min(360px, 100%);
-    min-width: 150px;
-    max-height: 300px;
+    min-width: 80px;
+    max-height: 200px;
     overflow-y: auto;
     overflow-x: hidden;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    margin-top: 5px;
+    margin-top: 40px;
     padding: 2px;
 }
 
@@ -137,4 +137,64 @@ input[type="text"].form-control {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* === 1) Το box των skills είναι flex column με scroll στη λίστα === */
+.boxStyle.skills-box {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden;
+}
+
+.boxStyle.skills-box>input.form-control {
+    flex: 0 0 40px !important;
+    /* σταθερό ύψος για input */
+    min-height: 40px !important;
+    margin-bottom: 8px;
+}
+
+.boxStyle.skills-box>.skills-scroll {
+    flex: 1 1 auto !important;
+    /* παίρνει ΟΛΟ τον υπόλοιπο χώρο */
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    /* <-- ο ΜΟΝΟΣ scroller */
+    overflow-x: hidden !important;
+}
+
+/* === 2) ΜΗ συρρίκνωση των badges ώστε να εμφανιστεί scroll === */
+.skills-scroll {
+    /* το container που έχει τα badges */
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.skills-scroll>* {
+    /* ΚΑΘΕ badge/γραμμή μέσα στη λίστα */
+    flex: 0 0 auto !important;
+    /* ΔΕΝ συρρικνώνεται ποτέ */
+}
+
+/* Επιπλέον ασφάλεια για ύψος/ανάγνωση των badges */
+.skill-badge {
+    height: auto !important;
+    min-height: 26px !important;
+    line-height: 1.2 !important;
+}
+
+/* --- Safety ώστε να μη «κλέβονται» px από min-heights/margins --- */
+.desc-col {
+    min-height: 0;
+}
+
+.boxStyle.skills-box {
+    min-height: 0;
+    margin-bottom: 0 !important;
+}
+
+.skills-scroll {
+    overflow-x: hidden;
 }
