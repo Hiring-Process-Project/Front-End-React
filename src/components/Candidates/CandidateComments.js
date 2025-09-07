@@ -29,7 +29,6 @@ const CandidateComments = ({
     setCandComment,
     isCommentLocked,
     saveCandidateComment,
-    jobAdCompleteLocked = false,
 }) => {
     const [commentStatus, setCommentStatus] = useState(null);
     const [toast, setToast] = useState({ show: false, text: "", type: "info" });
@@ -92,7 +91,6 @@ const CandidateComments = ({
         }
     };
 
-
     return (
         <Card className="panel panel--short">
             <CardBody>
@@ -115,32 +113,19 @@ const CandidateComments = ({
                                 </div>
                             </div>
 
-                            {/* Banner κλειδώματος */}
-                            {jobAdCompleteLocked ? (
-                                <div className="lock-banner mt-10" role="note" aria-live="polite">
-                                    <div className="lock-banner__title">
-                                        <span style={{ fontSize: 13 }} aria-hidden>🔒</span>
-                                        <span>Comments</span>
-                                    </div>
-                                    <div className="lock-banner__desc">
-                                        The job ad is complete. Another candidate has been hired and
-                                        comment editing is locked.
-                                    </div>
+                            {/* Ενιαίο banner κλειδώματος για Approved/Rejected/Hired */}
+                            <div className="lock-banner mt-10" role="note" aria-live="polite">
+                                <div className="lock-banner__title">
+                                    <span style={{ fontSize: 13 }} aria-hidden>🔒</span>
+                                    <span>Candidate Status</span>
                                 </div>
-                            ) : (
-                                <div className="lock-banner mt-10" role="note" aria-live="polite">
-                                    <div className="lock-banner__title">
-                                        <span style={{ fontSize: 13 }} aria-hidden>🔒</span>
-                                        <span>Candidate Status</span>
-                                    </div>
-                                    <div className="lock-banner__status">
-                                        {(selectedCandidate?.status || "").toUpperCase()}
-                                    </div>
-                                    <div className="lock-banner__desc">
-                                        Comments are locked and cannot be edited.
-                                    </div>
+                                <div className="lock-banner__status">
+                                    {(selectedCandidate?.status || "").toUpperCase()}
                                 </div>
-                            )}
+                                <div className="lock-banner__desc">
+                                    Comments are locked and cannot be edited.
+                                </div>
+                            </div>
                         </>
                     ) : (
                         <>
@@ -164,7 +149,6 @@ const CandidateComments = ({
                                 >
                                     Save
                                 </Button>
-
                             </div>
                         </>
                     )

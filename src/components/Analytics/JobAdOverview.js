@@ -1,206 +1,293 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Row, Col, Card, CardBody, Spinner, Progress, ListGroup, ListGroupItem } from 'reactstrap';
+import React, { useEffect, useState } from 'react';
+import { Row, Col, Card, CardBody, ListGroup, ListGroupItem, Spinner } from 'reactstrap';
 
+/* ---------- Small UI bits ---------- */
 const Kpi = ({ title, value, sub }) => (
     <Card className="shadow-sm h-100">
         <CardBody>
             <div style={{ fontSize: 12, opacity: 0.7 }}>{title}</div>
-            <div style={{ fontSize: 22, fontWeight: 700 }}>{value}</div>
+            {/* πριν: fontSize:20 / 800 */}
+            <strong className="metric-number">{value}</strong>
             {sub && <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>{sub}</div>}
         </CardBody>
     </Card>
 );
 
-const fmtPercent = (n) => (Number.isFinite(Number(n)) ? `${Number(n).toFixed(1)}%` : '—');
-const fmtNumber = (n) => (Number.isFinite(Number(n)) ? Number(n).toFixed(1) : '—');
 
-/* ---------- Approval vs Rejection (stacked progress) ---------- */
-function ApprovalRejection({ approvalRate = 0, rejectionRate = 0 }) {
-    const other = Math.max(0, 100 - (Number(approvalRate) + Number(rejectionRate)));
+const fmt1 = (n) => (Number.isFinite(+n) ? (+n).toFixed(1) : '—');
+
+const SEG_COLORS = {
+    ap: '#3b82f6', // Approved
+    rj: '#ef4444', // Rejected
+    hr: '#16a34a', // Hired
+    pd: '#6b7280', // Pending
+};
+
+/* Segmented bar: Approved / Rejected / Hired / Pending */
+function SegmentedBar({ approved = 0, rejected = 0, hired = 0, showHired = true }) {
+    let ap = Math.max(0, Math.min(100, +approved || 0));
+    let rj = Math.max(0, Math.min(100, +rejected || 0));
+    let hr = showHired ? Math.max(0, Math.min(100, +hired || 0)) : 0;
+
+    const sum = ap + rj + (showHired ? hr : 0);
+    if (sum > 100) {
+        const f = 100 / sum;
+        ap *= f; rj *= f; if (showHired) hr *= f;
+    }
+    const pending = Math.max(0, 100 - (ap + rj + (showHired ? hr : 0)));
+    const fmtPct = (n) => `${n.toFixed(1)}%`;
+
     return (
-        <Card className="shadow-sm h-100">
-            <CardBody>
-                <div style={{ fontWeight: 600, marginBottom: 8 }}>Approval vs Rejection</div>
-                <div className="d-flex justify-content-between" style={{ fontSize: 12, marginBottom: 6 }}>
-                    <span>Approved {fmtPercent(approvalRate)}</span>
-                    <span>Rejected {fmtPercent(rejectionRate)}</span>
-                    {other > 0 && <span>Other {other.toFixed(1)}%</span>}
+        <div>
+            <div className="d-flex" style={{ gap: 16, flexWrap: 'wrap', fontSize: 12, marginBottom: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: 3, background: SEG_COLORS.ap, display: 'inline-block' }} />
+                    <span>Approved</span>
+                    <strong style={{ color: SEG_COLORS.ap }}>{fmtPct(ap)}</strong>
                 </div>
-                <Progress multi>
-                    <Progress bar value={approvalRate} />
-                    <Progress bar color="danger" value={rejectionRate} />
-                    {other > 0 && <Progress bar color="secondary" value={other} />}
-                </Progress>
-            </CardBody>
-        </Card>
-    );
-}
 
-/* ---------- Small status card: Complete/Open ---------- */
-function StatusCard({ complete = false }) {
-    return (
-        <Card className="shadow-sm h-100">
-            <CardBody>
-                <div style={{ fontSize: 12, opacity: 0.7 }}>Job Ad Status</div>
-                <div className="d-flex align-items-center" style={{ gap: 8, marginTop: 2 }}>
-                    <span
-                        style={{
-                            width: 10, height: 10, borderRadius: '50%',
-                            background: complete ? '#16a34a' : '#6b7280', display: 'inline-block'
-                        }}
-                    />
-                    <div style={{ fontSize: 22, fontWeight: 700 }}>
-                        {complete ? 'Complete' : 'Open'}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: 3, background: SEG_COLORS.rj, display: 'inline-block' }} />
+                    <span>Rejected</span>
+                    <strong style={{ color: SEG_COLORS.rj }}>{fmtPct(rj)}</strong>
+                </div>
+
+                {showHired && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: 3, background: SEG_COLORS.hr, display: 'inline-block' }} />
+                        <span>Hired</span>
+                        <strong style={{ color: SEG_COLORS.hr }}>{fmtPct(hr)}</strong>
                     </div>
+                )}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: 3, background: SEG_COLORS.pd, display: 'inline-block' }} />
+                    <span>Pending</span>
+                    <strong style={{ color: SEG_COLORS.pd }}>{fmtPct(pending)}</strong>
                 </div>
-                <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>
-                    {complete ? 'At least one candidate hired' : 'No hires yet'}
-                </div>
-            </CardBody>
-        </Card>
+            </div>
+
+            <div
+                style={{
+                    height: 18, background: '#e9ecef', borderRadius: 10, overflow: 'hidden',
+                    marginTop: 6, whiteSpace: 'nowrap'
+                }}
+            >
+                <div style={{ width: `${ap}%`, height: '100%', background: '#3b82f6', display: 'inline-block' }} />
+                <div style={{ width: `${rj}%`, height: '100%', background: '#ef4444', display: 'inline-block' }} />
+                {showHired && (
+                    <div style={{ width: `${hr}%`, height: '100%', background: '#16a34a', display: 'inline-block' }} />
+                )}
+                <div style={{ width: `${pending}%`, height: '100%', background: '#6b7280', display: 'inline-block' }} />
+            </div>
+        </div>
     );
 }
 
-/* ---------- Score Histogram (0–100) ---------- */
-function ScoreHistogram({ buckets = [] }) {
-    const max = useMemo(
-        () => Math.max(1, ...buckets.map(b => Number(b.count ?? b.cnt ?? b.value) || 0)),
-        [buckets]
-    );
+/* Vertical mini-histogram 0–100 */
+function Histogram({ buckets }) {
+    const mapped = (Array.isArray(buckets) ? buckets : []).map((b, i) => ({
+        label: b.range ?? `${b.from ?? i * 10}–${b.to ?? (i === 9 ? 100 : (i + 1) * 10)}`,
+        value: Number(b.count ?? b.cnt ?? b.value ?? 0),
+    }));
+    const max = Math.max(1, ...mapped.map((x) => x.value));
+    const total = mapped.reduce((s, x) => s + x.value, 0);
 
     return (
-        <Card className="shadow-sm h-100">
-            <CardBody>
-                <div style={{ fontWeight: 600, marginBottom: 8 }}>Score Distribution (0–100)</div>
-                <div style={{ height: 150, display: 'flex', alignItems: 'end', gap: 8, padding: '8px 4px' }}>
-                    {buckets.map((b, i) => {
-                        const val = Number(b.count ?? b.cnt ?? b.value) || 0;
-                        const h = (val / max) * 100;
-                        const label = b.range || `${(b.from ?? i * 10)}–${(b.to ?? (i === 9 ? 100 : (i * 10 + 9)))}`;
-                        const key = b.from ?? `b-${i}`;
-                        return (
-                            <div key={key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                                <div style={{ width: '100%', height: 120, display: 'flex', alignItems: 'end' }}>
-                                    <div style={{ width: '100%', height: `${h}%`, background: '#e9ecef', borderRadius: 4, boxShadow: 'inset 0 0 1px rgba(0,0,0,.15)' }} />
-                                </div>
-                                <div style={{ fontSize: 10, whiteSpace: 'nowrap' }}>{label}</div>
+        <div>
+            <div className="mb-2" style={{ fontWeight: 600 }}>Score Distribution (0–100)</div>
+            <div style={{ fontSize: 11, color: '#6c757d', marginBottom: 6 }}>
+                Each bar = candidates in that score range
+            </div>
+            <div className="d-flex align-items-end" style={{ gap: 10, height: 150, padding: '8px 6px', border: '1px solid #eee', borderRadius: 8, background: '#fff' }}>
+                {mapped.map((b, i) => {
+                    const hPx = (b.value / max) * 120;
+                    const pct = total > 0 ? `${((b.value / total) * 100).toFixed(1)}%` : '0%';
+                    return (
+                        <div key={i} style={{ textAlign: 'center', flex: 1 }}>
+                            <div style={{ height: 120, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
+                                <div style={{ fontSize: 10, opacity: 0.85, marginBottom: 4 }}>{pct}</div>
+                                <div
+                                    style={{ height: `${hPx}px`, background: '#e5e7eb', borderRadius: 6, width: '100%' }}
+                                    title={`${b.label}: ${b.value} (${pct})`}
+                                />
                             </div>
-                        );
-                    })}
-                </div>
-            </CardBody>
-        </Card>
+                            <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>{b.label.replace('–', '-')}</div>
+                        </div>
+                    );
+                })}
+                {mapped.length === 0 && (
+                    <div className="text-muted" style={{ fontSize: 12 }}>—</div>
+                )}
+            </div>
+        </div>
     );
 }
 
-/* ---------- Generic Difficulty List (low → high) ---------- */
-function DifficultyList({ title, items = [], labelKey = 'name' }) {
-    const getVal = (x) => x?.averageScore ?? x?.avgScore ?? x?.value ?? 0;
-    const sorted = [...(items || [])].sort((a, b) => getVal(a) - getVal(b));
-    return (
-        <Card className="shadow-sm h-100">
-            <CardBody>
-                <div style={{ fontWeight: 600, marginBottom: 8 }}>
-                    {title} <span className="text-muted" style={{ fontSize: 12 }}>(lower = harder)</span>
-                </div>
-                <ListGroup flush>
-                    {!sorted.length && <ListGroupItem className="text-muted">—</ListGroupItem>}
-                    {sorted.map((o, i) => (
-                        <ListGroupItem key={(o[labelKey] ?? i)} className="d-flex align-items-center justify-content-between">
-                            <span>{o[labelKey]}</span>
-                            <strong>{(Number(getVal(o)) || 0).toFixed(1)}</strong>
-                        </ListGroupItem>
-                    ))}
-                </ListGroup>
-            </CardBody>
-        </Card>
-    );
-}
-
-/* ---------- MAIN ---------- */
-export default function JobAdOverview({ jobAdId, base = '/api' }) {
-    const [data, setData] = useState(null);
+export default function JobAdOverview({ jobAdId, base = 'http://localhost:8087/api' }) {
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState('');
+    const [stats, setStats] = useState(null);
 
-    // πληροφορίες υποψηφίων του συγκεκριμένου job ad
-    const [candInfo, setCandInfo] = useState({ total: 0, complete: false });
+    // NEW: ποιο difficulty group εμφανίζεται
+    const [diffTab, setDiffTab] = useState('step'); // 'step' | 'question' | 'skill'
 
     useEffect(() => {
-        if (!jobAdId) return;
-        const ac = new AbortController();
-        setLoading(true);
-        setErr('');
-        fetch(`${base}/statistics/jobad/${jobAdId}`, { headers: { Accept: 'application/json' }, signal: ac.signal })
-            .then(r => r.ok ? r.json() : r.text().then(t => Promise.reject(new Error(`HTTP ${r.status} ${r.statusText}: ${t?.slice(0, 200)}`))))
-            .then(json => { setData(json); setLoading(false); })
-            .catch(e => { if (e.name !== 'AbortError') { setErr(e.message || 'Failed'); setLoading(false); } });
-        return () => ac.abort();
-    }, [jobAdId, base]);
-
-    // φερε τους candidates για total + hired check
-    useEffect(() => {
-        if (!jobAdId) return;
-        const ac = new AbortController();
-        fetch(`${base}/statistics/jobad/${jobAdId}/candidates`, { headers: { Accept: 'application/json' }, signal: ac.signal })
-            .then(r => (r.ok ? r.json() : Promise.resolve([])))
-            .then(arr => {
-                const list = Array.isArray(arr) ? arr : [];
-                const total = list.length;
-                const complete = list.some(c => String(c?.status ?? c?.state ?? '').toLowerCase() === 'hired');
-                setCandInfo({ total, complete });
+        if (!jobAdId) { setStats(null); return; }
+        let ignore = false;
+        setLoading(true); setErr('');
+        fetch(`${base}/statistics/jobad/${jobAdId}`, { headers: { Accept: 'application/json' } })
+            .then(async (r) => {
+                if (!r.ok) throw new Error(await r.text().catch(() => `HTTP ${r.status}`));
+                return r.json();
             })
-            .catch(() => { /* σιωπηλά */ });
-        return () => ac.abort();
+            .then((j) => { if (!ignore) setStats(j); })
+            .catch((e) => { if (!ignore) setErr(String(e.message || e)); })
+            .finally(() => { if (!ignore) setLoading(false); });
+        return () => { ignore = true; };
     }, [jobAdId, base]);
 
-    if (!jobAdId) return <div className="text-muted">No job ad selected.</div>;
-    if (loading) return <div className="d-flex align-items-center" style={{ gap: 8 }}><Spinner size="sm" /> <span>Loading job ad analytics…</span></div>;
+    if (loading) return <div className="d-flex align-items-center" style={{ gap: 8 }}><Spinner size="sm" /> Loading…</div>;
     if (err) return <div className="text-danger">Error: {err}</div>;
-    if (!data) return null;
+    if (!stats) return null;
 
-    const {
-        approvalRate = 0,
-        rejectionRate = 0,
-        avgCandidateScore = 0,
-        scoreDistribution = [],
-        stepAverages = [],
-        questionDifficulty = [],
-        skillDifficulty = [],
-    } = data;
+    const approvalRate = stats.approvalRate ?? stats.approval_rate;
+    const rejectionRate = stats.rejectionRate ?? stats.rejection_rate;
+    const hireRate = stats.hireRate ?? stats.hire_rate;              // %
+    const hireCount = stats.hireCount ?? stats.hires ?? 0;           // <-- NEW (αριθμός)
+    const avgCandidateScore = stats.avgCandidateScore ?? stats.avg_score ?? stats.averageScore;
+
+    const distribution = stats.scoreDistribution ?? stats.distribution ?? [];
+
+    const stepAverages = (stats.stepAvg ?? stats.stepAverages ?? []).map((s) => ({
+        label: s.step ?? s.title ?? s.name ?? '—',
+        value: s.avgScore ?? s.averageScore ?? s.avg_score,
+    }));
+
+    const questionDifficulty = (stats.questionDiff ?? stats.questionDifficulty ?? []).map((q) => ({
+        label: q.question ?? q.title ?? '—',
+        value: q.avgScore ?? q.averageScore ?? q.avg_score,
+    }));
+
+    const skillDifficulty = (stats.skillDiff ?? stats.skillDifficulty ?? []).map((s) => ({
+        label: s.skill ?? s.title ?? s.name ?? '—',
+        value: s.avgScore ?? s.averageScore ?? s.avg_score,
+    }));
+
+    const totalCandidates = stats.totalCandidates ?? stats.total ?? 0;
+    const complete = !!stats.complete;
+
+    // Πηγές για το ενιαίο panel
+    const diffMap = {
+        step: { title: 'Step Difficulty', items: stepAverages },
+        question: { title: 'Question Difficulty', items: questionDifficulty },
+        skill: { title: 'Skill Difficulty', items: skillDifficulty },
+    };
+    const current = diffMap[diffTab] ?? diffMap.step;
 
     return (
-        <>
-            {/* Row 1: Approval + Status + Avg Score */}
+        <div>
+            {/* Row 1: Approved/Rejected + Completion + Avg Score + Candidates */}
             <Row className="g-3">
-                <Col lg="6">
-                    <ApprovalRejection approvalRate={approvalRate} rejectionRate={rejectionRate} />
+                <Col md="6">
+                    <Card className="shadow-sm h-100">
+                        <CardBody>
+                            {/* τώρα περιλαμβάνει και Hired */}
+                            <SegmentedBar approved={approvalRate} rejected={rejectionRate} hired={hireRate} />
+                        </CardBody>
+                    </Card>
                 </Col>
-                <Col lg="3">
-                    <StatusCard complete={candInfo.complete} />
+
+                {/* Completion badge + Hires count */}
+                <Col md="2">
+                    <Card className="shadow-sm h-100">
+                        <CardBody>
+                            <div style={{ fontSize: 12, opacity: 0.7 }}>Completion</div>
+                            <div
+                                className="d-flex flex-column align-items-start"
+                                style={{ gap: 6, marginTop: 6, width: '100%' }}
+                            >
+                                <span
+                                    className={`badge ${complete ? 'bg-success' : 'bg-secondary'} text-white`}
+                                    style={{ fontSize: 12, padding: '6px 10px' }}
+                                >
+                                    {complete ? 'Complete' : 'In progress'}
+                                </span>
+
+                                {/* divider */}
+                                <div
+                                    style={{ width: '100%', height: 1, background: '#e9ecef', margin: '10px 0' }}
+                                />
+
+                                {/* hires */}
+                                <div className="d-flex align-items-center" style={{ gap: 8 }}>
+                                    <div style={{ fontSize: 12, opacity: 0.7 }}>Hires</div>
+                                    {/* πριν: fontSize:20 / 800 */}
+                                    <strong className="metric-number">{hireCount}</strong>
+                                </div>
+
+
+                            </div>
+                        </CardBody>
+                    </Card>
                 </Col>
-                <Col lg="3">
-                    <Kpi title="Avg Candidate Score" value={fmtNumber(avgCandidateScore)} sub="0–10" />
+
+
+                <Col md="2">
+                    <Kpi title="Candidates" value={totalCandidates} />
                 </Col>
+
+                <Col md="2">
+                    <Kpi title="Avg Candidate Score (0-100)" value={fmt1(avgCandidateScore)} />
+                </Col>
+
+
             </Row>
 
-            {/* Row 1.5: Total candidates (πάνω πριν από Step/Skill) */}
+            {/* Histogram + Unified Difficulty (dropdown) */}
             <Row className="g-3 mt-1">
-                <Col lg="12">
-                    <Kpi title="Candidates" value={candInfo.total} sub="Total for this job ad" />
+                <Col md="6">
+                    <Card className="shadow-sm h-100">
+                        <CardBody>
+                            <Histogram buckets={distribution} />
+                        </CardBody>
+                    </Card>
+                </Col>
+
+                <Col md="6">
+                    <Card className="shadow-sm h-100">
+                        <CardBody>
+                            <div className="d-flex align-items-center justify-content-between" style={{ marginBottom: 8 }}>
+                                <div style={{ fontWeight: 600 }}>
+                                    {current.title} <span style={{ fontSize: 12, opacity: .6 }}>(lower = harder)</span>
+                                </div>
+                                <select
+                                    className="form-select form-select-sm"
+                                    style={{ width: 220 }}
+                                    value={diffTab}
+                                    onChange={(e) => setDiffTab(e.target.value)}
+                                >
+                                    <option value="step">Step Difficulty</option>
+                                    <option value="question">Question Difficulty</option>
+                                    <option value="skill">Skill Difficulty</option>
+                                </select>
+                            </div>
+
+                            <ListGroup flush>
+                                {(current.items?.length ?? 0) === 0 && (
+                                    <ListGroupItem className="text-muted">—</ListGroupItem>
+                                )}
+                                {(current.items ?? []).map((it, i) => (
+                                    <ListGroupItem key={`${diffTab}-${i}`} className="d-flex align-items-center justify-content-between">
+                                        <span>{it.label}</span>
+                                        <strong>{fmt1(it.value)}</strong>
+                                    </ListGroupItem>
+                                ))}
+                            </ListGroup>
+                        </CardBody>
+                    </Card>
                 </Col>
             </Row>
-
-            <Row className="g-3 mt-1">
-                <Col lg="6"><ScoreHistogram buckets={scoreDistribution} /></Col>
-                {/* Step Difficulty (lower = harder) */}
-                <Col lg="6"><DifficultyList title="Step Difficulty" items={stepAverages} labelKey="step" /></Col>
-            </Row>
-
-            <Row className="g-3 mt-1">
-                <Col lg="6"><DifficultyList title="Question Difficulty" items={questionDifficulty} labelKey="question" /></Col>
-                <Col lg="6"><DifficultyList title="Skill Difficulty" items={skillDifficulty} labelKey="skill" /></Col>
-            </Row>
-        </>
+        </div>
     );
 }

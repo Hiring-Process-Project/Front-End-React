@@ -10,8 +10,8 @@ import ConfirmModal from "../Hire/ConfirmModal";
 const API_BASE =
     process.env.REACT_APP_API_BASE || "http://localhost:8087";
 
-/* ----------  banner όταν ο υποψήφιος είναι κλειδωμένος ---------- */
-function LockBanner({ status, jobAdComplete = false }) {
+/* ----------  Ενιαίο banner όταν ο υποψήφιος είναι κλειδωμένος ---------- */
+function LockBanner({ status }) {
     const up = String(status || "").toUpperCase();
 
     return (
@@ -23,24 +23,14 @@ function LockBanner({ status, jobAdComplete = false }) {
             <div className="lock-banner__title">
                 <span style={{ fontSize: 13 }} aria-hidden>🔒</span>
                 <span>Candidate Status</span>
-                {/* <span>{jobAdComplete ? "Job ad" : "Candidate status"}</span> */}
             </div>
-
-            {/* 
-            {!jobAdComplete && (
-                <div style={{ fontWeight: 800, fontSize: 12.5, color: "#111827" }}>
-                    {up || "LOCKED"}
-                </div>
-            )} */}
 
             <div className="lock-banner__status">
                 {up || "LOCKED"}
             </div>
 
             <div className="lock-banner__desc">
-                {jobAdComplete
-                    ? "The job ad is complete. Another candidate has been hired and evaluation editing is locked."
-                    : "Scores are locked and cannot be edited."}
+                Scores are locked and cannot be edited.
             </div>
         </div>
     );
@@ -64,7 +54,7 @@ export default function Candidates({ jobAdId }) {
     const [errSteps, setErrSteps] = useState(null);
     const [loadingAssess, setLoadingAssess] = useState(false);
 
-    // --- state για το modal επιβεβαίωσης (ΕΛΑΧΙΣΤΗ ΠΡΟΣΘΗΚΗ) ---
+    // --- state για το modal επιβεβαίωσης
     const [showConfirm, setShowConfirm] = useState(false);
     const [confirmType, setConfirmType] = useState(null); // 'APPROVED' | 'REJECTED'
     const [confirmLoading, setConfirmLoading] = useState(false);
@@ -75,26 +65,13 @@ export default function Candidates({ jobAdId }) {
     // Κανονικοποιημένο status υποψηφίου
     const statusUp = (selectedCandidate?.status || "").toUpperCase();
 
-    // Υπάρχει ήδη Hired σε αυτό το job ad;
-    const anyHiredInJob =
-        Array.isArray(candidates) &&
-        candidates.some(c => String(c?.status || "").toUpperCase() === "HIRED");
-
-    // Κλείδωμα που οφείλεται στο status του ίδιου του υποψηφίου
+    /* ===== Lock logic (ΜΟΝΟ status συγκεκριμένου candidate) ===== */
     const lockedByCandidate = ["APPROVED", "REJECTED", "HIRED"].includes(statusUp);
 
-    // Αν το job ad έχει ήδη Hired, τότε οι PENDING κλειδώνουν επίσης
-    const lockedByJobAdPending = anyHiredInJob && statusUp === "PENDING";
-
-    // Τελικό flag για skills
-    const isLocked = !!selectedCandidate && (lockedByCandidate || lockedByJobAdPending);
+    // Τελικό flag για skills/comments
+    const isLocked = !!selectedCandidate && lockedByCandidate;
     const canEdit = !!selectedCandidate && !isLocked;
-
-    // Τελικό flag για comments – ίδιος κανόνας
     const isCommentLocked = isLocked;
-
-    // Χρήσιμο αν θες ειδικό μήνυμα “job ad complete”
-    const jobAdCompleteLocked = !!selectedCandidate && statusUp === "PENDING" && anyHiredInJob;
 
     // reset on job change
     useEffect(() => {
@@ -436,7 +413,6 @@ export default function Candidates({ jobAdId }) {
         }
     }
 
-
     // ---  για modal Approve/Reject ---
     const openConfirm = (type) => {
         if (!selectedCandidate) return;
@@ -466,7 +442,6 @@ export default function Candidates({ jobAdId }) {
             localStorage.setItem("hf_skill_drafts", JSON.stringify(all));
         } catch { }
     }, [isLocked, rightPane?.context]);
-
 
     useEffect(() => {
         if (!selectedCandidate?.id) {
@@ -576,7 +551,6 @@ export default function Candidates({ jobAdId }) {
                                                 step={rightPaneStepObj}
                                                 mode={canEdit ? "edit" : "view"}
                                                 onAfterSave={({ stepId, questionId, totalSkills }) =>
-                                                    // αν δεν σταλεί από StepSkills, fallback στο rightPane
                                                     refreshMetrics({
                                                         stepId,
                                                         questionId,
@@ -588,12 +562,8 @@ export default function Candidates({ jobAdId }) {
                                                 }
                                             />
                                             {isLocked && (
-                                                <LockBanner
-                                                    status={selectedCandidate.status}
-                                                    jobAdComplete={anyHiredInJob}
-                                                />
+                                                <LockBanner status={selectedCandidate.status} />
                                             )}
-
                                         </>
                                     ) : (
                                         <div className="text-muted">
@@ -607,21 +577,19 @@ export default function Candidates({ jobAdId }) {
                     <Row className="mt-16">
                         <Col md="12">
                             <label className="description-labels">Comments about the candidate:</label>
-                            {/* Αντικατάσταση με το νέο component */}
                             <CandidateComments
                                 selectedCandidate={selectedCandidate}
                                 candComment={candComment}
                                 setCandComment={setCandComment}
                                 isCommentLocked={isCommentLocked}
                                 saveCandidateComment={saveCandidateComment}
-                                jobAdCompleteLocked={jobAdCompleteLocked}
                             />
                         </Col>
                     </Row>
                 </Col>
             </Row>
 
-            {/* Modal επιβεβαίωσης (ΕΛΑΧΙΣΤΗ ΠΡΟΣΘΗΚΗ) */}
+            {/* Modal επιβεβαίωσης */}
             <ConfirmModal
                 isOpen={showConfirm}
                 title={confirmType === "REJECTED" ? "Confirm Reject" : "Confirm Approve"}

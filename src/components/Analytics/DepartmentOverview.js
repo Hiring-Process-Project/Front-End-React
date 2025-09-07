@@ -1,179 +1,173 @@
 import React, { useEffect, useState } from 'react';
-import { Row, Col, Card, CardBody, ListGroup, ListGroupItem, Spinner, Progress } from 'reactstrap';
+import { Row, Col, Card, CardBody, ListGroup, ListGroupItem, Spinner } from 'reactstrap';
 
-/* ---------- Small UI ---------- */
+/* ---------- Small UI bits ---------- */
 const Kpi = ({ title, value, sub }) => (
     <Card className="shadow-sm h-100">
         <CardBody>
-            <div style={{ fontSize: 12, opacity: .7 }}>{title}</div>
-            <div style={{ fontSize: 22, fontWeight: 700 }}>{value}</div>
-            {sub && <div style={{ fontSize: 12, opacity: .6, marginTop: 4 }}>{sub}</div>}
+            <div style={{ fontSize: 12, opacity: 0.7 }}>{title}</div>
+            <div className="metric-number">{value}</div>
+            {sub && <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>{sub}</div>}
         </CardBody>
     </Card>
 );
 
-const fmtPercent = (n) => (Number.isFinite(Number(n)) ? `${Number(n).toFixed(1)}%` : '—');
-const fmtNumber = (n) => (Number.isFinite(Number(n)) ? Number(n).toFixed(1) : '—');
 
-/* ---------- Segmented bar ---------- */
-function ApprovalRejection({ approvalRate = 0, rejectionRate = 0, hireRate = 0 }) {
-    const ap = Number(approvalRate) || 0;
-    const rj = Number(rejectionRate) || 0;
-    const hr = Number(hireRate) || 0;
-    const pending = Math.max(0, 100 - (ap + rj + hr));
+const fmt1 = (n) => (Number.isFinite(+n) ? (+n).toFixed(1) : '—');
+
+const SEG_COLORS = { ap: '#3b82f6', rj: '#ef4444', hr: '#16a34a', pd: '#6b7280' };
+
+function SegmentedBar({ approved = 0, rejected = 0, hired = 0, showHired = true }) {
+    let ap = Math.max(0, Math.min(100, +approved || 0));
+    let rj = Math.max(0, Math.min(100, +rejected || 0));
+    let hr = showHired ? Math.max(0, Math.min(100, +hired || 0)) : 0;
+
+    const sum = ap + rj + (showHired ? hr : 0);
+    if (sum > 100) {
+        const f = 100 / sum;
+        ap *= f; rj *= f; if (showHired) hr *= f;
+    }
+    const pending = Math.max(0, 100 - (ap + rj + (showHired ? hr : 0)));
+    const fmtPct = (n) => `${n.toFixed(1)}%`;
 
     return (
-        <Card className="shadow-sm h-100">
-            <CardBody>
-                <div style={{ fontWeight: 600, marginBottom: 8 }}>Approved / Rejected / Hired / Pending</div>
-                <div className="d-flex justify-content-between" style={{ fontSize: 12, marginBottom: 6 }}>
-                    <span>Approved {fmtPercent(ap)}</span>
-                    <span>Rejected {fmtPercent(rj)}</span>
-                    <span>Hired {fmtPercent(hr)}</span>
-                    <span>Pending {fmtPercent(pending)}</span>
+        <div>
+            <div className="d-flex" style={{ gap: 16, flexWrap: 'wrap', fontSize: 12, marginBottom: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: 3, background: SEG_COLORS.ap, display: 'inline-block' }} />
+                    <span>Approved</span>
+                    <strong style={{ color: SEG_COLORS.ap }}>{fmtPct(ap)}</strong>
                 </div>
-                <Progress multi>
-                    <Progress bar value={ap} />
-                    <Progress bar color="danger" value={rj} />
-                    <Progress bar color="success" value={hr} />
-                    {pending > 0 && <Progress bar color="secondary" value={pending} />}
-                </Progress>
-            </CardBody>
-        </Card>
-    );
-}
-
-/* ---------- Histogram (0–100) ---------- */
-function Histogram({ buckets = [] }) {
-    const mapped = (Array.isArray(buckets) ? buckets : []).map((b, i) => ({
-        label: b.range ?? `${b.from ?? i * 10}-${b.to ?? (i === 9 ? 100 : (i + 1) * 10)}`,
-        value: Number(b.count ?? b.cnt) || 0,
-        key: b.from ?? `${i}`,
-    }));
-
-    const total = mapped.reduce((s, x) => s + x.value, 0);
-    const max = Math.max(1, ...mapped.map(x => x.value));
-
-    return (
-        <Card className="shadow-sm h-100">
-            <CardBody>
-                <div style={{ fontWeight: 600, marginBottom: 8 }}>Score Distribution (0–100)</div>
-
-                {total === 0 ? (
-                    <div className="text-muted" style={{ fontSize: 12 }}>
-                        No scored candidates yet in this scope.
-                    </div>
-                ) : (
-                    <div style={{ height: 150, display: 'flex', alignItems: 'end', gap: 8, padding: '8px 4px' }}>
-                        {mapped.map((b) => {
-                            const h = (b.value / max) * 100;
-                            return (
-                                <div key={b.key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                                    <div style={{ width: '100%', height: 120, display: 'flex', alignItems: 'end' }}>
-                                        <div style={{
-                                            width: '100%', height: `${h}%`, background: '#e9ecef',
-                                            borderRadius: 4, boxShadow: 'inset 0 0 1px rgba(0,0,0,.15)', transition: 'height .3s ease'
-                                        }} />
-                                    </div>
-                                    <div style={{ fontSize: 10, whiteSpace: 'nowrap' }}>{b.label}</div>
-                                </div>
-                            );
-                        })}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: 3, background: SEG_COLORS.rj, display: 'inline-block' }} />
+                    <span>Rejected</span>
+                    <strong style={{ color: SEG_COLORS.rj }}>{fmtPct(rj)}</strong>
+                </div>
+                {showHired && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: 3, background: SEG_COLORS.hr, display: 'inline-block' }} />
+                        <span>Hired</span>
+                        <strong style={{ color: SEG_COLORS.hr }}>{fmtPct(hr)}</strong>
                     </div>
                 )}
-            </CardBody>
-        </Card>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: 3, background: SEG_COLORS.pd, display: 'inline-block' }} />
+                    <span>Pending</span>
+                    <strong style={{ color: SEG_COLORS.pd }}>{fmtPct(pending)}</strong>
+                </div>
+            </div>
+
+            <div style={{ height: 18, background: '#e9ecef', borderRadius: 10, overflow: 'hidden', marginTop: 6, whiteSpace: 'nowrap' }}>
+                <div style={{ width: `${ap}%`, height: '100%', background: '#3b82f6', display: 'inline-block' }} />
+                <div style={{ width: `${rj}%`, height: '100%', background: '#ef4444', display: 'inline-block' }} />
+                {showHired && <div style={{ width: `${hr}%`, height: '100%', background: '#16a34a', display: 'inline-block' }} />}
+                <div style={{ width: `${pending}%`, height: '100%', background: '#6b7280', display: 'inline-block' }} />
+            </div>
+        </div>
     );
 }
 
-/* ---------- Occupation Difficulty (lower = harder) ---------- */
-function OccupationDifficulty({ items = [] }) {
-    const scoreOf = (o) => Number(o.averageScore ?? o.avgScore ?? o.avg_score ?? 0);
-    const nameOf = (o) => (o.occupation ?? o.title ?? o.name ?? '—');
-    const sorted = [...(items || [])].sort((a, b) => scoreOf(a) - scoreOf(b));
+/* Histogram 0–100 */
+function Histogram({ buckets }) {
+    const mapped = (Array.isArray(buckets) ? buckets : []).map((b, i) => ({
+        label: b.range ?? `${b.from ?? i * 10}–${b.to ?? (i === 9 ? 100 : (i + 1) * 10)}`,
+        value: Number(b.count ?? b.cnt ?? b.value ?? 0),
+    }));
+    const max = Math.max(1, ...mapped.map((x) => x.value));
+    const total = mapped.reduce((s, x) => s + x.value, 0);
 
     return (
-        <Card className="shadow-sm h-100">
-            <CardBody>
-                <div style={{ fontWeight: 600, marginBottom: 8 }}>Occupation Difficulty (lower = harder)</div>
-                <ListGroup flush>
-                    {!sorted.length && <ListGroupItem className="text-muted">—</ListGroupItem>}
-                    {sorted.map((o, idx) => (
-                        <ListGroupItem key={`${nameOf(o)}-${idx}`} className="d-flex align-items-center justify-content-between">
-                            <span>{nameOf(o)}</span>
-                            <strong>{scoreOf(o).toFixed(1)}</strong>
-                        </ListGroupItem>
-                    ))}
-                </ListGroup>
-            </CardBody>
-        </Card>
+        <div>
+            <div className="mb-2" style={{ fontWeight: 600 }}>Score Distribution (0–100)</div>
+            <div style={{ fontSize: 11, color: '#6c757d', marginBottom: 6 }}>
+                Each bar = candidates in that score range
+            </div>
+            <div className="d-flex align-items-end" style={{ gap: 10, height: 150, padding: '8px 6px', border: '1px solid #eee', borderRadius: 8, background: '#fff' }}>
+                {mapped.map((b, i) => {
+                    const hPx = (b.value / max) * 120;
+                    const pct = total > 0 ? `${((b.value / total) * 100).toFixed(1)}%` : '0%';
+                    return (
+                        <div key={i} style={{ textAlign: 'center', flex: 1 }}>
+                            <div style={{ height: 120, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
+                                <div style={{ fontSize: 10, opacity: 0.85, marginBottom: 4 }}>{pct}</div>
+                                <div style={{ height: `${hPx}px`, background: '#e5e7eb', borderRadius: 6, width: '100%' }} title={`${b.label}: ${b.value} (${pct})`} />
+                            </div>
+                            <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>{b.label.replace('–', '-')}</div>
+                        </div>
+                    );
+                })}
+                {mapped.length === 0 && <div className="text-muted" style={{ fontSize: 12 }}>—</div>}
+            </div>
+        </div>
     );
 }
 
-/* ---------- Main component ---------- */
-export default function DepartmentOverview({ deptId, base = '/api' }) {
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(true);
+export default function DepartmentOverview({ deptId, base = 'http://localhost:8087/api' }) {
+    const [loading, setLoading] = useState(false);
     const [err, setErr] = useState('');
+    const [stats, setStats] = useState(null);
 
     useEffect(() => {
-        if (!deptId) return;
-        const ac = new AbortController();
-        setLoading(true);
-        setErr('');
-        fetch(`${base}/statistics/department/${deptId}`, {
-            headers: { Accept: 'application/json' },
-            signal: ac.signal
-        })
-            .then(r => r.ok ? r.json()
-                : r.text().then(t => Promise.reject(new Error(`HTTP ${r.status} ${r.statusText}: ${t?.slice(0, 200)}`))))
-            .then(json => { setData(json); setLoading(false); })
-            .catch(e => { if (e.name !== 'AbortError') { setErr(e.message || 'Failed'); setLoading(false); } });
-        return () => ac.abort();
+        if (!deptId) { setStats(null); return; }
+        let ignore = false;
+        setLoading(true); setErr('');
+        fetch(`${base}/statistics/department/${deptId}`, { headers: { Accept: 'application/json' } })
+            .then(async (r) => { if (!r.ok) throw new Error(await r.text().catch(() => `HTTP ${r.status}`)); return r.json(); })
+            .then((j) => { if (!ignore) setStats(j); })
+            .catch((e) => { if (!ignore) setErr(String(e.message || e)); })
+            .finally(() => { if (!ignore) setLoading(false); });
+        return () => { ignore = true; };
     }, [deptId, base]);
 
-    if (!deptId) return <div className="text-muted">No department selected.</div>;
-    if (loading) return <div className="d-flex align-items-center" style={{ gap: 8 }}><Spinner size="sm" /> <span>Loading department analytics…</span></div>;
+    if (loading) return <div className="d-flex align-items-center" style={{ gap: 8 }}><Spinner size="sm" /> Loading…</div>;
     if (err) return <div className="text-danger">Error: {err}</div>;
-    if (!data) return null;
+    if (!stats) return null;
 
-    const approvalRate = data.approvalRate ?? data.approval_rate ?? 0;
-    const rejectionRate = data.rejectionRate ?? data.rejection_rate ?? 0;
-    const hireRate = data.hireRate ?? data.hire_rate ?? 0;
-    const candidatesPerJobAd = data.candidatesPerJobAd ?? data.avgCandidatesPerJobAd ?? data.avg_cand_per_job ?? 0;
-    const scoreDistribution = data.scoreDistribution ?? data.distribution ?? [];
-    const occupationDifficulty = data.occupationDifficulty ?? data.occDifficulty ?? [];
+    const approvalRate = stats.approvalRate ?? stats.approval_rate;
+    const rejectionRate = stats.rejectionRate ?? stats.rejection_rate;
+    const hireRate = stats.hireRate ?? stats.hire_rate;
+    const hireCount = stats.hireCount ?? stats.hires;
+    const totalCandidates = stats.totalCandidates ?? stats.total;
+    const avgCandPerJobAd = stats.avgCandidatesPerJobAd ?? stats.candidatesPerJobAd ?? stats.avg_cand_per_job;
+    const distribution = stats.scoreDistribution ?? stats.distribution ?? [];
+    const occupationDifficulty = (stats.occupationDifficulty ?? stats.occDifficulty ?? []).map((o) => ({
+        label: o.occupation ?? o.title ?? o.name ?? '—',
+        value: o.avgScore ?? o.averageScore ?? o.avg_score,
+    }));
 
     return (
-        <>
+        <div>
             <Row className="g-3">
-                <Col lg="6">
-                    <ApprovalRejection
-                        approvalRate={approvalRate}
-                        rejectionRate={rejectionRate}
-                        hireRate={hireRate}
-                    />
+                <Col md="6">
+                    <Card className="shadow-sm h-100"><CardBody>
+                        <SegmentedBar approved={approvalRate} rejected={rejectionRate} hired={hireRate} />
+                    </CardBody></Card>
                 </Col>
-                <Col lg="6">
-                    <Kpi
-                        title="Candidates per Job Ad"
-                        value={fmtNumber(candidatesPerJobAd)}
-                        sub="Average across department job ads"
-                    />
-                </Col>
+                <Col md="2"><Kpi title="Hires" value={hireCount ?? '—'} /></Col>
+                <Col md="2"><Kpi title="Candidates" value={totalCandidates ?? '—'} /></Col>
+                <Col md="2"><Kpi title="Avg Candidates / Job Ad" value={fmt1(avgCandPerJobAd)} /></Col>
             </Row>
 
             <Row className="g-3 mt-1">
-                <Col lg="12">
-                    <Histogram buckets={scoreDistribution} />
+                <Col md="6">
+                    <Card className="shadow-sm h-100"><CardBody>
+                        <Histogram buckets={distribution} />
+                    </CardBody></Card>
+                </Col>
+                <Col md="6">
+                    <Card className="shadow-sm h-100"><CardBody>
+                        <div style={{ fontWeight: 600, marginBottom: 6 }}>Occupation Difficulty <span style={{ fontSize: 12, opacity: .6 }}>(lower = harder)</span></div>
+                        <ListGroup flush>
+                            {occupationDifficulty.length === 0 && <ListGroupItem className="text-muted">—</ListGroupItem>}
+                            {occupationDifficulty.map((o, i) => (
+                                <ListGroupItem key={`occ-${i}`} className="d-flex align-items-center justify-content-between">
+                                    <span>{o.label}</span><strong>{fmt1(o.value)}</strong>
+                                </ListGroupItem>
+                            ))}
+                        </ListGroup>
+                    </CardBody></Card>
                 </Col>
             </Row>
-
-            <Row className="g-3 mt-1">
-                <Col lg="12">
-                    <OccupationDifficulty items={occupationDifficulty} />
-                </Col>
-            </Row>
-        </>
+        </div>
     );
 }

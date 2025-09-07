@@ -70,7 +70,7 @@ export default function Hire({ jobAdId }) {
     const [confirmLoading, setConfirmLoading] = useState(false);
 
     // disable HIRE when already hired someone
-    const [isHireDisabled, setIsHireDisabled] = useState(false);
+    // (κρατάμε το σχόλιο, δεν χρησιμοποιούμε πλέον global κλείδωμα)
 
     useEffect(() => {
         setSelectedCandidate(null);
@@ -109,12 +109,8 @@ export default function Hire({ jobAdId }) {
                                 : null,
                     }));
                 setCandidates(mapped);
-                setIsHireDisabled(
-                    mapped.some((c) => String(c.status || "").toLowerCase() === "hired")
-                );
             } catch {
                 setCandidates([]);
-                setIsHireDisabled(false);
             }
         })();
     }, [jobAdId]);
@@ -212,6 +208,11 @@ export default function Hire({ jobAdId }) {
     /* --- HIRE flow (with modal) --- */
     const openHireModal = () => {
         if (!selectedCandidate) return;
+        // αποφυγή re-hire στον ίδιο υποψήφιο
+        if (String(selectedCandidate.status || "").toLowerCase() === "hired") {
+            showToast("This candidate is already hired", "warning");
+            return;
+        }
         setShowConfirm(true);
     };
 
@@ -246,7 +247,6 @@ export default function Hire({ jobAdId }) {
             );
 
             // κλείδωμα κουμπιού HIRE
-            setIsHireDisabled(true);
 
             // ενημέρωσε το JobAd status στο υπόλοιπο UI
             window.dispatchEvent(
@@ -389,7 +389,10 @@ export default function Hire({ jobAdId }) {
                     <Button
                         color="success"
                         onClick={openHireModal}
-                        disabled={isHireDisabled || !selectedCandidate}
+                        disabled={
+                            !selectedCandidate ||
+                            String(selectedCandidate.status || "").toLowerCase() === "hired"
+                        }
                         style={{ minWidth: 160, height: 44, fontWeight: 600 }}
                     >
                         HIRE

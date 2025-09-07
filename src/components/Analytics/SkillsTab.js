@@ -1,32 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Row, Col, Card, CardBody, ListGroup, ListGroupItem, Spinner } from 'reactstrap';
+import { Row, Col, Card, CardBody, Spinner, Button } from 'reactstrap';
 
-/* ---------- Shared list styles (ίδια λογική με Steps/Questions) ---------- */
-const LIST_CSS = `
-.selectable-list .list-group-item {
-  border: none;
-  margin-bottom: 8px;
-  border-radius: 10px;
-  background: #f8f9fa;
-  cursor: pointer;
-  transition: all .15s ease;
-}
-.selectable-list .list-group-item:hover {
-  background: #f1f3f5;
-}
-.selectable-list .list-group-item.active {
-  background: #495057 !important;   /* σκούρο γκρι */
-  color: #fff !important;
-  font-weight: 600;
-}
-`;
-
-/* ---------- Small UI bits (ίδια με QuestionsTab) ---------- */
+/* ---------- Small UI bits ---------- */
 const Kpi = ({ title, value, sub }) => (
     <Card className="shadow-sm h-100">
         <CardBody>
             <div style={{ fontSize: 12, opacity: 0.7 }}>{title}</div>
-            <div style={{ fontSize: 26, fontWeight: 800 }}>{value}</div>
+            <div className="metric-number">{value}</div>
             {sub && <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>{sub}</div>}
         </CardBody>
     </Card>
@@ -36,40 +16,46 @@ const fmt1 = (n) => (Number.isFinite(+n) ? (+n).toFixed(1) : '—');
 const fmtPct = (n) => (Number.isFinite(+n) ? `${(+n).toFixed(1)}%` : '—');
 const val = (...cands) => cands.find((x) => x !== undefined && x !== null);
 
+/* --- Histogram --- */
 function Histogram({ buckets }) {
     const mapped = (Array.isArray(buckets) ? buckets : []).map((b, i) => {
         const from = b.from ?? i * 10;
         const rawTo = b.to ?? (i + 1) * 10;
-        const to = rawTo === 100 ? 100 : rawTo - 1; // => 0-9, 10-19, …, 90-100
-
-        return {
-            label: `${from}-${to}`,
-            value: Number(b.count ?? b.cnt ?? b.value ?? 0),
-        };
+        const to = rawTo === 100 ? 100 : rawTo - 1;
+        return { label: `${from}-${to}`, value: Number(b.count ?? b.cnt ?? b.value ?? 0) };
     });
 
     const max = Math.max(1, ...mapped.map((x) => x.value));
+    const total = mapped.reduce((s, x) => s + x.value, 0);
+
     return (
         <div>
             <div className="mb-2" style={{ fontWeight: 600 }}>Score Distribution (0–100)</div>
-            {/* μικρή περιγραφή */}
             <div style={{ fontSize: 11, color: '#6c757d', marginBottom: 6 }}>
                 Each bar = candidates in that score range
             </div>
-            <div className="d-flex align-items-end"
-                style={{ gap: 10, height: 150, padding: '8px 6px', border: '1px solid #eee', borderRadius: 8, background: '#fff' }}>
-                {mapped.map((b, i) => (
-                    <div key={i} style={{ textAlign: 'center', flex: 1 }}>
-                        <div
-                            style={{ height: `${(b.value / max) * 120}px`, background: '#e5e7eb', borderRadius: 6 }}
-                            title={`${b.label}: ${b.value}`}
-                        />
-                        <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>{b.label.replace('–', '-')}</div>
-                    </div>
-                ))}
+            <div
+                className="d-flex align-items-end"
+                style={{ gap: 10, height: 150, padding: '8px 6px', border: '1px solid #eee', borderRadius: 8, background: '#fff' }}
+            >
+                {mapped.map((b, i) => {
+                    const hPx = (b.value / max) * 120;
+                    const pct = total > 0 ? `${((b.value / total) * 100).toFixed(1)}%` : '0%';
+                    return (
+                        <div key={i} style={{ textAlign: 'center', flex: 1 }}>
+                            <div style={{ height: 120, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
+                                <div style={{ fontSize: 10, opacity: 0.85, marginBottom: 4 }}>{pct}</div>
+                                <div
+                                    style={{ height: `${hPx}px`, background: '#e5e7eb', borderRadius: 6, width: '100%' }}
+                                    title={`${b.label}: ${b.value} (${pct})`}
+                                />
+                            </div>
+                            <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>{b.label.replace('–', '-')}</div>
+                        </div>
+                    );
+                })}
                 {mapped.length === 0 && <div className="text-muted" style={{ fontSize: 12 }}>—</div>}
             </div>
-
         </div>
     );
 }
@@ -88,8 +74,8 @@ async function fetchJsonSafe(url) {
 export default function SkillsTab({
     apiBase = 'http://localhost:8087/api',
     questionId,
-    selectedSkillId,     // προαιρετικό (controlled)
-    onSelectSkill,       // προαιρετικό
+    selectedSkillId,
+    onSelectSkill,
 }) {
     const [skills, setSkills] = useState([]);
     const [skillsLoading, setSkillsLoading] = useState(false);
@@ -103,47 +89,75 @@ export default function SkillsTab({
     const [statsErr, setStatsErr] = useState('');
 
     const selectedSkill = useMemo(
-        () => skills.find(s => s.id === effectiveSkillId) || null,
+        () => skills.find((s) => s.id === effectiveSkillId) || null,
         [skills, effectiveSkillId]
     );
 
-    // Reset επιλογής όταν αλλάζει ερώτηση
     useEffect(() => {
         setInternalSkillId(null);
         setStats(null);
     }, [questionId]);
 
-    // 1) Φέρε δεξιότητες για την ερώτηση
+    // 1) skills for question
     useEffect(() => {
-        if (!questionId) { setSkills([]); return; }
+        if (!questionId) {
+            setSkills([]);
+            return;
+        }
         let ignore = false;
-        setSkillsLoading(true); setSkillsErr('');
+        setSkillsLoading(true);
+        setSkillsErr('');
         fetchJsonSafe(`${apiBase}/statistics/question/${questionId}/skills`)
             .then((j) => {
                 if (ignore) return;
-                if (!j) { setSkillsErr('Could not load skills for this question.'); setSkills([]); return; }
+                if (!j) {
+                    setSkillsErr('Could not load skills for this question.');
+                    setSkills([]);
+                    return;
+                }
                 const arr = Array.isArray(j) ? j : [];
-                const norm = arr.map(s => ({
-                    id: s.id ?? s.skillId ?? s.sid,
-                    title: s.title ?? s.name ?? s.skill ?? `Skill ${s.id ?? ''}`,
-                })).filter(x => x.id != null);
+                const norm = arr
+                    .map((s) => ({
+                        id: s.id ?? s.skillId ?? s.sid,
+                        title: s.title ?? s.name ?? s.skill ?? `Skill ${s.id ?? ''}`,
+                    }))
+                    .filter((x) => x.id != null);
                 setSkills(norm);
             })
-            .finally(() => { if (!ignore) setSkillsLoading(false); });
-        return () => { ignore = true; };
+            .finally(() => {
+                if (!ignore) setSkillsLoading(false);
+            });
+        return () => {
+            ignore = true;
+        };
     }, [apiBase, questionId]);
 
-    // 2) Φέρε analytics δεξιότητας (global)
+    // 2) global analytics per skill
     useEffect(() => {
-        if (!effectiveSkillId) { setStats(null); return; }
+        if (!effectiveSkillId) {
+            setStats(null);
+            return;
+        }
         let ignore = false;
-        setStatsLoading(true); setStatsErr('');
+        setStatsLoading(true);
+        setStatsErr('');
         fetch(`${apiBase}/statistics/skill/${effectiveSkillId}`, { headers: { Accept: 'application/json' } })
-            .then(async (r) => { if (!r.ok) throw new Error(await r.text().catch(() => `HTTP ${r.status}`)); return r.json(); })
-            .then((j) => { if (!ignore) setStats(j); })
-            .catch((e) => { if (!ignore) setStatsErr(String(e.message || e)); })
-            .finally(() => { if (!ignore) setStatsLoading(false); });
-        return () => { ignore = true; };
+            .then(async (r) => {
+                if (!r.ok) throw new Error(await r.text().catch(() => `HTTP ${r.status}`));
+                return r.json();
+            })
+            .then((j) => {
+                if (!ignore) setStats(j);
+            })
+            .catch((e) => {
+                if (!ignore) setStatsErr(String(e.message || e));
+            })
+            .finally(() => {
+                if (!ignore) setStatsLoading(false);
+            });
+        return () => {
+            ignore = true;
+        };
     }, [apiBase, effectiveSkillId]);
 
     const avgSkillScore = val(stats?.avgSkillScore, stats?.avg_score, stats?.avgScore);
@@ -155,39 +169,96 @@ export default function SkillsTab({
         else setInternalSkillId(id);
     };
 
+    // Avg in 0–100
+    const avgSkillScore100 =
+        Number.isFinite(+avgSkillScore) ? Math.max(0, Math.min(100, +avgSkillScore * 10)) : null;
+
+    // value for "Candidates with score ≥ 50%": passed/total (XX.X%)
+    const passValue = (() => {
+        if (!stats) return '—';
+        const rate = Number(passRate);
+        const buckets = Array.isArray(distribution) ? distribution : [];
+        const total = buckets.reduce((a, b) => a + (Number(b.count) || 0), 0);
+
+        let passCount = Number(stats?.passCount);
+        if (!Number.isFinite(passCount)) {
+            passCount = buckets.reduce((a, b, i) => {
+                const from = Number(b?.from ?? i * 10);
+                return a + (from >= 50 ? (Number(b.count) || 0) : 0);
+            }, 0);
+            if (!Number.isFinite(passCount) && Number.isFinite(rate) && total > 0) {
+                passCount = Math.round((rate / 100) * total);
+            }
+        }
+
+        if (!(Number.isFinite(passCount) && total > 0)) return fmtPct(rate);
+
+        const pctText = Number.isFinite(rate) ? `(${rate.toFixed(1)}%)` : '';
+        return (
+            <>
+                <span>{passCount}/{total}</span>
+                {pctText && (
+                    <span
+                        style={{
+                            marginLeft: 8,
+                            fontWeight: 500,
+                            fontSize: 18,
+                            color: '#6c757d',
+                        }}
+                    >
+                        {pctText}
+                    </span>
+                )}
+            </>
+        );
+    })();
+
     return (
         <>
-            {/* CSS override για τα items της λίστας */}
-            <style>{LIST_CSS}</style>
-
             <Row className="g-3">
-                {/* Λίστα δεξιοτήτων (button-like items) */}
+                {/* Λίστα δεξιοτήτων — ίδιο layout με Questions (buttons) */}
                 <Col md="4">
                     <Card className="shadow-sm h-100">
-                        <CardBody>
+                        <CardBody style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                             <div style={{ fontWeight: 700, marginBottom: 6 }}>Skills</div>
-                            {skillsLoading && (
-                                <div className="d-flex align-items-center" style={{ gap: 8 }}>
-                                    <Spinner size="sm" /> Loading…
-                                </div>
-                            )}
-                            {skillsErr && <div className="text-danger">{skillsErr}</div>}
-                            {!skillsLoading && !skillsErr && (
-                                <ListGroup flush className="selectable-list">
-                                    {skills.length === 0 && (
-                                        <ListGroupItem className="text-muted">No skills for this question.</ListGroupItem>
-                                    )}
-                                    {skills.map((s) => (
-                                        <ListGroupItem
+
+                            <div
+                                style={{
+                                    maxHeight: 260,
+                                    overflow: 'auto',
+                                    border: '1px solid #e9ecef',
+                                    borderRadius: 8,
+                                    padding: 8,
+                                }}
+                            >
+                                {skillsLoading && (
+                                    <div className="d-flex align-items-center" style={{ gap: 8 }}>
+                                        <Spinner size="sm" /> <span>Loading…</span>
+                                    </div>
+                                )}
+                                {!skillsLoading && skillsErr && (
+                                    <div className="text-danger" style={{ fontSize: 12 }}>{skillsErr}</div>
+                                )}
+                                {!skillsLoading && !skillsErr && skills.length === 0 && (
+                                    <div className="text-muted" style={{ fontSize: 12 }}>No skills for this question.</div>
+                                )}
+
+                                {skills.map((s) => {
+                                    const active = s.id === effectiveSkillId;
+                                    return (
+                                        <Button
                                             key={s.id}
-                                            active={effectiveSkillId === s.id}
                                             onClick={() => chooseSkill(s.id)}
+                                            className={`w-100 text-start ${active ? 'btn-secondary' : 'btn-light'}`}
+                                            style={{ marginBottom: 6, borderRadius: 8 }}
                                         >
-                                            {s.title}
-                                        </ListGroupItem>
-                                    ))}
-                                </ListGroup>
-                            )}
+                                            <div className="d-flex align-items-center justify-content-between">
+                                                <span style={{ fontWeight: active ? 600 : 500 }}>{s.title}</span>
+                                            </div>
+                                        </Button>
+                                    );
+                                })}
+                            </div>
                         </CardBody>
                     </Card>
                 </Col>
@@ -214,8 +285,15 @@ export default function SkillsTab({
                                     {!statsLoading && !statsErr && stats && (
                                         <>
                                             <Row className="g-3">
-                                                <Col md="6"><Kpi title="Avg Skill Score" value={fmt1(avgSkillScore)} sub="0–10" /></Col>
-                                                <Col md="6"><Kpi title="Score ≥ 50%" value={fmtPct(passRate)} /></Col>
+                                                <Col md="6">
+                                                    <Kpi
+                                                        title="Avg Skill Score (0–100)"
+                                                        value={avgSkillScore100 != null ? avgSkillScore100.toFixed(1) : '—'}
+                                                    />
+                                                </Col>
+                                                <Col md="6">
+                                                    <Kpi title="Candidates with score ≥ 50%" value={passValue} />
+                                                </Col>
                                             </Row>
 
                                             <Row className="g-3 mt-1">

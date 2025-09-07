@@ -1,17 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Row, Col, Card, CardBody, ListGroup, ListGroupItem, Spinner, Button } from 'reactstrap';
+import './Analytics.css';
 
 const Kpi = ({ title, value, sub }) => (
     <Card className="shadow-sm h-100">
         <CardBody>
-            <div style={{ fontSize: 12, opacity: 0.7 }}>{title}</div>
-            <div style={{ fontSize: 22, fontWeight: 700 }}>{value}</div>
-            {sub && <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>{sub}</div>}
+            <div className="kpi-title">{title}</div>
+            <div className="kpi-value">{value}</div>
+            {sub && <div className="kpi-sub">{sub}</div>}
         </CardBody>
     </Card>
 );
 
-const fmt = (n, digits = 1) => (Number.isFinite(Number(n)) ? Number(n).toFixed(digits) : '—');
+const fmt = (n, digits = 1) => {
+    if (n === null || n === undefined || n === '' || Number.isNaN(Number(n))) return '—';
+    return Number(n).toFixed(digits);
+};
 
 function buildDisplayName(c) {
     let name = c?.fullName ?? c?.name ?? null;
@@ -32,7 +36,7 @@ function buildDisplayName(c) {
 const MiniList = ({ title, items = [] }) => (
     <Card className="shadow-sm h-100">
         <CardBody>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>{title}</div>
+            <div className="section-title">{title}</div>
             <ListGroup flush>
                 {(!items || items.length === 0) && (
                     <ListGroupItem className="text-muted">—</ListGroupItem>
@@ -77,6 +81,23 @@ export default function CandidatesTab({
     const [candLoading, setCandLoading] = useState(false);
     const [candErr, setCandErr] = useState('');
 
+    // κρατάμε βαθμολογίες που έρχονται από το detail για να τις δείχνουμε στη λίστα
+    const [scoresById, setScoresById] = useState({});
+
+    // dropdown για "Score per: ..."
+    const [scoreView, setScoreView] = useState('step'); // 'step' | 'question' | 'skill'
+
+    const scoreItems = useMemo(() => {
+        if (!candData) return [];
+        if (scoreView === 'step') {
+            return (candData.stepScores ?? []).map((s) => ({ label: s.step, value: s.averageScore }));
+        }
+        if (scoreView === 'question') {
+            return (candData.questionScores ?? []).map((q) => ({ label: q.question, value: q.score }));
+        }
+        return (candData.skillScores ?? []).map((s) => ({ label: s.skill, value: s.avgScore ?? s.averageScore }));
+    }, [candData, scoreView]);
+
     // Candidates list
     useEffect(() => {
         if (!jobAdId) {
@@ -120,6 +141,7 @@ export default function CandidatesTab({
                         id: c.id ?? c.candidateId ?? c.candId,
                         fullName: buildDisplayName(c),
                         status: c.status ?? c.applicationStatus ?? null,
+                        score: c.overallScore ?? c.score ?? c.totalScore ?? c.avgScore, // αν υπάρχει από το API
                     }))
                     .filter((x) => x.id != null);
 
@@ -135,6 +157,42 @@ export default function CandidatesTab({
 
         return () => ac.abort();
     }, [apiBase, jobAdId, providedCandidates]);
+
+    // NEW: Prefetch overall scores for all candidates so εμφανίζονται από την αρχή
+    useEffect(() => {
+        if (!candidateList || candidateList.length === 0) return;
+
+        const missing = candidateList
+            .filter(c => !Number.isFinite(Number(c.score)) && !Number.isFinite(Number(scoresById[c.id])))
+            .map(c => c.id);
+
+        if (missing.length === 0) return;
+
+        let ignore = false;
+        (async () => {
+            const pairs = await Promise.all(
+                missing.map(async (id) => {
+                    try {
+                        const r = await fetch(`${apiBase}/statistics/candidate/${id}/stats`, {
+                            headers: { Accept: 'application/json' },
+                        });
+                        if (!r.ok) throw new Error('HTTP');
+                        const j = await r.json();
+                        const s = Number(j?.overallScore);
+                        return Number.isFinite(s) ? [id, s] : null;
+                    } catch {
+                        return null;
+                    }
+                })
+            );
+            if (ignore) return;
+            const map = {};
+            pairs.forEach(p => { if (p) map[p[0]] = p[1]; });
+            if (Object.keys(map).length) setScoresById(prev => ({ ...prev, ...map }));
+        })();
+
+        return () => { ignore = true; };
+    }, [apiBase, candidateList, scoresById]);
 
     // Per-candidate analytics
     useEffect(() => {
@@ -159,6 +217,9 @@ export default function CandidatesTab({
             )
             .then((json) => {
                 setCandData(json);
+                if (Number.isFinite(Number(json?.overallScore))) {
+                    setScoresById((m) => ({ ...m, [selectedCandId]: Number(json.overallScore) }));
+                }
                 setCandLoading(false);
             })
             .catch((e) => {
@@ -179,55 +240,54 @@ export default function CandidatesTab({
             {/* Αριστερά: μόνο λίστα υποψηφίων */}
             <Col lg="4">
                 <Card className="shadow-sm h-100">
-                    <CardBody style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
-                        <div style={{ fontWeight: 600, marginBottom: 4 }}>Candidates</div>
+                    <CardBody className="ct-card-body">
+                        <div className="fw-600 mb-1">Candidates</div>
 
-                        <div
-                            style={{
-                                maxHeight: 220,
-                                overflow: 'auto',
-                                border: '1px solid #e9ecef',
-                                borderRadius: 8,
-                                padding: 8,
-                            }}
-                        >
+                        <div className="cand-list">
                             {candListLoading && (
-                                <div className="d-flex align-items-center" style={{ gap: 8 }}>
+                                <div className="d-flex align-items-center gap-8">
                                     <Spinner size="sm" /> <span>Loading candidates…</span>
                                 </div>
                             )}
                             {!candListLoading && candListErr && (
-                                <div className="text-danger" style={{ fontSize: 12 }}>
+                                <div className="text-danger fs-12">
                                     {candListErr}
                                 </div>
                             )}
                             {!candListLoading && !candListErr && candidateList?.length === 0 && (
-                                <div className="text-muted" style={{ fontSize: 12 }}>
+                                <div className="text-muted fs-12">
                                     No candidates for this job ad.
                                 </div>
                             )}
                             {candidateList?.map((c) => {
                                 const active = c.id === selectedCandId;
+                                const scoreVal = Number.isFinite(Number(c.score))
+                                    ? Number(c.score)
+                                    : (Number.isFinite(Number(scoresById[c.id])) ? Number(scoresById[c.id]) : undefined);
+
                                 return (
                                     <Button
                                         key={c.id}
                                         onClick={() => setSelectedCandId(c.id)}
-                                        className={`w-100 text-start ${active ? 'btn-secondary' : 'btn-light'}`}
-                                        style={{ marginBottom: 6 }}
+                                        className={`w-100 text-start ${active ? 'btn-secondary' : 'btn-light'} mb-6`}
                                     >
                                         <div className="d-flex align-items-center justify-content-between">
                                             <span>{buildDisplayName(c)}</span>
-                                            {c.status && <span className="badge bg-light text-dark">{c.status}</span>}
+                                            <div className="d-flex align-items-center" style={{ gap: 6 }}>
+                                                <span className="badge bg-dark-subtle text-dark">{fmt(scoreVal, 1)}</span>
+                                                {c.status && <span className="badge bg-light text-dark">{c.status}</span>}
+                                            </div>
                                         </div>
                                     </Button>
                                 );
                             })}
+
                         </div>
                     </CardBody>
                 </Card>
             </Col>
 
-            {/* Δεξιά: Στατιστικά σε 2 στήλες. Κάθε κάρτα = 1 κελί (ίδιο πλάτος/ύψος ανά σειρά) */}
+            {/* Δεξιά: Στατιστικά */}
             <Col lg="8">
                 {!selectedCandId && (
                     <div className="text-muted">Select a candidate to see detailed analytics.</div>
@@ -236,7 +296,7 @@ export default function CandidatesTab({
                     <Card className="shadow-sm">
                         <CardBody>
                             {candLoading && (
-                                <div className="d-flex align-items-center" style={{ gap: 8 }}>
+                                <div className="d-flex align-items-center gap-8">
                                     <Spinner size="sm" /> <span>Loading candidate analytics…</span>
                                 </div>
                             )}
@@ -244,83 +304,46 @@ export default function CandidatesTab({
 
                             {candData && (
                                 <>
-                                    {/* Row 1 */}
+                                    {/* Row 1: Strengths & Weaknesses δίπλα-δίπλα */}
                                     <Row className="g-3">
-                                        <Col md="6">
-                                            <Kpi title="Overall Score" value={fmt(candData.overallScore, 1)} sub="/100" />
-                                        </Col>
                                         <Col md="6">
                                             <MiniList title="Strengths (Top 3 Skills)" items={candData.strengthProfile} />
                                         </Col>
-                                    </Row>
-
-                                    {/* Row 2 */}
-                                    <Row className="g-3 mt-1">
                                         <Col md="6">
                                             <MiniList title="Weaknesses (Bottom 3 Skills)" items={candData.weaknessProfile} />
                                         </Col>
-                                        <Col md="6">
-                                            <Card className="shadow-sm h-100">
-                                                <CardBody>
-                                                    <div style={{ fontWeight: 600, marginBottom: 8 }}>Score per Step</div>
-                                                    <ListGroup flush>
-                                                        {(!candData.stepScores || !candData.stepScores.length) && (
-                                                            <ListGroupItem className="text-muted">—</ListGroupItem>
-                                                        )}
-                                                        {candData.stepScores?.map((s) => (
-                                                            <ListGroupItem
-                                                                key={s.step}
-                                                                className="d-flex align-items-center justify-content-between"
-                                                            >
-                                                                <span>{s.step}</span>
-                                                                <strong>{fmt(s.averageScore, 1)}</strong>
-                                                            </ListGroupItem>
-                                                        ))}
-                                                    </ListGroup>
-                                                </CardBody>
-                                            </Card>
-                                        </Col>
                                     </Row>
 
-                                    {/* Row 3 */}
+                                    {/* Row 2: Ενιαίο dropdown "Score per:" */}
                                     <Row className="g-3 mt-1">
-                                        <Col md="6">
+                                        <Col md="12">
                                             <Card className="shadow-sm h-100">
                                                 <CardBody>
-                                                    <div style={{ fontWeight: 600, marginBottom: 8 }}>Score per Question</div>
-                                                    <ListGroup flush>
-                                                        {(!candData.questionScores || !candData.questionScores.length) && (
-                                                            <ListGroupItem className="text-muted">—</ListGroupItem>
-                                                        )}
-                                                        {candData.questionScores?.map((q) => (
-                                                            <ListGroupItem
-                                                                key={q.question}
-                                                                className="d-flex align-items-center justify-content-between"
-                                                            >
-                                                                <span>{q.question}</span>
-                                                                <strong>{fmt(q.score, 1)}</strong>
-                                                            </ListGroupItem>
-                                                        ))}
-                                                    </ListGroup>
-                                                </CardBody>
-                                            </Card>
-                                        </Col>
+                                                    <div className="d-flex align-items-center justify-content-between mb-2">
+                                                        <div className="section-title mb-0">Score per:</div>
+                                                        <select
+                                                            className="form-select form-select-sm"
+                                                            style={{ width: 180 }}
+                                                            value={scoreView}
+                                                            onChange={(e) => setScoreView(e.target.value)}
+                                                        >
+                                                            <option value="step">Step</option>
+                                                            <option value="question">Question</option>
+                                                            <option value="skill">Skill</option>
+                                                        </select>
+                                                    </div>
 
-                                        <Col md="6">
-                                            <Card className="shadow-sm h-100">
-                                                <CardBody>
-                                                    <div style={{ fontWeight: 600, marginBottom: 8 }}>Score per Skill</div>
                                                     <ListGroup flush>
-                                                        {(!candData.skillScores || !candData.skillScores.length) && (
+                                                        {scoreItems.length === 0 && (
                                                             <ListGroupItem className="text-muted">—</ListGroupItem>
                                                         )}
-                                                        {candData.skillScores?.map((s) => (
+                                                        {scoreItems.map((it) => (
                                                             <ListGroupItem
-                                                                key={s.skill}
+                                                                key={it.label}
                                                                 className="d-flex align-items-center justify-content-between"
                                                             >
-                                                                <span>{s.skill}</span>
-                                                                <strong>{fmt(s.avgScore ?? s.averageScore, 1)}</strong>
+                                                                <span>{it.label}</span>
+                                                                <strong>{fmt(it.value, 1)}</strong>
                                                             </ListGroupItem>
                                                         ))}
                                                     </ListGroup>

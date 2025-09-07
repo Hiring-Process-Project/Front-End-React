@@ -1,3 +1,5 @@
+import './Analytics.css';
+
 export default function DepartmentsSidebar({
     departments = [],
     selectedDepartmentId = null,
@@ -7,7 +9,7 @@ export default function DepartmentsSidebar({
     return (
         <div>
             <div className="d-flex justify-content-between align-items-center mb-2">
-                <div style={{ fontWeight: 600 }}>Departments</div>
+                <div className="sidebar-header-title">Departments</div>
                 <button
                     type="button"
                     className="btn btn-link p-0"
@@ -18,7 +20,7 @@ export default function DepartmentsSidebar({
                 </button>
             </div>
 
-            <div className="d-flex flex-column" style={{ gap: 12 }}>
+            <div className="sidebar-stack">
                 {departments.map((d) => {
                     const active = selectedDepartmentId === d.id;
                     return (
@@ -26,15 +28,14 @@ export default function DepartmentsSidebar({
                             key={d.id}
                             type="button"
                             onClick={() => onSelectDepartment({ id: d.id, name: d.name })}
-                            className={`btn ${active ? 'btn-outline-secondary' : 'btn-light'} text-start`}
-                            style={{ borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,.08)' }}
+                            className={`btn ${active ? 'btn-outline-secondary' : 'btn-light'} text-start sidebar-btn`}
                         >
                             {d.name}
                         </button>
                     );
                 })}
                 {!departments.length && (
-                    <div className="text-muted" style={{ fontSize: 12 }}>
+                    <div className="text-muted fs-12">
                         No departments to show.
                     </div>
                 )}
