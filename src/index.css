@@ -67,10 +67,10 @@ code {
 }
 
 .description-labels {
-  font-size: 14px;
-  white-space: nowrap;
+  font-size: 14px !important;
+  white-space: nowrap !important;
   margin-bottom: 5px;
-  color: black;
+  color: black !important;
 }
 
 .active-label {

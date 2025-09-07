@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import {
     Modal, ModalHeader, ModalBody, ModalFooter,
     Button, Form, FormGroup, Label, Input, Spinner
@@ -10,16 +10,25 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
     const [occId, setOccId] = useState("");
 
     const [departments, setDepartments] = useState([]); // [{id,name,occupations:[{id,name}]}]
-    const [occupations, setOccupations] = useState([]); // all occupations
+    const [occupations, setOccupations] = useState([]); // [{id,name}]
 
     const [loadingDeps, setLoadingDeps] = useState(false);
     const [loadingOccs, setLoadingOccs] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
 
-    // NEW: search filters
+    // search filters + focus state
     const [deptQuery, setDeptQuery] = useState("");
     const [occQuery, setOccQuery] = useState("");
+    const [deptOpen, setDeptOpen] = useState(false);
+    const [occOpen, setOccOpen] = useState(false);
+
+    // keyboard nav indices
+    const [deptHi, setDeptHi] = useState(-1);
+    const [occHi, setOccHi] = useState(-1);
+
+    const deptWrapRef = useRef(null);
+    const occWrapRef = useRef(null);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -66,6 +75,10 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
             setOccId("");
             setDeptQuery("");
             setOccQuery("");
+            setDeptOpen(false);
+            setOccOpen(false);
+            setDeptHi(-1);
+            setOccHi(-1);
             setError("");
             setSaving(false);
         }
@@ -146,18 +159,94 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
         }
     };
 
-    // Filtered options (αναζήτηση)
+    // Filtered options (αναζήτηση) – limit για να μη γίνονται τεράστιες λίστες
     const filteredDepartments = useMemo(() => {
         const q = deptQuery.trim().toLowerCase();
-        if (!q) return departments;
-        return departments.filter(d => d.name.toLowerCase().includes(q));
+        const arr = !q ? departments : departments.filter(d => d.name.toLowerCase().includes(q));
+        return arr.slice(0, 12);
     }, [deptQuery, departments]);
 
     const filteredOccupations = useMemo(() => {
         const q = occQuery.trim().toLowerCase();
-        if (!q) return occupations;
-        return occupations.filter(o => o.name.toLowerCase().includes(q));
+        const arr = !q ? occupations : occupations.filter(o => o.name.toLowerCase().includes(q));
+        return arr.slice(0, 12);
     }, [occQuery, occupations]);
+
+    // Επιλογές με click
+    const pickDepartment = (d) => {
+        setDeptId(String(d.id));
+        setDeptQuery(d.name);
+        setDeptOpen(false);
+        // reset occupation όταν αλλάζει department
+        setOccId("");
+        setOccQuery("");
+        setOccOpen(false);
+        setDeptHi(-1);
+    };
+
+    const pickOccupation = (o) => {
+        setOccId(String(o.id));
+        setOccQuery(o.name);
+        setOccOpen(false);
+        setOccHi(-1);
+    };
+
+    // Keyboard handlers (↑ / ↓ / Enter / Esc)
+    const onDeptKeyDown = (e) => {
+        if (!deptOpen && (e.key === "ArrowDown" || e.key === "ArrowUp")) setDeptOpen(true);
+        if (!deptOpen) return;
+
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setDeptHi((i) => Math.min(i + 1, filteredDepartments.length - 1));
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setDeptHi((i) => Math.max(i - 1, 0));
+        } else if (e.key === "Enter") {
+            e.preventDefault();
+            const item = filteredDepartments[Math.max(0, deptHi)];
+            if (item) pickDepartment(item);
+        } else if (e.key === "Escape") {
+            setDeptOpen(false);
+            setDeptHi(-1);
+        }
+    };
+
+    const onOccKeyDown = (e) => {
+        if (!occOpen && (e.key === "ArrowDown" || e.key === "ArrowUp")) setOccOpen(true);
+        if (!occOpen) return;
+
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setOccHi((i) => Math.min(i + 1, filteredOccupations.length - 1));
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setOccHi((i) => Math.max(i - 1, 0));
+        } else if (e.key === "Enter") {
+            e.preventDefault();
+            const item = filteredOccupations[Math.max(0, occHi)];
+            if (item) pickOccupation(item);
+        } else if (e.key === "Escape") {
+            setOccOpen(false);
+            setOccHi(-1);
+        }
+    };
+
+    // click έξω κλείνει τις λίστες
+    useEffect(() => {
+        const onDocClick = (e) => {
+            if (deptWrapRef.current && !deptWrapRef.current.contains(e.target)) {
+                setDeptOpen(false);
+                setDeptHi(-1);
+            }
+            if (occWrapRef.current && !occWrapRef.current.contains(e.target)) {
+                setOccOpen(false);
+                setOccHi(-1);
+            }
+        };
+        document.addEventListener("mousedown", onDocClick);
+        return () => document.removeEventListener("mousedown", onDocClick);
+    }, []);
 
     return (
         <Modal isOpen={isOpen} toggle={toggle} centered backdrop="static" keyboard>
@@ -177,63 +266,130 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
                         />
                     </FormGroup>
 
-                    {/* Department + Search */}
+                    {/* Department: input με προτάσεις από κάτω */}
                     <FormGroup>
                         <Label>Department</Label>
-                        <div className="d-flex gap-2 flex-column flex-md-row">
+                        <div ref={deptWrapRef} style={{ position: "relative" }}>
                             <Input
-                                placeholder="Αναζήτηση department…"
+                                placeholder={loadingDeps ? "Φόρτωση..." : "Αναζήτηση department…"}
                                 value={deptQuery}
-                                onChange={(e) => setDeptQuery(e.target.value)}
-                                disabled={loadingDeps || saving}
-                            />
-                            <Input
-                                type="select"
-                                value={deptId}
-                                onChange={e => {
-                                    setDeptId(e.target.value);
-                                    // reset occupation if dept changes
-                                    setOccId("");
+                                onChange={(e) => {
+                                    setDeptQuery(e.target.value);
+                                    setDeptOpen(true);
+                                    setDeptHi(-1);
                                 }}
-                                disabled={saving || loadingDeps}
-                            >
-                                <option value="">
-                                    {loadingDeps ? "Φόρτωση..." : "— επίλεξε department —"}
-                                </option>
-                                {filteredDepartments.map(d => (
-                                    <option key={d.id} value={d.id}>{d.name}</option>
-                                ))}
-                            </Input>
+                                onFocus={() => setDeptOpen(true)}
+                                onKeyDown={onDeptKeyDown}
+                                disabled={loadingDeps || saving}
+                                autoComplete="off"
+                            />
+                            {deptOpen && (
+                                <div
+                                    className="typeahead-list"
+                                    style={{
+                                        position: "absolute",
+                                        top: "100%",
+                                        left: 0,
+                                        right: 0,
+                                        zIndex: 1050,
+                                        background: "#fff",
+                                        border: "1px solid #dcdcdc",
+                                        borderRadius: 8,
+                                        marginTop: 4,
+                                        maxHeight: 240,
+                                        overflowY: "auto",
+                                        boxShadow: "0 6px 18px rgba(0,0,0,.08)"
+                                    }}
+                                >
+                                    {filteredDepartments.length === 0 && (
+                                        <div style={{ padding: "8px 10px", color: "#777" }}>
+                                            {deptQuery.trim() ? "Καμία αντιστοίχιση." : "— πληκτρολόγησε για αναζήτηση —"}
+                                        </div>
+                                    )}
+                                    {filteredDepartments.map((d, i) => (
+                                        <div
+                                            key={d.id}
+                                            onMouseDown={(e) => e.preventDefault()}
+                                            onClick={() => pickDepartment(d)}
+                                            className="typeahead-item"
+                                            style={{
+                                                padding: "8px 10px",
+                                                cursor: "pointer",
+                                                background: i === deptHi ? "#f3f6ff" : "transparent"
+                                            }}
+                                            onMouseEnter={() => setDeptHi(i)}
+                                        >
+                                            {d.name}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </FormGroup>
 
-                    {/* Occupation + Search */}
+                    {/* Occupation: input με προτάσεις από κάτω */}
                     <FormGroup>
                         <Label>Occupation</Label>
-                        <div className="d-flex gap-2 flex-column flex-md-row">
+                        <div ref={occWrapRef} style={{ position: "relative" }}>
                             <Input
-                                placeholder="Αναζήτηση occupation…"
+                                placeholder={!deptId ? "Επέλεξε πρώτα department" : (loadingOccs ? "Φόρτωση..." : "Αναζήτηση occupation…")}
                                 value={occQuery}
-                                onChange={(e) => setOccQuery(e.target.value)}
+                                onChange={(e) => {
+                                    setOccQuery(e.target.value);
+                                    setOccOpen(true);
+                                    setOccHi(-1);
+                                }}
+                                onFocus={() => deptId && setOccOpen(true)}
+                                onKeyDown={onOccKeyDown}
                                 disabled={!deptId || loadingOccs || saving}
+                                autoComplete="off"
                             />
-                            <Input
-                                type="select"
-                                value={occId}
-                                onChange={e => setOccId(e.target.value)}
-                                disabled={!deptId || saving || loadingOccs}
-                            >
-                                <option value="">
-                                    {!deptId ? "επέλεξε πρώτα department" : (loadingOccs ? "Φόρτωση..." : "— επίλεξε occupation —")}
-                                </option>
-                                {filteredOccupations.map(o => (
-                                    <option key={o.id} value={o.id}>{o.name}</option>
-                                ))}
-                            </Input>
+                            {occOpen && (
+                                <div
+                                    className="typeahead-list"
+                                    style={{
+                                        position: "absolute",
+                                        top: "100%",
+                                        left: 0,
+                                        right: 0,
+                                        zIndex: 1050,
+                                        background: "#fff",
+                                        border: "1px solid #dcdcdc",
+                                        borderRadius: 8,
+                                        marginTop: 4,
+                                        maxHeight: 240,
+                                        overflowY: "auto",
+                                        boxShadow: "0 6px 18px rgba(0,0,0,.08)"
+                                    }}
+                                >
+                                    {filteredOccupations.length === 0 && (
+                                        <div style={{ padding: "8px 10px", color: "#777" }}>
+                                            {occQuery.trim() ? "Καμία αντιστοίχιση." : "— πληκτρολόγησε για αναζήτηση —"}
+                                        </div>
+                                    )}
+                                    {filteredOccupations.map((o, i) => (
+                                        <div
+                                            key={o.id}
+                                            onMouseDown={(e) => e.preventDefault()}
+                                            onClick={() => pickOccupation(o)}
+                                            className="typeahead-item"
+                                            style={{
+                                                padding: "8px 10px",
+                                                cursor: "pointer",
+                                                background: i === occHi ? "#f3f6ff" : "transparent"
+                                            }}
+                                            onMouseEnter={() => setOccHi(i)}
+                                        >
+                                            {o.name}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </FormGroup>
                 </Form>
             </ModalBody>
+
             <ModalFooter>
                 <Button color="secondary" onClick={toggle} disabled={saving}>Άκυρο</Button>
                 <Button color="primary" onClick={handleCreate} disabled={!canCreate || saving}>

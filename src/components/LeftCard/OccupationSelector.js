@@ -31,13 +31,14 @@ function OccupationSelector({
     return (
         <Col className="d-flex flex-column occ-col" style={{ minHeight: 0 }}>
             <Row style={{ borderBottom: '1px solid #B7BABC' }} className="pb-2">
-                <Col xs="12" md="4" className="mb-2 mb-md-0">
+                <Col xs="12" md="6" className="mb-2 mb-md-0">
                     <label className="search-label">{Name}</label>
                 </Col>
-                <Col xs="12" md="8">
+                <Col xs="12" md="6">
                     <input
                         type="text"
                         className="form-control"
+                        style={{ borderRadius: '5rem' }}
                         placeholder="Search..."
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
