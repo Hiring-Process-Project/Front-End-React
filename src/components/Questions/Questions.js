@@ -94,7 +94,7 @@ export default function Questions({ selectedJobAdId }) {
             });
             if (!resp.ok) throw new Error();
         } catch {
-            alert('Αποτυχία ενημέρωσης.');
+            alert('Update failed.');
         }
     };
 
@@ -127,7 +127,7 @@ export default function Questions({ selectedJobAdId }) {
 
             setConfirmOpen(false);
         } catch (e) {
-            alert('Αποτυχία διαγραφής.');
+            alert('Delete failed.');
             setConfirmOpen(false);
         } finally {
             setDeleting(false);
@@ -213,7 +213,7 @@ export default function Questions({ selectedJobAdId }) {
     }, [kickRecalc, requiredSkills.length]);
 
     if (!selectedJobAdId) {
-        return <p style={{ padding: '1rem' }}>Επέλεξε ένα Job Ad για να δεις τα Questions.</p>;
+        return <p style={{ padding: '1rem' }}>Select a Job Ad to view Questions.</p>;
     }
 
     const handleCreated = ({ stepId, question }) => {
@@ -319,16 +319,16 @@ export default function Questions({ selectedJobAdId }) {
             {/* Modal επιβεβαίωσης διαγραφής */}
             <ConfirmModal
                 isOpen={confirmOpen}
-                title="Διαγραφή Ερώτησης"
+                title="Delete Question"
                 message={
                     <div>
-                        Είσαι σίγουρος/η ότι θέλεις να διαγράψεις αυτή την ερώτηση;
+                        Are you sure you want to delete this question?
                         <br />
-                        Η ενέργεια δεν είναι αναστρέψιμη.
+                        This action cannot be undone.
                     </div>
                 }
-                confirmText="Διαγραφή"
-                cancelText="Άκυρο"
+                confirmText="Delete"
+                cancelText="Cancel"
                 confirmColor="danger"
                 loading={deleting}
                 onConfirm={handleDeleteConfirmed}

@@ -177,7 +177,7 @@ const SidebarCard = ({
                     <Row className="sidebar-scroll" ref={scrollRef}>
                         {error ? (
                             <div className="text-center" style={{ width: "100%" }}>
-                                <p>Σφάλμα φόρτωσης.</p>
+                                <p>Failed to load.</p>
                                 <Button size="sm" color="secondary" onClick={loadDepartments}>
                                     Retry
                                 </Button>

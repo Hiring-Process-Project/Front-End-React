@@ -47,7 +47,7 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
                 }));
                 setDepartments(mapped);
             })
-            .catch(() => setError("Αποτυχία φόρτωσης departments."))
+            .catch(() => setError("Failed to load departments."))
             .finally(() => setLoadingDeps(false));
     }, [isOpen, baseUrl]);
 
@@ -63,7 +63,7 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
                 mapped.sort((a, b) => a.name.localeCompare(b.name));
                 setOccupations(mapped);
             })
-            .catch(() => setError("Αποτυχία φόρτωσης occupations."))
+            .catch(() => setError("Failed to load occupations."))
             .finally(() => setLoadingOccs(false));
     }, [isOpen, baseUrl]);
 
@@ -153,7 +153,7 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
             onCreated?.(created);
             setTimeout(() => toggle?.(), 0);
         } catch {
-            setError("Αποτυχία δημιουργίας Job Ad.");
+            setError("Job Ad creation failed.");
         } finally {
             setSaving(false);
         }
@@ -250,17 +250,17 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
 
     return (
         <Modal isOpen={isOpen} toggle={toggle} centered backdrop="static" keyboard>
-            <ModalHeader toggle={toggle}>Δημιουργία Job Ad</ModalHeader>
+            <ModalHeader toggle={toggle}>Create Job Ad</ModalHeader>
             <ModalBody>
                 {error && <div className="mb-3 alert alert-danger">{error}</div>}
 
                 <Form onSubmit={handleCreate}>
                     <FormGroup>
-                        <Label>Όνομα (Title)</Label>
+                        <Label>Name (Title)</Label>
                         <Input
                             value={name}
                             onChange={e => setName(e.target.value)}
-                            placeholder="π.χ. Junior Mechanical Engineer"
+                            placeholder="e.g., Junior Mechanical Engineer"
                             required
                             disabled={saving}
                         />
@@ -271,7 +271,7 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
                         <Label>Department</Label>
                         <div ref={deptWrapRef} style={{ position: "relative" }}>
                             <Input
-                                placeholder={loadingDeps ? "Φόρτωση..." : "Αναζήτηση department…"}
+                                placeholder={loadingDeps ? "Loading..." : "Search department…"}
                                 value={deptQuery}
                                 onChange={(e) => {
                                     setDeptQuery(e.target.value);
@@ -303,7 +303,7 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
                                 >
                                     {filteredDepartments.length === 0 && (
                                         <div style={{ padding: "8px 10px", color: "#777" }}>
-                                            {deptQuery.trim() ? "Καμία αντιστοίχιση." : "— πληκτρολόγησε για αναζήτηση —"}
+                                            {deptQuery.trim() ? "No matches." : "— type to search —"}
                                         </div>
                                     )}
                                     {filteredDepartments.map((d, i) => (
@@ -332,7 +332,7 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
                         <Label>Occupation</Label>
                         <div ref={occWrapRef} style={{ position: "relative" }}>
                             <Input
-                                placeholder={!deptId ? "Επέλεξε πρώτα department" : (loadingOccs ? "Φόρτωση..." : "Αναζήτηση occupation…")}
+                                placeholder={!deptId ? "Choose a department first" : (loadingOccs ? "Loading..." : "Search occupation…")}
                                 value={occQuery}
                                 onChange={(e) => {
                                     setOccQuery(e.target.value);
@@ -364,7 +364,7 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
                                 >
                                     {filteredOccupations.length === 0 && (
                                         <div style={{ padding: "8px 10px", color: "#777" }}>
-                                            {occQuery.trim() ? "Καμία αντιστοίχιση." : "— πληκτρολόγησε για αναζήτηση —"}
+                                            {occQuery.trim() ? "No matches." : "— type to search —"}
                                         </div>
                                     )}
                                     {filteredOccupations.map((o, i) => (
@@ -391,9 +391,9 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
             </ModalBody>
 
             <ModalFooter>
-                <Button color="secondary" onClick={toggle} disabled={saving}>Άκυρο</Button>
+                <Button color="secondary" onClick={toggle} disabled={saving}>Cancel</Button>
                 <Button color="primary" onClick={handleCreate} disabled={!canCreate || saving}>
-                    {saving ? <Spinner size="sm" /> : "Δημιουργία"}
+                    {saving ? <Spinner size="sm" /> : "Create"}
                 </Button>
             </ModalFooter>
         </Modal>

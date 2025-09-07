@@ -122,7 +122,7 @@ export default function Interview({ selectedJobAdId }) {
                 setInterviewId(d?.id ?? null);
                 setDescription(d?.description ?? "");
             })
-            .catch(() => setError("Δεν ήταν δυνατή η φόρτωση των στοιχείων interview."));
+            .catch(() => setError("Failed to load interview details."));
 
         fetch(`${API}/jobAds/details?jobAdId=${selectedJobAdId}`)
             .then((r) => (r.ok ? r.json() : Promise.reject()))
@@ -251,7 +251,7 @@ export default function Interview({ selectedJobAdId }) {
         }
     };
 
-    if (!selectedJobAdId) return <p style={{ padding: "1rem" }}>Επέλεξε ένα Job Ad για να δεις το Interview.</p>;
+    if (!selectedJobAdId) return <p style={{ padding: "1rem" }}>Select a Job Ad to view the Interview.</p>;
     if (error) return <p style={{ padding: "1rem", color: "red" }}>{error}</p>;
 
     const actionBtnStyle = { minWidth: 104, height: 34, padding: "4px 10px", fontSize: 13.5 };
@@ -338,16 +338,16 @@ export default function Interview({ selectedJobAdId }) {
 
             <ConfirmModal
                 isOpen={confirmOpen}
-                title="Διαγραφή Step"
+                title="Delete Step"
                 message={
                     <div>
-                        Είσαι σίγουρος/η ότι θέλεις να διαγράψεις το step
-                        {getCurrentStepTitle() ? <> <b> “{getCurrentStepTitle()}”</b>;</> : <> αυτό;</>}
-                        <br />Η ενέργεια δεν είναι αναστρέψιμη.
+                        Are you sure you want to delete this step?
+                        {getCurrentStepTitle() ? <> <b> “{getCurrentStepTitle()}”</b>;</> : <> this?</>}
+                        <br />This action cannot be undone.
                     </div>
                 }
-                confirmText="Διαγραφή"
-                cancelText="Άκυρο"
+                confirmText="Delete"
+                cancelText="Cancel"
                 confirmColor="danger"
                 loading={deleting}
                 onConfirm={handleDeleteCurrentStepConfirmed}

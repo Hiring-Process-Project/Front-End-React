@@ -94,7 +94,7 @@ export default function DescriptionCard({
             }
             if (!found) setRequiredSkills([]);
         } catch {
-            setError("Δεν ήταν δυνατή η φόρτωση των δεδομένων.");
+            setError("Failed to load data.");
         } finally {
             setLoading(false);
         }
@@ -115,7 +115,7 @@ export default function DescriptionCard({
             if (!r.ok) throw new Error();
             await reloadSidebar?.();
         } catch {
-            setError("Αποτυχία ενημέρωσης.");
+            setError("Update failed.");
         } finally {
             setSaving(false);
         }
@@ -144,7 +144,7 @@ export default function DescriptionCard({
             );
             setConfirmPublishOpen(false);
         } catch {
-            setError("Αποτυχία δημοσίευσης.");
+            setError("Publish failed.");
         } finally {
             setPublishing(false);
         }
@@ -168,7 +168,7 @@ export default function DescriptionCard({
             onDeleted?.();
             setConfirmDeleteOpen(false);
         } catch {
-            setError("Αποτυχία διαγραφής.");
+            setError("Delete failed.");
         } finally {
             setDeleting(false);
         }
@@ -247,8 +247,8 @@ export default function DescriptionCard({
     }, [kickRecalc, requiredSkills.length]);
 
     if (!selectedJobAdId)
-        return <p style={{ padding: "1rem" }}>Επέλεξε ένα Job Ad για να δεις το Description.</p>;
-    if (loading) return <p style={{ padding: "1rem" }}>Φόρτωση…</p>;
+        return <p style={{ padding: "1rem" }}>Select a Job Ad to view the Description.</p>;
+    if (loading) return <p style={{ padding: "1rem" }}>Loading…</p>;
 
     return (
         <>
@@ -321,11 +321,11 @@ export default function DescriptionCard({
                                             fontWeight: 500,
                                         }}
                                     >
-                                        <div>🔒 Το συγκεκριμένο Job Ad είναι σε κατάσταση</div>
+                                        <div>🔒 This Job Ad is currently in</div>
                                         <div style={{ fontSize: 12, fontWeight: "bold", color: "#111827" }}>
                                             {statusLabel}
                                         </div>
-                                        <div>και δεν μπορεί να επεξεργαστεί.</div>
+                                        <div>and cannot be edited.</div>
                                     </div>
                                 </Col>
                             </Row>
@@ -343,12 +343,12 @@ export default function DescriptionCard({
             {/* Publish confirm */}
             <ConfirmModal
                 isOpen={confirmPublishOpen}
-                title="Δημοσίευση Job Ad"
+                title="Publish Job Ad"
                 message={
-                    <div>Θέλεις να δημοσιεύσεις αυτό το Job Ad; Θα αποθηκευτούν πρώτα οι αλλαγές σου.</div>
+                    <div>Do you want to publish this Job Ad? Your changes will be saved first.</div>
                 }
                 confirmText="Publish"
-                cancelText="Άκυρο"
+                cancelText="Cancel"
                 confirmColor="primary"
                 loading={publishing}
                 onConfirm={handlePublishConfirmed}
@@ -358,16 +358,16 @@ export default function DescriptionCard({
             {/* Delete confirm */}
             <ConfirmModal
                 isOpen={confirmDeleteOpen}
-                title="Διαγραφή Job Ad"
+                title="Delete Job Ad"
                 message={
                     <div>
-                        Είσαι σίγουρος/η ότι θέλεις να διαγράψεις αυτό το Job Ad;
+                        Are you sure you want to delete this Job Ad?
                         <br />
-                        Η ενέργεια δεν είναι αναστρέψιμη.
+                        This action cannot be undone.
                     </div>
                 }
-                confirmText="Διαγραφή"
-                cancelText="Άκυρο"
+                confirmText="Delete"
+                cancelText="Cancel"
                 confirmColor="danger"
                 loading={deleting}
                 onConfirm={handleDeleteConfirmed}

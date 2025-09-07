@@ -40,7 +40,7 @@ function Description({ name, description, onDescriptionChange, readOnly, disable
                                 <textarea
                                     className="desc-label"
                                     value={description}
-                                    placeholder="Προσθέστε περιγραφή..."
+                                    placeholder="Add a description..."
                                     onChange={(e) => onDescriptionChange?.(e.target.value)}
                                     readOnly={!!readOnly}
                                     disabled={!!disabled}

@@ -35,11 +35,11 @@ export default function AddQuestionModal({
     const handleSave = async (e) => {
         e.preventDefault();
         if (!stepId) {
-            setError("Διάλεξε ένα step.");
+            setError("Select a step.");
             return;
         }
         if (!name.trim()) {
-            setError("Γράψε την ερώτηση.");
+            setError("Type the question.");
             return;
         }
 
@@ -59,7 +59,7 @@ export default function AddQuestionModal({
             toggle?.();
         } catch (err) {
             console.error(err);
-            setError("Αποτυχία δημιουργίας question.");
+            setError("Failed to create question.");
         } finally {
             setSaving(false);
         }
@@ -67,7 +67,7 @@ export default function AddQuestionModal({
 
     return (
         <Modal isOpen={isOpen} toggle={handleClose} centered>
-            <ModalHeader toggle={handleClose}>Προσθήκη Question</ModalHeader>
+            <ModalHeader toggle={handleClose}>Add Question</ModalHeader>
             <Form onSubmit={handleSave}>
                 <ModalBody>
                     {error && <Alert color="danger" className="mb-3">{error}</Alert>}
@@ -80,7 +80,7 @@ export default function AddQuestionModal({
                             onChange={(e) => setStepId(Number(e.target.value) || null)}
                             disabled={saving || options.length === 0}
                         >
-                            {options.length === 0 && <option value="">— κανένα step —</option>}
+                            {options.length === 0 && <option value="">— no step —</option>}
                             {options.map((s) => (
                                 <option key={s.id} value={s.id}>
                                     {s.title || "(Untitled step)"}
@@ -92,7 +92,7 @@ export default function AddQuestionModal({
                     <FormGroup>
                         <Label>Question</Label>
                         <Input
-                            placeholder="Γράψε την ερώτηση…"
+                            placeholder="Type the question…"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             disabled={saving}
@@ -102,10 +102,10 @@ export default function AddQuestionModal({
 
                 <ModalFooter>
                     <Button type="button" color="secondary" onClick={handleClose} disabled={saving}>
-                        Άκυρο
+                        Cancel
                     </Button>
                     <Button type="submit" color="primary" disabled={saving || options.length === 0 || !name.trim()}>
-                        {saving ? <Spinner size="sm" /> : "Δημιουργία"}
+                        {saving ? <Spinner size="sm" /> : "Create"}
                     </Button>
                 </ModalFooter>
             </Form>

@@ -44,11 +44,11 @@ export default function AddStepModal({ isOpen, toggle, interviewId, onCreated })
   const handleSave = async (e) => {
     e.preventDefault();
     if (!title.trim()) {
-      setError("Γράψε ένα category για το step.");
+      setError("Type a category for the step.");
       return;
     }
     if (!interviewId) {
-      setError("Λείπει το interviewId.");
+      setError("Missing interviewId.");
       return;
     }
 
@@ -71,7 +71,7 @@ export default function AddStepModal({ isOpen, toggle, interviewId, onCreated })
       toggle && toggle();
     } catch (err) {
       console.error(err);
-      setError("Αποτυχία δημιουργίας step. Έλεγξε τα endpoints.");
+      setError("Failed to create step. Check the endpoints.");
     } finally {
       setSaving(false);
     }
@@ -79,30 +79,30 @@ export default function AddStepModal({ isOpen, toggle, interviewId, onCreated })
 
   return (
     <Modal isOpen={isOpen} toggle={handleClose} centered>
-      <ModalHeader toggle={handleClose}>Δημιουργία Step</ModalHeader>
+      <ModalHeader toggle={handleClose}>Create Step</ModalHeader>
       <Form onSubmit={handleSave}>
         <ModalBody>
           {error && <Alert color="danger" className="mb-3">{error}</Alert>}
           <FormGroup>
             <Label>Category</Label>
             <Input
-              placeholder="π.χ. Technical, HR Round…"
+              placeholder="e.g., Technical, HR Round…"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               disabled={saving}
               style={{ boxSizing: 'border-box' }}
             />
             <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
-              Το «Step 1/2/3…» θα προκύψει αυτόματα από τη σειρά.
+              “Step 1/2/3…” will be set automatically based on order.
             </div>
           </FormGroup>
         </ModalBody>
         <ModalFooter style={{ gap: 8 }}>
           <Button type="button" color="secondary" onClick={handleClose} disabled={saving}>
-            Άκυρο
+            Cancel
           </Button>
           <Button type="submit" color="primary" disabled={saving}>
-            {saving ? <Spinner size="sm" /> : "Δημιουργία"}
+            {saving ? <Spinner size="sm" /> : "Create"}
           </Button>
         </ModalFooter>
       </Form>
