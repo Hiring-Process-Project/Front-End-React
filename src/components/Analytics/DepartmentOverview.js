@@ -12,9 +12,7 @@ const Kpi = ({ title, value, sub }) => (
     </Card>
 );
 
-
 const fmt1 = (n) => (Number.isFinite(+n) ? (+n).toFixed(1) : '—');
-
 const SEG_COLORS = { ap: '#3b82f6', rj: '#ef4444', hr: '#16a34a', pd: '#6b7280' };
 
 function SegmentedBar({ approved = 0, rejected = 0, hired = 0, showHired = true }) {
@@ -119,55 +117,65 @@ export default function DepartmentOverview({ deptId, base = 'http://localhost:80
         return () => { ignore = true; };
     }, [deptId, base]);
 
-    if (loading) return <div className="d-flex align-items-center" style={{ gap: 8 }}><Spinner size="sm" /> Loading…</div>;
-    if (err) return <div className="text-danger">Error: {err}</div>;
-    if (!stats) return null;
-
-    const approvalRate = stats.approvalRate ?? stats.approval_rate;
-    const rejectionRate = stats.rejectionRate ?? stats.rejection_rate;
-    const hireRate = stats.hireRate ?? stats.hire_rate;
-    const hireCount = stats.hireCount ?? stats.hires;
-    const totalCandidates = stats.totalCandidates ?? stats.total;
-    const avgCandPerJobAd = stats.avgCandidatesPerJobAd ?? stats.candidatesPerJobAd ?? stats.avg_cand_per_job;
-    const distribution = stats.scoreDistribution ?? stats.distribution ?? [];
-    const occupationDifficulty = (stats.occupationDifficulty ?? stats.occDifficulty ?? []).map((o) => ({
+    const approvalRate = stats?.approvalRate ?? stats?.approval_rate;
+    const rejectionRate = stats?.rejectionRate ?? stats?.rejection_rate;
+    const hireRate = stats?.hireRate ?? stats?.hire_rate;
+    const hireCount = stats?.hireCount ?? stats?.hires;
+    const totalCandidates = stats?.totalCandidates ?? stats?.total;
+    const avgCandPerJobAd = stats?.avgCandidatesPerJobAd ?? stats?.candidatesPerJobAd ?? stats?.avg_cand_per_job;
+    const distribution = stats?.scoreDistribution ?? stats?.distribution ?? [];
+    const occupationDifficulty = (stats?.occupationDifficulty ?? stats?.occDifficulty ?? []).map((o) => ({
         label: o.occupation ?? o.title ?? o.name ?? '—',
         value: o.avgScore ?? o.averageScore ?? o.avg_score,
     }));
 
     return (
-        <div>
-            <Row className="g-3">
-                <Col md="6">
-                    <Card className="shadow-sm h-100"><CardBody>
-                        <SegmentedBar approved={approvalRate} rejected={rejectionRate} hired={hireRate} />
-                    </CardBody></Card>
-                </Col>
-                <Col md="2"><Kpi title="Hires" value={hireCount ?? '—'} /></Col>
-                <Col md="2"><Kpi title="Candidates" value={totalCandidates ?? '—'} /></Col>
-                <Col md="2"><Kpi title="Avg Candidates / Job Ad" value={fmt1(avgCandPerJobAd)} /></Col>
-            </Row>
+        <div className="overview-tab-wrap q-col-flex q-no-x">
+            <Card className="shadow-sm q-card-fill">
+                <CardBody className="q-card-body-scroll">
+                    {loading && <div className="d-flex align-items-center" style={{ gap: 8 }}><Spinner size="sm" /> Loading…</div>}
+                    {err && !loading && <div className="text-danger">Error: {err}</div>}
+                    {!loading && !err && !stats && <div className="text-muted">No data.</div>}
 
-            <Row className="g-3 mt-1">
-                <Col md="6">
-                    <Card className="shadow-sm h-100"><CardBody>
-                        <Histogram buckets={distribution} />
-                    </CardBody></Card>
-                </Col>
-                <Col md="6">
-                    <Card className="shadow-sm h-100"><CardBody>
-                        <div style={{ fontWeight: 600, marginBottom: 6 }}>Occupation Difficulty <span style={{ fontSize: 12, opacity: .6 }}>(lower = harder)</span></div>
-                        <ListGroup flush>
-                            {occupationDifficulty.length === 0 && <ListGroupItem className="text-muted">—</ListGroupItem>}
-                            {occupationDifficulty.map((o, i) => (
-                                <ListGroupItem key={`occ-${i}`} className="d-flex align-items-center justify-content-between">
-                                    <span>{o.label}</span><strong>{fmt1(o.value)}</strong>
-                                </ListGroupItem>
-                            ))}
-                        </ListGroup>
-                    </CardBody></Card>
-                </Col>
-            </Row>
+                    {!loading && !err && stats && (
+                        <>
+                            <Row className="g-3">
+                                <Col md="6">
+                                    <Card className="shadow-sm h-100"><CardBody>
+                                        <SegmentedBar approved={approvalRate} rejected={rejectionRate} hired={hireRate} />
+                                    </CardBody></Card>
+                                </Col>
+                                <Col md="2"><Kpi title="Hires" value={hireCount ?? '—'} /></Col>
+                                <Col md="2"><Kpi title="Candidates" value={totalCandidates ?? '—'} /></Col>
+                                <Col md="2"><Kpi title="Avg Candidates / Job Ad" value={fmt1(avgCandPerJobAd)} /></Col>
+                            </Row>
+
+                            <Row className="g-3 mt-1">
+                                <Col md="6">
+                                    <Card className="shadow-sm h-100"><CardBody>
+                                        <Histogram buckets={distribution} />
+                                    </CardBody></Card>
+                                </Col>
+                                <Col md="6">
+                                    <Card className="shadow-sm h-100"><CardBody>
+                                        <div style={{ fontWeight: 600, marginBottom: 6 }}>
+                                            Occupation Difficulty <span style={{ fontSize: 12, opacity: .6 }}>(lower = harder)</span>
+                                        </div>
+                                        <ListGroup flush>
+                                            {occupationDifficulty.length === 0 && <ListGroupItem className="text-muted">—</ListGroupItem>}
+                                            {occupationDifficulty.map((o, i) => (
+                                                <ListGroupItem key={`occ-${i}`} className="d-flex align-items-center justify-content-between">
+                                                    <span>{o.label}</span><strong>{fmt1(o.value)}</strong>
+                                                </ListGroupItem>
+                                            ))}
+                                        </ListGroup>
+                                    </CardBody></Card>
+                                </Col>
+                            </Row>
+                        </>
+                    )}
+                </CardBody>
+            </Card>
         </div>
     );
 }

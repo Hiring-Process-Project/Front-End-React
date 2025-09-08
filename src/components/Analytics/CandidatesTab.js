@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Row, Col, Card, CardBody, ListGroup, ListGroupItem, Spinner, Button } from 'reactstrap';
 import './Analytics.css';
 
+
 const Kpi = ({ title, value, sub }) => (
     <Card className="shadow-sm h-100">
         <CardBody>
@@ -158,7 +159,7 @@ export default function CandidatesTab({
         return () => ac.abort();
     }, [apiBase, jobAdId, providedCandidates]);
 
-    // NEW: Prefetch overall scores for all candidates so εμφανίζονται από την αρχή
+    // Prefetch overall scores
     useEffect(() => {
         if (!candidateList || candidateList.length === 0) return;
 
@@ -235,128 +236,152 @@ export default function CandidatesTab({
         return <div className="text-muted">Pick a Job Ad to view candidates analytics.</div>;
     }
 
+    /* ===== ΙΔΙΟ PATTERN ΜΕ STEPS: wrapper + flex + scroll ΜΟΝΟ μέσα στις κάρτες ===== */
     return (
-        <Row className="g-3">
-            {/* Αριστερά: μόνο λίστα υποψηφίων */}
-            <Col lg="4">
-                <Card className="shadow-sm h-100">
-                    <CardBody className="ct-card-body">
-                        <div className="fw-600 mb-1">Candidates</div>
+        <div className="steps-tab-wrap q-col-flex q-no-x">
+            <Row className="q-fill gx-3 gy-tight">
+                {/* Αριστερά: λίστα υποψηφίων (scroll μέσα στο πλαίσιο) */}
+                <Col lg="4" className="q-col-flex">
+                    <Card className="shadow-sm q-card-fill">
+                        <CardBody className="ct-card-body" style={{ display: 'flex', flexDirection: 'column' }}>
+                            <div className="fw-600 mb-1">Candidates</div>
 
-                        <div className="cand-list">
-                            {candListLoading && (
-                                <div className="d-flex align-items-center gap-8">
-                                    <Spinner size="sm" /> <span>Loading candidates…</span>
-                                </div>
-                            )}
-                            {!candListLoading && candListErr && (
-                                <div className="text-danger fs-12">
-                                    {candListErr}
-                                </div>
-                            )}
-                            {!candListLoading && !candListErr && candidateList?.length === 0 && (
-                                <div className="text-muted fs-12">
-                                    No candidates for this job ad.
-                                </div>
-                            )}
-                            {candidateList?.map((c) => {
-                                const active = c.id === selectedCandId;
-                                const scoreVal = Number.isFinite(Number(c.score))
-                                    ? Number(c.score)
-                                    : (Number.isFinite(Number(scoresById[c.id])) ? Number(scoresById[c.id]) : undefined);
+                            <div
+                                className="cand-list"
+                                style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}
+                            >
+                                {candListLoading && (
+                                    <div className="d-flex align-items-center gap-8">
+                                        <Spinner size="sm" /> <span>Loading candidates…</span>
+                                    </div>
+                                )}
+                                {!candListLoading && candListErr && (
+                                    <div className="text-danger fs-12">{candListErr}</div>
+                                )}
+                                {!candListLoading && !candListErr && candidateList?.length === 0 && (
+                                    <div className="text-muted fs-12">No candidates for this job ad.</div>
+                                )}
 
-                                return (
-                                    <Button
-                                        key={c.id}
-                                        onClick={() => setSelectedCandId(c.id)}
-                                        className={`w-100 text-start ${active ? 'btn-secondary' : 'btn-light'} mb-6`}
-                                    >
-                                        <div className="d-flex align-items-center justify-content-between">
-                                            <span>{buildDisplayName(c)}</span>
-                                            <div className="d-flex align-items-center" style={{ gap: 6 }}>
-                                                <span className="badge bg-dark-subtle text-dark">{fmt(scoreVal, 1)}</span>
-                                                {c.status && <span className="badge bg-light text-dark">{c.status}</span>}
+                                {candidateList?.map((c) => {
+                                    const active = c.id === selectedCandId;
+                                    const scoreVal = Number.isFinite(Number(c.score))
+                                        ? Number(c.score)
+                                        : (Number.isFinite(Number(scoresById[c.id])) ? Number(scoresById[c.id]) : undefined);
+
+                                    return (
+                                        <Button
+                                            key={c.id}
+                                            onClick={() => setSelectedCandId(c.id)}
+                                            className={`w-100 text-start ${active ? 'btn-secondary' : 'btn-light'} mb-6`}
+                                        >
+                                            <div className="d-flex align-items-center justify-content-between">
+                                                <span>{buildDisplayName(c)}</span>
+                                                <div className="d-flex align-items-center" style={{ gap: 6 }}>
+                                                    <span className="badge bg-dark-subtle text-dark">{fmt(scoreVal, 1)}</span>
+                                                    {c.status && <span className="badge bg-light text-dark">{c.status}</span>}
+                                                </div>
                                             </div>
-                                        </div>
-                                    </Button>
-                                );
-                            })}
+                                        </Button>
+                                    );
+                                })}
+                            </div>
+                        </CardBody>
+                    </Card>
+                </Col>
 
-                        </div>
-                    </CardBody>
-                </Card>
-            </Col>
-
-            {/* Δεξιά: Στατιστικά */}
-            <Col lg="8">
-                {!selectedCandId && (
-                    <div className="text-muted">Select a candidate to see detailed analytics.</div>
-                )}
-                {selectedCandId && (
-                    <Card className="shadow-sm">
-                        <CardBody>
-                            {candLoading && (
-                                <div className="d-flex align-items-center gap-8">
-                                    <Spinner size="sm" /> <span>Loading candidate analytics…</span>
+                {/* Δεξιά: analytics υποψηφίου (fixed header + scroll στο σώμα) */}
+                <Col lg="8" className="q-col-flex">
+                    <Card className="shadow-sm q-card-fill">
+                        {/* Header εκτός scroll */}
+                        <div style={{ padding: '1rem 1rem 0 1rem' }}>
+                            {!selectedCandId && (
+                                <div className="text-muted">Select a candidate to see detailed analytics.</div>
+                            )}
+                            {selectedCandId && (
+                                <div className="d-flex align-items-center justify-content-between" style={{ marginBottom: 6 }}>
+                                    <div className="section-title mb-0">
+                                        Candidate:{' '}
+                                        <span style={{ fontWeight: 600 }}>
+                                            {buildDisplayName(candidateList.find(c => c.id === selectedCandId) || { id: selectedCandId })}
+                                        </span>
+                                    </div>
+                                    {Number.isFinite(Number(scoresById[selectedCandId] ?? candData?.overallScore)) && (
+                                        <span className="badge bg-secondary text-white">
+                                            Overall {fmt(scoresById[selectedCandId] ?? candData?.overallScore, 1)}
+                                        </span>
+                                    )}
                                 </div>
                             )}
-                            {candErr && <div className="text-danger">Error: {candErr}</div>}
+                        </div>
 
-                            {candData && (
+                        {/* Scrollable body */}
+                        <CardBody className="q-card-body-scroll">
+                            {selectedCandId && (
                                 <>
-                                    {/* Row 1: Strengths & Weaknesses δίπλα-δίπλα */}
-                                    <Row className="g-3">
-                                        <Col md="6">
-                                            <MiniList title="Strengths (Top 3 Skills)" items={candData.strengthProfile} />
-                                        </Col>
-                                        <Col md="6">
-                                            <MiniList title="Weaknesses (Bottom 3 Skills)" items={candData.weaknessProfile} />
-                                        </Col>
-                                    </Row>
+                                    {candLoading && (
+                                        <div className="d-flex align-items-center gap-8">
+                                            <Spinner size="sm" /> <span>Loading candidate analytics…</span>
+                                        </div>
+                                    )}
+                                    {candErr && <div className="text-danger">Error: {candErr}</div>}
 
-                                    {/* Row 2: Ενιαίο dropdown "Score per:" */}
-                                    <Row className="g-3 mt-1">
-                                        <Col md="12">
-                                            <Card className="shadow-sm h-100">
-                                                <CardBody>
-                                                    <div className="d-flex align-items-center justify-content-between mb-2">
-                                                        <div className="section-title mb-0">Score per:</div>
-                                                        <select
-                                                            className="form-select form-select-sm"
-                                                            style={{ width: 180 }}
-                                                            value={scoreView}
-                                                            onChange={(e) => setScoreView(e.target.value)}
-                                                        >
-                                                            <option value="step">Step</option>
-                                                            <option value="question">Question</option>
-                                                            <option value="skill">Skill</option>
-                                                        </select>
-                                                    </div>
+                                    {candData && (
+                                        <>
+                                            {/* Row 1: Strengths & Weaknesses */}
+                                            <Row className="g-3">
+                                                <Col md="6">
+                                                    <MiniList title="Strengths (Top 3 Skills)" items={candData.strengthProfile} />
+                                                </Col>
+                                                <Col md="6">
+                                                    <MiniList title="Weaknesses (Bottom 3 Skills)" items={candData.weaknessProfile} />
+                                                </Col>
+                                            </Row>
 
-                                                    <ListGroup flush>
-                                                        {scoreItems.length === 0 && (
-                                                            <ListGroupItem className="text-muted">—</ListGroupItem>
-                                                        )}
-                                                        {scoreItems.map((it) => (
-                                                            <ListGroupItem
-                                                                key={it.label}
-                                                                className="d-flex align-items-center justify-content-between"
-                                                            >
-                                                                <span>{it.label}</span>
-                                                                <strong>{fmt(it.value, 1)}</strong>
-                                                            </ListGroupItem>
-                                                        ))}
-                                                    </ListGroup>
-                                                </CardBody>
-                                            </Card>
-                                        </Col>
-                                    </Row>
+                                            {/* Row 2: Score per: */}
+                                            <Row className="g-3 mt-1" >
+                                                <Col md="12">
+                                                    <Card className="shadow-sm h-100">
+                                                        <CardBody>
+                                                            <div className="d-flex align-items-center justify-content-between mb-2">
+                                                                <div className="section-title mb-0">Score per:</div>
+                                                                <select
+                                                                    className="form-select form-select-sm"
+                                                                    style={{ width: 180 }}
+                                                                    value={scoreView}
+                                                                    onChange={(e) => setScoreView(e.target.value)}
+                                                                >
+                                                                    <option value="step">Step</option>
+                                                                    <option value="question">Question</option>
+                                                                    <option value="skill">Skill</option>
+                                                                </select>
+                                                            </div>
+
+                                                            <ListGroup flush>
+                                                                {scoreItems.length === 0 && (
+                                                                    <ListGroupItem className="text-muted">—</ListGroupItem>
+                                                                )}
+                                                                {scoreItems.map((it) => (
+                                                                    <ListGroupItem
+                                                                        key={it.label}
+                                                                        className="d-flex align-items-center justify-content-between"
+                                                                    >
+                                                                        <span>{it.label}</span>
+                                                                        <strong>{fmt(it.value, 1)}</strong>
+                                                                    </ListGroupItem>
+                                                                ))}
+                                                            </ListGroup>
+                                                        </CardBody>
+                                                    </Card>
+                                                </Col>
+                                            </Row>
+                                        </>
+                                    )}
                                 </>
                             )}
                         </CardBody>
                     </Card>
-                )}
-            </Col>
-        </Row>
+                </Col>
+            </Row>
+        </div>
     );
 }

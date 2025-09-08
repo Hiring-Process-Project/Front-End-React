@@ -116,76 +116,108 @@ export default function OrganizationOverview({ orgId = 3, base = 'http://localho
         return () => { ignore = true; };
     }, [orgId, base]);
 
-    if (loading) return <div className="d-flex align-items-center" style={{ gap: 8 }}><Spinner size="sm" /> Loading…</div>;
-    if (err) return <div className="text-danger">Error: {err}</div>;
-    if (!stats) return null;
+    const orgName = stats?.organizationName ?? stats?.orgName ?? null;
 
     return (
-        <div>
-            <Row className="g-3">
-                <Col md="6">
-                    <Card className="shadow-sm h-100"><CardBody>
-                        <SegmentedBar approved={stats.approvalRate} rejected={stats.rejectionRate} hired={stats.hireRate} />
-                    </CardBody></Card>
-                </Col>
+        <div className="overview-tab-wrap q-col-flex q-no-x">
+            <Card className="shadow-sm q-card-fill">
+                {/* Scrollable body */}
+                <CardBody className="q-card-body-scroll">
+                    {loading && (
+                        <div className="d-flex align-items-center" style={{ gap: 8 }}>
+                            <Spinner size="sm" /> Loading…
+                        </div>
+                    )}
+                    {err && !loading && <div className="text-danger">Error: {err}</div>}
+                    {!loading && !err && !stats && (
+                        <div className="text-muted">No data.</div>
+                    )}
 
-                <Col md="2">
-                    <Kpi title="Hires" value={stats.hireCount ?? stats.hires ?? '—'} />
-                </Col>
-                <Col md="2">
-                    <Kpi title="Candidates" value={stats.totalCandidates ?? stats.total ?? '—'} />
-                </Col>
-                {/* ΝΕΟ KPI */}
-                <Col md="2">
-                    <Kpi
-                        title="Avg Candidates / Job Ad"
-                        value={(Number.isFinite(+ (stats.avgCandidatesPerJobAd ?? stats.avg_cand_per_job ?? stats.candidatesPerJobAd))
-                            ? (+ (stats.avgCandidatesPerJobAd ?? stats.avg_cand_per_job ?? stats.candidatesPerJobAd)).toFixed(1)
-                            : '—')}
-                    />
-                </Col>
-            </Row>
+                    {!loading && !err && stats && (
+                        <>
+                            <Row className="g-3">
+                                <Col md="6">
+                                    <Card className="shadow-sm h-100">
+                                        <CardBody>
+                                            <SegmentedBar
+                                                approved={stats.approvalRate}
+                                                rejected={stats.rejectionRate}
+                                                hired={stats.hireRate}
+                                            />
+                                        </CardBody>
+                                    </Card>
+                                </Col>
 
-            {/* Top / Weakest skills όπως ήταν */}
-            <Row className="g-3 mt-1">
-                <Col md="6">
-                    <Card className="shadow-sm h-100"><CardBody>
-                        <div style={{ fontWeight: 600, marginBottom: 6 }}>Top Skills</div>
-                        <ListGroup flush>
-                            {(stats.top5Skills ?? stats.topSkills ?? []).map((s, i) => (
-                                <ListGroupItem key={`top-${i}`} className="d-flex align-items-center justify-content-between">
-                                    <span>{s.skill ?? s.title ?? s.name ?? '—'}</span>
-                                    <strong>{fmt1(s.avgScore ?? s.averageScore ?? s.avg_score)}</strong>
-                                </ListGroupItem>
-                            ))}
-                        </ListGroup>
-                    </CardBody></Card>
-                </Col>
-                <Col md="6">
-                    <Card className="shadow-sm h-100"><CardBody>
-                        <div style={{ fontWeight: 600, marginBottom: 6 }}>Weakest Skills</div>
-                        <ListGroup flush>
-                            {(stats.weakest5Skills ?? stats.weak5Skills ?? []).map((s, i) => (
-                                <ListGroupItem key={`weak-${i}`} className="d-flex align-items-center justify-content-between">
-                                    <span>{s.skill ?? s.title ?? s.name ?? '—'}</span>
-                                    <strong>{fmt1(s.avgScore ?? s.averageScore ?? s.avg_score)}</strong>
-                                </ListGroupItem>
-                            ))}
-                        </ListGroup>
-                    </CardBody></Card>
-                </Col>
-            </Row>
+                                <Col md="2">
+                                    <Kpi title="Hires" value={stats.hireCount ?? stats.hires ?? '—'} />
+                                </Col>
+                                <Col md="2">
+                                    <Kpi title="Candidates" value={stats.totalCandidates ?? stats.total ?? '—'} />
+                                </Col>
+                                <Col md="2">
+                                    <Kpi
+                                        title="Avg Candidates / Job Ad"
+                                        value={
+                                            Number.isFinite(+(stats.avgCandidatesPerJobAd ?? stats.avg_cand_per_job ?? stats.candidatesPerJobAd))
+                                                ? (+(stats.avgCandidatesPerJobAd ?? stats.avg_cand_per_job ?? stats.candidatesPerJobAd)).toFixed(1)
+                                                : '—'
+                                        }
+                                    />
+                                </Col>
+                            </Row>
 
-            {/* Histogram κάτω από τα skills και σε μισό πλάτος */}
-            <Row className="g-3 mt-1">
-                <Col md="6">
-                    <Card className="shadow-sm h-100">
-                        <CardBody>
-                            <Histogram buckets={stats.scoreDistribution ?? stats.distribution ?? []} />
-                        </CardBody>
-                    </Card>
-                </Col>
-            </Row>
+                            <Row className="g-3 mt-1">
+                                <Col md="6">
+                                    <Card className="shadow-sm h-100">
+                                        <CardBody>
+                                            <div style={{ fontWeight: 600, marginBottom: 6 }}>Top Skills</div>
+                                            <ListGroup flush>
+                                                {(stats.top5Skills ?? stats.topSkills ?? []).map((s, i) => (
+                                                    <ListGroupItem
+                                                        key={`top-${i}`}
+                                                        className="d-flex align-items-center justify-content-between"
+                                                    >
+                                                        <span>{s.skill ?? s.title ?? s.name ?? '—'}</span>
+                                                        <strong>{fmt1(s.avgScore ?? s.averageScore ?? s.avg_score)}</strong>
+                                                    </ListGroupItem>
+                                                ))}
+                                            </ListGroup>
+                                        </CardBody>
+                                    </Card>
+                                </Col>
+                                <Col md="6">
+                                    <Card className="shadow-sm h-100">
+                                        <CardBody>
+                                            <div style={{ fontWeight: 600, marginBottom: 6 }}>Weakest Skills</div>
+                                            <ListGroup flush>
+                                                {(stats.weakest5Skills ?? stats.weak5Skills ?? []).map((s, i) => (
+                                                    <ListGroupItem
+                                                        key={`weak-${i}`}
+                                                        className="d-flex align-items-center justify-content-between"
+                                                    >
+                                                        <span>{s.skill ?? s.title ?? s.name ?? '—'}</span>
+                                                        <strong>{fmt1(s.avgScore ?? s.averageScore ?? s.avg_score)}</strong>
+                                                    </ListGroupItem>
+                                                ))}
+                                            </ListGroup>
+                                        </CardBody>
+                                    </Card>
+                                </Col>
+                            </Row>
+
+                            <Row className="g-3 mt-1">
+                                <Col md="6">
+                                    <Card className="shadow-sm h-100">
+                                        <CardBody>
+                                            <Histogram buckets={stats.scoreDistribution ?? stats.distribution ?? []} />
+                                        </CardBody>
+                                    </Card>
+                                </Col>
+                            </Row>
+                        </>
+                    )}
+                </CardBody>
+            </Card>
         </div>
     );
 }
