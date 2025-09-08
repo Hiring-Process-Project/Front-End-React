@@ -270,7 +270,7 @@ export default function QuestionsTab({
                                                 <Col md="12"><Histogram buckets={distribution} /></Col>
                                             </Row>
 
-                                            <Row className="g-3">
+                                            <Row className="g-3 mt-1">
                                                 <Col md="6">
                                                     <Card className="shadow-sm h-100">
                                                         <CardBody>
