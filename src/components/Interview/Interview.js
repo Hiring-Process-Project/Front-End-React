@@ -312,7 +312,7 @@ export default function Interview({ selectedJobAdId }) {
                         {/* Skills (με εσωτερικό scroller όπως στο Description) */}
                         <Col md="5" className="iv-col" ref={skillsColRef}>
                             <div style={{ flex: "0 0 auto", minHeight: 0, height: skillsPanelHeight ?? "auto" }}>
-                                <SkillSelectorReadOnly requiredskills={stepSkills} panelHeight={skillsPanelHeight} />
+                                <SkillSelectorReadOnly label="Required Step Skills" requiredskills={stepSkills} panelHeight={skillsPanelHeight} />
                             </div>
 
                             {canEdit && (

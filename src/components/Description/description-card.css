@@ -1,0 +1,276 @@
+/* Root layout */
+.dc-root-row {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* Left column */
+.dc-left-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.dc-left-wrap {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+}
+
+/* AI link (κάτω-αριστερά) */
+.dc-ai-link {
+    position: absolute;
+    left: 18px;
+    bottom: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+    cursor: pointer;
+    user-select: none;
+    opacity: 0.9;
+    color: #7E22CE;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.dc-ai-badge {
+    display: inline-block;
+    background: #111827;
+    /* βάψε το #7E22CE αν προτιμάς */
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    border-radius: 4px;
+    padding: 2px 5px;
+    line-height: 1;
+}
+
+/* Right column */
+.dc-right-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    /* default */
+}
+
+.dc-right-col.is-visible {
+    visibility: visible;
+}
+
+.dc-right-col.is-hidden {
+    visibility: hidden;
+}
+
+/* Skills wrapper (dynamic height via inline style μόνο) */
+.dc-skills-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.dc-skills-row {
+    min-height: 0;
+    flex: 1;
+}
+
+.dc-col-flex {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* Separator */
+.dc-separator {
+    margin-top: 6px;
+    margin-bottom: 6px;
+}
+
+/* Buttons block */
+.dc-buttons {
+    flex-shrink: 0;
+}
+
+/* Status box (read-only mode) */
+.dc-status-box {
+    padding: 8px 8px;
+    border-radius: 12px;
+    background: #E5E7EB;
+    border: 1px solid #bbbbbb;
+    color: #374151;
+    display: flex;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 8px;
+    min-height: 60px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.dc-status-strong {
+    font-size: 12px;
+    font-weight: 800;
+    color: #111827;
+}
+
+/* Toast */
+.dc-toast {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 9999;
+    background: #111827;
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .25);
+    font-size: 13px;
+    max-width: 360px;
+}
+
+/* Utilities */
+.dc-error {
+    margin-top: 12px;
+    color: #dc2626;
+    text-align: center;
+    font-size: 14px;
+}
+
+.dc-pad {
+    padding: 1rem;
+}
+
+/* ===== RecommendedSkillsPanel ===== */
+.rsp-root-row {
+    height: 100%;
+    min-height: 0;
+}
+
+.rsp-content-row {
+    height: 100%;
+    min-height: 0;
+}
+
+.rsp-content-row.has-label {
+    height: calc(100% - 28px);
+    /* χώρο για το label */
+}
+
+/* Κοινό box για skills panels */
+.dc-box {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.dc-box--skills {
+    padding: 10px;
+}
+
+/* Input ύψος/συμπεριφορά */
+.dc-input {
+    flex: 0 0 38px;
+    min-height: 38px;
+}
+
+/* Scroll area (δυναμικό ύψος με CSS var) */
+.rsp-list {
+    height: var(--list-h);
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Action link στο κάτω μέρος */
+.dc-action {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+    margin-top: 8px;
+    cursor: pointer;
+    user-select: none;
+    text-align: left;
+    color: #7E22CE;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Reuse από πριν – μικρό badge ως “AI icon” */
+.dc-ai-badge {
+    display: inline-block;
+    background: #111827;
+    /* βάψ’ το #7E22CE αν προτιμάς μοβ */
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    border-radius: 4px;
+    padding: 2px 5px;
+    line-height: 1;
+}
+
+/* ===== Responsive tweaks ===== */
+
+/* Σε μικρότερες οθόνες (κάτω από 768px) */
+@media (max-width: 767px) {
+    .dc-root-row {
+        flex-direction: column;
+        height: auto;
+    }
+
+    .dc-left-col,
+    .dc-right-col {
+        width: 100%;
+        max-width: 100%;
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    /* Κάνε τα κουτιά να έχουν λίγο margin ανάμεσα */
+    .dc-left-wrap,
+    .dc-skills-wrap {
+        margin-bottom: 16px;
+    }
+
+    /* Input και κουμπιά 100% */
+    .dc-input {
+        width: 100%;
+    }
+
+    .dc-buttons button {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+}
+
+/* Σε πολύ μικρές οθόνες (κάτω από 480px) */
+@media (max-width: 480px) {
+
+    .dc-ai-link,
+    .dc-action {
+        font-size: 12px;
+        gap: 4px;
+    }
+
+    .dc-ai-badge {
+        font-size: 10px;
+        padding: 2px 4px;
+    }
+
+    .description-labels {
+        font-size: 12px;
+    }
+}

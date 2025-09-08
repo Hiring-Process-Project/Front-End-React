@@ -13,7 +13,7 @@ function NavbarDarkExample({
 
     const handleSelect = (key, e) => {
         if (!key) return;
-        if (isDisabled(key)) { e?.preventDefault?.(); return; } // μπλοκ click στα κλειδωμένα
+        if (isDisabled(key)) { e?.preventDefault?.(); return; } // block click on locked tabs
         onSelect?.(key);
     };
 
@@ -25,19 +25,19 @@ function NavbarDarkExample({
             className="custom-pills"
         >
             <Nav.Item>
-                <Nav.Link eventKey="description" title="Περιγραφή της αγγελίας">
+                <Nav.Link eventKey="description" title="Job description">
                     Description
                 </Nav.Link>
             </Nav.Item>
 
             <Nav.Item>
-                <Nav.Link eventKey="interview" title="Στάδια συνέντευξης">
+                <Nav.Link eventKey="interview" title="Interview steps">
                     Interview
                 </Nav.Link>
             </Nav.Item>
 
             <Nav.Item>
-                <Nav.Link eventKey="questions" title="Ερωτήσεις αξιολόγησης">
+                <Nav.Link eventKey="questions" title="Evaluation questions">
                     Questions
                 </Nav.Link>
             </Nav.Item>
@@ -45,7 +45,7 @@ function NavbarDarkExample({
             <Nav.Item>
                 <Nav.Link
                     eventKey="candidates"
-                    title={isDisabled('candidates') ? 'Διαθέσιμο μετά το Publish' : 'Υποψήφιοι για την αγγελία'}
+                    title={isDisabled('candidates') ? 'Available after Publish' : 'Job candidates'}
                     className={isDisabled('candidates') ? 'tab-disabled' : ''}
                 >
                     Candidates
@@ -55,7 +55,7 @@ function NavbarDarkExample({
             <Nav.Item>
                 <Nav.Link
                     eventKey="analytics"
-                    title={isDisabled('analytics') ? 'Διαθέσιμο μετά το Publish' : 'Στατιστικά και γραφήματα'}
+                    title={isDisabled('analytics') ? 'Available after Publish' : 'Statistics & charts'}
                     className={isDisabled('analytics') ? 'tab-disabled' : ''}
                 >
                     Analytics
@@ -65,7 +65,7 @@ function NavbarDarkExample({
             <Nav.Item>
                 <Nav.Link
                     eventKey="hire"
-                    title={isDisabled('hire') ? 'Διαθέσιμο μετά το Publish' : 'Διαδικασία πρόσληψης'}
+                    title={isDisabled('hire') ? 'Available after Publish' : 'Hiring process'}
                     className={isDisabled('hire') ? 'tab-disabled' : ''}
                 >
                     Hire

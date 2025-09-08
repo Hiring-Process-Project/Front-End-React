@@ -1,11 +1,6 @@
 // Description/SkillSelectorReadOnly.jsx
 import React, {
-    useState,
-    useMemo,
-    useRef,
-    useLayoutEffect,
-    useEffect,
-    useCallback,
+    useState, useMemo, useRef, useLayoutEffect, useEffect, useCallback,
 } from "react";
 import { Badge, Input, Row, Col } from "reactstrap";
 import "./description.css";
@@ -13,10 +8,14 @@ import "./SkillSelector.css";
 
 /**
  * panelHeight: καθαρό ύψος ΜΟΝΟ για το panel (ήδη αφαιρεμένα κουμπιά+header)
+ * label: (προαιρετικό) ετικέτα που έρχεται από τον γονέα. Αν λείπει, δεν δείχνουμε τίποτα.
+ * searchPlaceholder: (προαιρετικό) placeholder για την αναζήτηση
  */
 export default function SkillSelectorReadOnly({
     requiredskills = [],
     panelHeight,
+    label,
+    searchPlaceholder,
 }) {
     const [searchText, setSearchText] = useState("");
 
@@ -53,7 +52,6 @@ export default function SkillSelectorReadOnly({
         setListH((prev) => (Math.abs(prev - inner) > 1 ? inner : prev));
     }, [panelHeight]);
 
-    // robust mini-kick στο mount
     const kickInside = useCallback(() => {
         recalcInsideBox();
         requestAnimationFrame(() => recalcInsideBox());
@@ -73,9 +71,7 @@ export default function SkillSelectorReadOnly({
             raf = requestAnimationFrame(kickInside);
         };
         window.addEventListener("resize", onResize);
-
         const t = setTimeout(kickInside, 0);
-
         return () => {
             window.removeEventListener("resize", onResize);
             cancelAnimationFrame(raf);
@@ -83,14 +79,21 @@ export default function SkillSelectorReadOnly({
         };
     }, [kickInside, filtered.length, searchText, panelHeight]);
 
+    // default placeholder: αν έχουμε label, χρησιμοποιούμε “Search within <label>…”
+    const ph = searchPlaceholder ??
+        (label ? `Search within ${label.toLowerCase()}...` : "Search...");
+
     return (
         <Row style={{ height: "100%", minHeight: 0 }}>
             <Col className="desc-col">
-                <Row className="mb-2 desc-label-row">
-                    <Col><label className="description-labels">Skills:</label></Col>
-                </Row>
+                {/* Ετικέτα μόνο αν δόθηκε από τον γονέα */}
+                {label ? (
+                    <Row className="mb-2 desc-label-row">
+                        <Col><label className="description-labels">{label}</label></Col>
+                    </Row>
+                ) : null}
 
-                <Row style={{ height: "calc(100% - 28px)", minHeight: 0 }}>
+                <Row style={{ height: label ? "calc(100% - 28px)" : "100%", minHeight: 0 }}>
                     <Col className="desc-col">
                         <div
                             ref={boxRef}
@@ -108,7 +111,7 @@ export default function SkillSelectorReadOnly({
                                 type="text"
                                 value={searchText}
                                 onChange={(e) => setSearchText(e.target.value)}
-                                placeholder="Search within required skills..."
+                                placeholder={ph}
                                 style={{ flex: "0 0 38px", minHeight: 38 }}
                             />
 
