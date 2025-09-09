@@ -7,6 +7,10 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, .1);
 }
 
+.panel__body {
+    overflow-x: hidden;
+}
+
 .panel--short {
     height: 280px;
 }
@@ -438,4 +442,67 @@
     font-size: 0.85rem;
     color: #6B7280;
     font-weight: 500;
+}
+
+.box.mb-1 {
+    margin-bottom: 4px !important;
+    /* μικρό κενάκι */
+}
+
+.lock-banner.mt-1 {
+    margin-top: 4px !important;
+    /* ίδιο κενάκι */
+}
+
+.no-padding {
+    padding: 6px !important;
+    /* ή 4px για ακόμα πιο σφιχτό */
+}
+
+
+
+.fixed-comments-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+/* Panels που τεντώνουν σε ύψος και κάνουν scroll ΜΕΣΑ στο body */
+.panel--flex {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    /* επιτρέπει να “μαζευτεί” σε flex container */
+    overflow: hidden;
+    /* το scroll θα το έχει το CardBody */
+}
+
+.panel__scroll {
+    flex: 1;
+    min-height: 0;
+    /* ΧΩΡΙΣ αυτό, συχνά δεν εμφανίζεται scrollbar */
+    overflow-y: auto;
+    /* scroll μέσα στο περιεχόμενο */
+}
+
+/* ΜΟΝΟ γι’ αυτά τα δύο πάνω panels */
+.card.panel.panel--flex {
+    /* override της .panel */
+    height: auto !important;
+    /* ακυρώνει το fixed 410px */
+    overflow: hidden !important;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    /* ΕΠΙΒΑΛΛΕΤΑΙ για να δουλέψει το scroll */
+}
+
+/* το scroll γίνεται ΜΕΣΑ στο CardBody */
+.card.panel.panel--flex .card-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    /* χωρίς αυτό συχνά δεν εμφανίζεται scrollbar */
+    overflow-y: auto;
 }

@@ -1,0 +1,92 @@
+/* ---------- Hire layout helpers ---------- */
+.page-stack {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.row-fill {
+    display: flex;
+    align-items: stretch;
+    min-height: 0;
+}
+
+.col-fill {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.panel--fill {
+    flex: 1;
+    height: auto;
+    min-height: 0;
+}
+
+.panel__body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
+}
+
+.muted {
+    opacity: .6;
+    font-size: 11px;
+}
+
+.hire-comments-card {
+    background-color: #E5E7EB;
+    border-radius: 12px;
+    min-height: 140px;
+}
+
+.hire-readonly-input {
+    resize: none;
+    background-color: #f3f4f6;
+    cursor: default;
+    font-size: 11px;
+}
+
+.hire-btn {
+    min-width: 160px;
+    height: 44px;
+    font-weight: 600;
+}
+
+/* Το πραγματικό scroll ζει εδώ */
+.panel__body--steps {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
+}
+
+/* Σιγουρέψου ότι ΚΑΝΕΝΑ inner wrapper του StepsDropDown δεν κάνει δικό του scroll */
+.panel__body--steps .candidate-container,
+.panel__body--steps .question-box,
+.panel__body--steps .steps-wrapper {
+    overflow: visible !important;
+    max-height: none !important;
+}
+
+/* Panel με ύψος όσο χρειάζεται μέχρι το τελευταίο στοιχείο */
+.panel--auto {
+    height: auto;
+    /* όχι fixed */
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.panel__body--steps {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    /* scroll μόνο αν χρειάζεται */
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+}

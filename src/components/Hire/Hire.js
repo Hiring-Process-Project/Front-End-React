@@ -4,9 +4,9 @@ import StepsDropDown from "../Candidates/StepsDropDown";
 import StepSkills from "../Candidates/StepSkills";
 import ConfirmModal from "./ConfirmModal";
 import CandidateDropdown from "../Candidates/CandidateDropDown";
-import "../Candidates/Candidates.css";
+import "./Hire.css";
 
-/* tiny toast */
+/** TinyToast με τις έτοιμες κλάσεις από το CSS */
 function TinyToast({ show, text, type = "info", onHide }) {
     React.useEffect(() => {
         if (!show) return;
@@ -15,32 +15,17 @@ function TinyToast({ show, text, type = "info", onHide }) {
     }, [show, onHide]);
 
     if (!show) return null;
-    const bg =
+    const variant =
         type === "success"
-            ? "#16a34a"
+            ? "tiny-toast tiny-toast--success"
             : type === "warning"
-                ? "#f59e0b"
+                ? "tiny-toast tiny-toast--warning"
                 : type === "error"
-                    ? "#dc2626"
-                    : "#334155";
+                    ? "tiny-toast tiny-toast--error"
+                    : "tiny-toast tiny-toast--info";
 
     return (
-        <div
-            style={{
-                position: "fixed",
-                right: 16,
-                bottom: 16,
-                background: bg,
-                color: "white",
-                padding: "10px 14px",
-                borderRadius: 10,
-                boxShadow: "0 6px 16px rgba(0,0,0,0.25)",
-                zIndex: 9999,
-                fontWeight: 600,
-            }}
-            role="status"
-            aria-live="polite"
-        >
+        <div className={variant} role="status" aria-live="polite">
             {text}
         </div>
     );
@@ -60,17 +45,13 @@ export default function Hire({ jobAdId }) {
     const [candComment, setCandComment] = useState("");
     const [rightPane, setRightPane] = useState(null);
 
-    // toast
     const [toast, setToast] = useState({ show: false, text: "", type: "info" });
-    const showToast = (text, type = "info") => setToast({ show: true, text, type });
+    const showToast = (text, type = "info") =>
+        setToast({ show: true, text, type });
     const hideToast = () => setToast((t) => ({ ...t, show: false }));
 
-    // confirm modal
     const [showConfirm, setShowConfirm] = useState(false);
     const [confirmLoading, setConfirmLoading] = useState(false);
-
-    // disable HIRE when already hired someone
-    // (κρατάμε το σχόλιο, δεν χρησιμοποιούμε πλέον global κλείδωμα)
 
     useEffect(() => {
         setSelectedCandidate(null);
@@ -83,7 +64,7 @@ export default function Hire({ jobAdId }) {
         setRightPane(null);
     }, [jobAdId]);
 
-    // === LOAD ranked candidates with FINAL SCORE (server-sorted) ===
+    // Approved candidates με τελικό score
     useEffect(() => {
         if (!jobAdId) return;
         (async () => {
@@ -93,7 +74,6 @@ export default function Hire({ jobAdId }) {
                 );
                 const data = r.ok ? await r.json() : [];
                 const mapped = (Array.isArray(data) ? data : [])
-                    // δείξε μόνο approved/accepted/hired
                     .filter((d) =>
                         ["approved", "accepted", "hired"].includes(
                             String(d.status || "").toLowerCase()
@@ -115,7 +95,7 @@ export default function Hire({ jobAdId }) {
         })();
     }, [jobAdId]);
 
-    // interview details + steps + questions
+    // interview + steps + questions
     useEffect(() => {
         if (!jobAdId) return;
         (async () => {
@@ -156,7 +136,7 @@ export default function Hire({ jobAdId }) {
         })();
     }, [jobAdId]);
 
-    // when candidate changes → load comments (read-only on Hire)
+    // comments (read-only)
     useEffect(() => {
         if (!selectedCandidate?.id) {
             setCandComment("");
@@ -205,10 +185,8 @@ export default function Hire({ jobAdId }) {
 
     const rightPaneStepObj = useMemo(() => rightPane, [rightPane]);
 
-    /* --- HIRE flow (with modal) --- */
     const openHireModal = () => {
         if (!selectedCandidate) return;
-        // αποφυγή re-hire στον ίδιο υποψήφιο
         if (String(selectedCandidate.status || "").toLowerCase() === "hired") {
             showToast("This candidate is already hired", "warning");
             return;
@@ -220,7 +198,6 @@ export default function Hire({ jobAdId }) {
         if (!selectedCandidate) return;
         setConfirmLoading(true);
         try {
-            // 🔁 νέο endpoint: κάνει ταυτόχρονα candidate=Hired & jobAd=Complete
             const r = await fetch(
                 `${API_BASE}/api/v1/candidates/${selectedCandidate.id}/hire`,
                 { method: "POST" }
@@ -234,27 +211,23 @@ export default function Hire({ jobAdId }) {
                             : "Hire failed";
                 throw new Error(msg);
             }
-            const data = await r.json(); // { candidateId, candidateStatus, jobAdId, jobAdStatus }
-
-            // ενημέρωση τοπικής λίστας/επιλογής
-            setCandidates(prev =>
-                prev.map(c =>
+            const data = await r.json();
+            setCandidates((prev) =>
+                prev.map((c) =>
                     c.id === data.candidateId ? { ...c, status: data.candidateStatus } : c
                 )
             );
-            setSelectedCandidate(prev =>
-                prev && prev.id === data.candidateId ? { ...prev, status: data.candidateStatus } : prev
+            setSelectedCandidate((prev) =>
+                prev && prev.id === data.candidateId
+                    ? { ...prev, status: data.candidateStatus }
+                    : prev
             );
 
-            // κλείδωμα κουμπιού HIRE
-
-            // ενημέρωσε το JobAd status στο υπόλοιπο UI
             window.dispatchEvent(
                 new CustomEvent("hf:jobad-updated", {
-                    detail: { id: data.jobAdId ?? jobAdId, status: data.jobAdStatus ?? "Complete" }
+                    detail: { id: data.jobAdId ?? jobAdId, status: data.jobAdStatus ?? "Complete" },
                 })
             );
-
             showToast("Candidate hired", "success");
         } catch (e) {
             showToast(e.message || "Hire failed", "error");
@@ -264,8 +237,6 @@ export default function Hire({ jobAdId }) {
         }
     };
 
-
-    /* ---------- EARLY RETURN όταν δεν έχει επιλεγεί Job Ad ---------- */
     if (!jobAdId) {
         return (
             <Row>
@@ -277,42 +248,42 @@ export default function Hire({ jobAdId }) {
     }
 
     return (
-        <div>
-            <Row>
-                {/* Approved candidates (με Score) */}
-                <Col md="4">
+        <div className="page-stack">
+            {/* TOP ROW: γεμίζει όλο τον διαθέσιμο χώρο */}
+            <Row className="row-fill flex-grow-1 g-3">
+                {/* Approved candidates */}
+                <Col md="4" className="col-fill">
                     <label className="description-labels">Approved Candidates:</label>
-                    <Card className="panel panel--short">
-                        <CardBody>
+                    <Card className="panel panel--fill">
+                        <CardBody className="panel__body">
                             <Row className="panel__header-row">
-                                <Col md="4">
-                                    <label className="active-label">Score:</label>
-                                </Col>
-                                <Col md="4">
-                                    <label className="active-label">Name:</label>
-                                </Col>
-                                <Col md="4">
-                                    <label className="active-label">Status:</label>
-                                </Col>
+                                <Col md="4"><label className="active-label">Score:</label></Col>
+                                <Col md="4"><label className="active-label">Name:</label></Col>
+                                <Col md="4"><label className="active-label">Status:</label></Col>
                             </Row>
 
                             <CandidateDropdown
-                                candidates={candidates}                  // πρέπει να έχουν avgScore, name, status
-                                renderLeft={(c) => Number.isFinite(c.avgScore) ? c.avgScore : "—"}
+                                candidates={candidates}
+                                renderLeft={(c) =>
+                                    Number.isFinite(c.avgScore) ? c.avgScore : "—"
+                                }
                                 onSelect={async (cand) => {
                                     if (!cand) return;
-                                    // εμπλούτιση για να ανοίγουν οι λεπτομέρειες με Email/CV
                                     try {
                                         const r = await fetch(`${API_BASE}/api/v1/candidates/${cand.id}`);
                                         const d = r.ok ? await r.json() : null;
                                         const enriched = {
                                             ...cand,
                                             email: d?.email ?? "",
-                                            cv: d?.cvPath ?? "", // ή μόνο filename αν έτσι δουλεύει το download
+                                            cv: d?.cvPath ?? "",
                                         };
                                         setSelectedCandidate(enriched);
-                                        setCandidates(prev =>
-                                            prev.map(x => x.id === cand.id ? { ...x, email: enriched.email, cv: enriched.cv } : x)
+                                        setCandidates((prev) =>
+                                            prev.map((x) =>
+                                                x.id === cand.id
+                                                    ? { ...x, email: enriched.email, cv: enriched.cv }
+                                                    : x
+                                            )
                                         );
                                     } catch {
                                         setSelectedCandidate(cand);
@@ -322,16 +293,15 @@ export default function Hire({ jobAdId }) {
                                     setRightPane(null);
                                 }}
                             />
-
                         </CardBody>
                     </Card>
                 </Col>
 
                 {/* Steps */}
-                <Col md="4">
+                <Col md="4" className="col-fill">
                     <label className="description-labels">Interview Steps:</label>
-                    <Card className="panel panel--short">
-                        <CardBody>
+                    <Card className="panel panel--fill">
+                        <CardBody className="panel__body">
                             {selectedCandidate ? (
                                 <StepsDropDown
                                     steps={steps}
@@ -339,46 +309,44 @@ export default function Hire({ jobAdId }) {
                                     onSelect={handleSelectQ}
                                     showScore={true}
                                     candidateId={selectedCandidate?.id}
-                                    interviewReportId={selectedCandidate?.interviewReportId} // optional
-                                />) : (
-                                <div style={{ opacity: 0.6 }}>Select a candidate to see steps…</div>
+                                    interviewReportId={selectedCandidate?.interviewReportId}
+                                />
+                            ) : (
+                                <div className="muted">Select a candidate to see steps…</div>
                             )}
                         </CardBody>
                     </Card>
                 </Col>
 
-                {/* Skills read-only */}
-                <Col md="4">
+                {/* Skills (read-only) */}
+                <Col md="4" className="col-fill">
                     <label className="description-labels">Skills for this question:</label>
-                    <Card className="panel panel--short">
-                        <CardBody>
+                    <Card className="panel panel--fill">
+                        <CardBody className="panel__body">
                             {selectedCandidate ? (
                                 <StepSkills step={rightPaneStepObj} mode="view" />
                             ) : (
-                                <div style={{ opacity: 0.6 }}>Select a candidate to see skills…</div>
+                                <div className="muted">Select a candidate to see skills…</div>
                             )}
                         </CardBody>
                     </Card>
                 </Col>
             </Row>
 
-            {/* Comments (read-only) + HIRE */}
-            <Row style={{ marginTop: 16, alignItems: "flex-start" }}>
+            {/* BOTTOM ROW */}
+            <Row className="g-3" style={{ marginTop: 16 }}>
                 <Col md="8">
-                    <Card
-                        className="shadow-sm"
-                        style={{ backgroundColor: "#E5E7EB", borderRadius: 12, minHeight: 140 }}
-                    >
+                    <Card className="shadow-sm hire-comments-card">
                         <CardBody>
                             {!selectedCandidate ? (
-                                <div style={{ opacity: 0.6 }}>Select a candidate to see comments…</div>
+                                <div className="muted">Select a candidate to see comments…</div>
                             ) : (
                                 <Input
                                     type="textarea"
                                     rows={2}
                                     value={candComment}
                                     readOnly
-                                    style={{ resize: "none", backgroundColor: "#f3f4f6", cursor: "default", fontSize: 11 }}
+                                    className="hire-readonly-input"
                                 />
                             )}
                         </CardBody>
@@ -393,7 +361,7 @@ export default function Hire({ jobAdId }) {
                             !selectedCandidate ||
                             String(selectedCandidate.status || "").toLowerCase() === "hired"
                         }
-                        style={{ minWidth: 160, height: 44, fontWeight: 600 }}
+                        className="hire-btn"
                     >
                         HIRE
                     </Button>
@@ -405,7 +373,8 @@ export default function Hire({ jobAdId }) {
                 title="Confirm Hire"
                 message={
                     <>
-                        Do you really want to <b>Hire</b> <b>{selectedCandidate?.name}</b>? This will change the status to{" "}
+                        Do you really want to <b>Hire</b>{" "}
+                        <b>{selectedCandidate?.name}</b>? This will change the status to{" "}
                         <b>Hired</b>.
                     </>
                 }
@@ -417,7 +386,12 @@ export default function Hire({ jobAdId }) {
                 onCancel={() => setShowConfirm(false)}
             />
 
-            <TinyToast show={toast.show} text={toast.text} type={toast.type} onHide={hideToast} />
+            <TinyToast
+                show={toast.show}
+                text={toast.text}
+                type={toast.type}
+                onHide={hideToast}
+            />
         </div>
     );
 }
