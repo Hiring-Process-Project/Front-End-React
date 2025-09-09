@@ -1,6 +1,5 @@
 /* ========== PANELS ========== */
 .panel {
-    overflow-y: auto;
     background-color: #E5E7EB;
     border-radius: 12px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, .1);
@@ -528,7 +527,6 @@
     flex: 1 1 auto;
     min-height: 0;
     /* ΧΩΡΙΣ αυτό, συχνά δεν εμφανίζεται scrollbar */
-    overflow-y: auto;
     /* scroll ΜΕΣΑ στο περιεχόμενο */
 }
 
@@ -556,17 +554,18 @@
 }
 
 /* Το πραγματικό scrollable σώμα της λίστας */
+/* Το πραγματικό scrollable σώμα της λίστας */
 .clp-scroll {
     flex: 1 1 auto;
     min-height: 0;
-    /* ΧΩΡΙΣ αυτό δεν εμφανίζεται scrollbar */
     overflow: auto;
-    /* εδώ μπαίνει το scroll */
+    -webkit-overflow-scrolling: touch;
 }
+
 
 /* Δένει το κεντρικό CardBody στο viewport */
 .vh-shell {
-    height: calc(100vh - 270px);
+    height: calc(100vh - 300px);
     /* ρυθμίζεται αν έχεις πιο ψηλό header */
     min-height: 0;
     display: flex;
@@ -604,4 +603,260 @@
     min-height: 0;
     overflow: auto;
     /* εδώ μένει το scroll */
+}
+
+:root {
+    /* ρύθμισε το κενό που τρως από logo/navbar/margins ώστε να κουμπώσει στο viewport */
+    --app-chrome-gap: 400px;
+}
+
+/* Δένει ΟΛΟ το tab (τα 3 panels + comments) στο ύψος της οθόνης */
+.vh-shell {
+    height: calc(100dvh - var(--app-chrome-gap));
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* δεν αφήνουμε page scroll */
+}
+
+.vh-shell>.row {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.vh-shell .col-md-4,
+.vh-shell .col-md-6,
+.vh-shell .col-md-8 {
+    min-height: 0;
+}
+
+/* ——— βασικά panel helpers ——— */
+.panel {
+    background: #E5E7EB;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, .1);
+}
+
+.panel--flex {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.panel--flex .card-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.panel__header-row {
+    border-bottom: 1px solid rgb(183, 186, 188);
+}
+
+.panel__scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+
+/* ——— μόνο για το panel των υποψηφίων ——— */
+.candidate-panel.card.panel.panel--flex {
+    overflow: hidden !important;
+}
+
+.candidate-panel.card.panel.panel--flex .card-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: unset !important;
+    /* ΜΗ scroll στο CardBody */
+}
+
+.clp-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+
+/* scroll ΕΔΩ μόνο */
+
+/* Υπόλοιπα existing styles σου (αντιγράφω όσα χρειάζονται για συνοχή) */
+.description-labels {
+    display: inline-block;
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.candidate-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.candidate-btn,
+.question-btn {
+    background: #F6F6F6 !important;
+    color: #000;
+    font-weight: 500;
+    border: none !important;
+    border-radius: 8px !important;
+    font-size: 14px;
+    width: 100%;
+    padding: 10px 15px;
+    text-align: left;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .1);
+}
+
+.candidate-btn:hover,
+.question-btn:hover,
+.candidate-btn.active,
+.question-btn.active {
+    background: #cfd1d2 !important;
+    color: #000 !important;
+}
+
+.active-label {
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.text-muted {
+    color: #6B7280;
+}
+
+.btn-lg-fixed {
+    min-width: 120px;
+    height: 40px;
+}
+
+:root {
+    /* ρύθμισε το κενό που τρως από logo/navbar/margins ώστε να κουμπώσει στο viewport */
+    --app-chrome-gap: 180px;
+}
+
+/* Δένει ΟΛΟ το tab (τα 3 panels + comments) στο ύψος της οθόνης */
+.vh-shell {
+    height: calc(100dvh - var(--app-chrome-gap));
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* δεν αφήνουμε page scroll */
+}
+
+.vh-shell>.row {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.vh-shell .col-md-4,
+.vh-shell .col-md-6,
+.vh-shell .col-md-8 {
+    min-height: 0;
+}
+
+/* ——— βασικά panel helpers ——— */
+.panel {
+    background: #E5E7EB;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, .1);
+}
+
+.panel--flex {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.panel--flex .card-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.panel__header-row {
+    border-bottom: 1px solid rgb(183, 186, 188);
+}
+
+.panel__scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+
+/* ——— μόνο για το panel των υποψηφίων ——— */
+.candidate-panel.card.panel.panel--flex {
+    overflow: hidden !important;
+}
+
+.candidate-panel.card.panel.panel--flex .card-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: unset !important;
+    /* ΜΗ scroll στο CardBody */
+}
+
+.clp-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+
+/* scroll ΕΔΩ μόνο */
+
+/* Υπόλοιπα existing styles σου (αντιγράφω όσα χρειάζονται για συνοχή) */
+.description-labels {
+    display: inline-block;
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.candidate-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.candidate-btn,
+.question-btn {
+    background: #F6F6F6 !important;
+    color: #000;
+    font-weight: 500;
+    border: none !important;
+    border-radius: 8px !important;
+    font-size: 14px;
+    width: 100%;
+    padding: 10px 15px;
+    text-align: left;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .1);
+}
+
+.candidate-btn:hover,
+.question-btn:hover,
+.candidate-btn.active,
+.question-btn.active {
+    background: #cfd1d2 !important;
+    color: #000 !important;
+}
+
+.active-label {
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.text-muted {
+    color: #6B7280;
+}
+
+.btn-lg-fixed {
+    min-width: 120px;
+    height: 40px;
 }
