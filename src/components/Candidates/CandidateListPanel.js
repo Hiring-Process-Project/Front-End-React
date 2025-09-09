@@ -1,4 +1,3 @@
-// src/components/Candidates/CandidateListPanel.jsx
 import React, { useState } from "react";
 import { Card, CardBody, Row, Col, Button } from "reactstrap";
 import "./Candidates.css";
@@ -14,40 +13,26 @@ const CandidateListPanel = ({
     selectedCandidate,
     isLocked,
     jobAdId,
-    onCreated, // callback για refresh
+    onCreated,
 }) => {
     const [showAdd, setShowAdd] = useState(false);
 
     return (
         <Col md="4" className="d-flex flex-column" style={{ minHeight: 0 }}>
-            {/* ΠΑΝΩ: τίτλος + panel με λίστα (τεντώνει) */}
-            <div
-                style={{
-                    flex: "1 1 auto",
-                    minHeight: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                }}
-            >
+            {/* τίτλος + panel που τεντώνει */}
+            <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column" }}>
                 <label className="description-labels">Candidates:</label>
 
-                {/* Σημαντικό: ξεχωριστή κλάση για στοχευμένα overrides */}
-                <Card className="candidate-panel panel panel--flex">
-                    <CardBody className="vh-shell" style={{ minHeight: 0 }}>
-                        {/* Header ΔΕΝ σκρολάρει */}
+                <Card className="candidate-panel panel panel--flex" style={{ flex: '1 1 0%', minHeight: 0 }} >
+                    <CardBody className="d-flex flex-column" style={{ minHeight: 0 }}>
+                        {/* Header ΕΚΤΟΣ scroll */}
                         <Row className="panel__header-row" style={{ marginBottom: 8 }}>
-                            <Col md="4">
-                                <label className="active-label">Candidate No:</label>
-                            </Col>
-                            <Col md="4">
-                                <label className="active-label">Name:</label>
-                            </Col>
-                            <Col md="4">
-                                <label className="active-label">Status:</label>
-                            </Col>
+                            <Col md="4"><label className="active-label">Candidate No:</label></Col>
+                            <Col md="4"><label className="active-label">Name:</label></Col>
+                            <Col md="4"><label className="active-label">Status:</label></Col>
                         </Row>
 
-                        {/* ΜΟΝΟ εδώ μπαίνει το scroll */}
+                        {/* ΜΟΝΟ εδώ κάνει scroll */}
                         <div className="clp-scroll">
                             {loadingCandidates ? (
                                 <div>Loading candidates…</div>
@@ -61,7 +46,7 @@ const CandidateListPanel = ({
                             )}
                         </div>
 
-                        {/* Add Candidate — παραμένει ορατό, εκτός scroll */}
+                        {/* Buttons εκτός scroll */}
                         <div className="mt-3 d-flex justify-content-center">
                             <Button color="secondary" onClick={() => setShowAdd(true)}>
                                 Add Candidate
@@ -71,7 +56,7 @@ const CandidateListPanel = ({
                 </Card>
             </div>
 
-            {/* ΚΑΤΩ: Approve / Reject — σταθερά, έξω από το panel */}
+            {/* Approve / Reject — σταθερά κάτω */}
             <div className="d-flex justify-content-center gap-2 mt-3 pb-2">
                 <Button
                     color="success"
