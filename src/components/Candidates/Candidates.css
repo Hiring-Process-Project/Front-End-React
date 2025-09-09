@@ -3,7 +3,6 @@
     overflow-y: auto;
     background-color: #E5E7EB;
     border-radius: 12px;
-    height: 410px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, .1);
 }
 
@@ -505,4 +504,98 @@
     min-height: 0;
     /* χωρίς αυτό συχνά δεν εμφανίζεται scrollbar */
     overflow-y: auto;
+}
+
+/* Panels που τεντώνουν σε ύψος και κάνουν scroll ΜΕΣΑ στο body */
+.panel--flex {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    /* επιτρέπει να “μαζευτεί” σε flex container */
+    overflow: hidden;
+    /* το scroll θα το έχει το εσωτερικό */
+}
+
+/* Το εσωτερικό που θα έχει το scroll */
+.panel__scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    /* ΧΩΡΙΣ αυτό, συχνά δεν εμφανίζεται scrollbar */
+    overflow-y: auto;
+    /* scroll ΜΕΣΑ στο περιεχόμενο */
+}
+
+/* Αν το .panel έχει default overflow-y:auto, ακύρωσέ το όταν είναι --flex */
+.card.panel.panel--flex {
+    overflow: hidden !important;
+}
+
+/* Προαιρετικό: το header της λίστας να μη σκρολάρει */
+.panel__header-row {
+    border-bottom: 1px solid rgb(183, 186, 188);
+}
+
+/* --- CandidateListPanel: απομονωμένο panel --- */
+.candidate-panel.card.panel.panel--flex {
+    overflow: hidden !important;
+    /* να ΜΗν σκρολάρει το card */
+}
+
+.candidate-panel.card.panel.panel--flex .card-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: unset !important;
+    /* ακυρώνει τον γενικό κανόνα που έβαζε scroll/hidden στο CardBody */
+}
+
+/* Το πραγματικό scrollable σώμα της λίστας */
+.clp-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    /* ΧΩΡΙΣ αυτό δεν εμφανίζεται scrollbar */
+    overflow: auto;
+    /* εδώ μπαίνει το scroll */
+}
+
+/* Δένει το κεντρικό CardBody στο viewport */
+.vh-shell {
+    height: calc(100vh - 270px);
+    /* ρυθμίζεται αν έχεις πιο ψηλό header */
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* δεν αφήνουμε να “ξεχειλίσει” */
+}
+
+/* Η πρώτη γραμμή με τα 3 panels γεμίζει τον διαθέσιμο χώρο */
+.vh-shell>.row {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* Ασφάλεια: σε όλες τις στήλες μέσα στη row */
+.vh-shell .col-md-4,
+.vh-shell .col-md-6,
+.vh-shell .col-md-8 {
+    min-height: 0;
+}
+
+/* Το panel των candidates έχει δικό του scroll (όπως πριν) */
+.candidate-panel.card.panel.panel--flex {
+    overflow: hidden !important;
+}
+
+.candidate-panel.card.panel.panel--flex .card-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: unset !important;
+}
+
+.clp-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    /* εδώ μένει το scroll */
 }
