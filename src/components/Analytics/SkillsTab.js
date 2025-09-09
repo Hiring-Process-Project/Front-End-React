@@ -127,9 +127,7 @@ export default function SkillsTab({
             .finally(() => {
                 if (!ignore) setSkillsLoading(false);
             });
-        return () => {
-            ignore = true;
-        };
+        return () => { ignore = true; };
     }, [apiBase, questionId]);
 
     // 2) global analytics per skill
@@ -146,18 +144,10 @@ export default function SkillsTab({
                 if (!r.ok) throw new Error(await r.text().catch(() => `HTTP ${r.status}`));
                 return r.json();
             })
-            .then((j) => {
-                if (!ignore) setStats(j);
-            })
-            .catch((e) => {
-                if (!ignore) setStatsErr(String(e.message || e));
-            })
-            .finally(() => {
-                if (!ignore) setStatsLoading(false);
-            });
-        return () => {
-            ignore = true;
-        };
+            .then((j) => { if (!ignore) setStats(j); })
+            .catch((e) => { if (!ignore) setStatsErr(String(e.message || e)); })
+            .finally(() => { if (!ignore) setStatsLoading(false); });
+        return () => { ignore = true; };
     }, [apiBase, effectiveSkillId]);
 
     const avgSkillScore = val(stats?.avgSkillScore, stats?.avg_score, stats?.avgScore);
@@ -199,12 +189,7 @@ export default function SkillsTab({
                 <span>{passCount}/{total}</span>
                 {pctText && (
                     <span
-                        style={{
-                            marginLeft: 8,
-                            fontWeight: 500,
-                            fontSize: 18,
-                            color: '#6c757d',
-                        }}
+                        style={{ marginLeft: 8, fontWeight: 500, fontSize: 18, color: '#6c757d' }}
                     >
                         {pctText}
                     </span>
@@ -214,17 +199,18 @@ export default function SkillsTab({
     })();
 
     return (
-        <>
-            <Row className="g-3">
-                {/* Λίστα δεξιοτήτων — ίδιο layout με Questions (buttons) */}
-                <Col md="4">
-                    <Card className="shadow-sm h-100">
+        <div className="steps-tab-wrap q-col-flex q-no-x">
+            <Row className="q-fill gx-3 gy-tight">
+                {/* Λίστα δεξιοτήτων — ίδιο layout με Questions/Steps */}
+                <Col md="4" className="q-col-flex">
+                    <Card className="shadow-sm q-card-fill">
                         <CardBody style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                             <div style={{ fontWeight: 700, marginBottom: 6 }}>Skills</div>
 
                             <div
                                 style={{
-                                    maxHeight: 260,
+                                    flex: '1 1 auto',
+                                    minHeight: 0,
                                     overflow: 'auto',
                                     border: '1px solid #e9ecef',
                                     borderRadius: 8,
@@ -263,18 +249,23 @@ export default function SkillsTab({
                     </Card>
                 </Col>
 
-                {/* Analytics δεξιότητας */}
-                <Col md="8">
-                    <Card className="shadow-sm h-100">
-                        <CardBody>
+                {/* Analytics δεξιότητας — fixed header + εσωτερικό scroll */}
+                <Col md="8" className="q-col-flex">
+                    <Card className="shadow-sm q-card-fill">
+                        {/* Header εκτός scroll */}
+                        <div style={{ padding: '1rem 1rem 0 1rem' }}>
                             {!effectiveSkillId && <div className="text-muted">Select a skill to see its analytics.</div>}
+                            {effectiveSkillId && (
+                                <div style={{ fontWeight: 700, marginBottom: 6 }}>
+                                    Skill: <span style={{ fontWeight: 600 }}>{selectedSkill?.title ?? `#${effectiveSkillId}`}</span>
+                                </div>
+                            )}
+                        </div>
 
+                        {/* Scroll ONLY εδώ */}
+                        <CardBody className="q-card-body-scroll">
                             {effectiveSkillId && (
                                 <>
-                                    <div style={{ fontWeight: 700, marginBottom: 6 }}>
-                                        Skill: <span style={{ fontWeight: 600 }}>{selectedSkill?.title ?? `#${effectiveSkillId}`}</span>
-                                    </div>
-
                                     {statsLoading && (
                                         <div className="d-flex align-items-center" style={{ gap: 8 }}>
                                             <Spinner size="sm" /> Loading…
@@ -313,6 +304,6 @@ export default function SkillsTab({
                     </Card>
                 </Col>
             </Row>
-        </>
+        </div>
     );
 }

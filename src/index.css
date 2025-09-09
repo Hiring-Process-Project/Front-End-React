@@ -96,3 +96,77 @@ code {
   box-sizing: border-box;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
 }
+
+/* ===== Flex helpers για ύψος & εσωτερικό scroll  ANALYTICS ===== */
+.q-col-flex {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.q-fill {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.q-no-x {
+  overflow-x: hidden;
+}
+
+/* Το wrapper του tab: «όσο η οθόνη» (ρύθμισε το offset αν θες) */
+.steps-tab-wrap {
+  /* Αφαιρούμε header/nav paddings του layout σου – ρύθμισε το αν χρειαστεί */
+  height: calc(100vh - 240px);
+  min-height: 360px;
+  /* ασφάλεια σε μικρά ύψη */
+}
+
+.overview-tab-wrap {
+  height: calc(100vh - 260px);
+  min-height: 360px;
+}
+
+/* Κάρτα που γεμίζει το διαθέσιμο ύψος */
+.q-card-fill {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  /* κόβει εξωτερικές μπάρες */
+}
+
+/* Scroll ΜΟΝΟ στο σώμα της κάρτας */
+.q-card-body-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  /* εδώ γίνεται το scroll */
+}
+
+/* Κάνει το wrapper να μην “αιμορραγεί” κάτω, χωρίς να χαλάει το εσωτερικό scroll */
+.skills-tab-wrap {
+  height: calc(100vh - 220px);
+  /* ίδιο offset που έχεις και στα Steps */
+  min-height: 360px;
+  overflow: hidden;
+  /* κόβει εξωτερικές μπάρες */
+  padding-bottom: 8px;
+  /* λίγο μαξιλαράκι για shadow της κάρτας */
+  box-sizing: border-box;
+}
+
+/* Πιο “σφιχτά” κάθετα gutters μέσα στο Row του tab */
+.gy-tight {
+  --bs-gutter-y: 0.5rem;
+  /* αντί για 1rem των g-3 */
+}
+
+/* Τελειώνει καθαρά το περιεχόμενο στο τέλος του scrollable body */
+.q-card-body-scroll {
+  padding-bottom: 8px;
+}
+
+.q-card-body-scroll>.row:last-child {
+  margin-bottom: 0 !important;
+}

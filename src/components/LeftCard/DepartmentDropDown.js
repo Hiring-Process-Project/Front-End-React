@@ -22,37 +22,51 @@ function DepartmentDropdown({
     };
 
     const handleDepartmentClick = (dept, index) => {
+        const isClosing = openDepartmentIndex === index;
+
         onDepartmentSelect?.({ id: dept.departmentId ?? null, name: dept.department });
-        setOpenDepartmentIndex(openDepartmentIndex === index ? null : index);
+
+        // toggle
+        setOpenDepartmentIndex(isClosing ? null : index);
+
+        // καθάρισε selections όταν κλείνει ή αλλάζει department
+        onOccupationSelect?.(null);
+        onJobAdSelect?.(null);
     };
 
     return (
         <div className="dept-root">
-            {departments.map((dept, index) => (
-                <div key={`${dept.department}-${dept.departmentId ?? index}`} className="occupation-box">
-                    <Button
-                        onClick={() => handleDepartmentClick(dept, index)}
-                        className={`department-btn ${isActiveDept(dept) ? 'active' : ''}`}
-                        block
-                        title="Select department"
-                    >
-                        <div className="department-header">
-                            <span className="truncate-1">{dept.department}</span>
-                        </div>
-                    </Button>
+            {departments.map((dept, index) => {
+                const isOpen = openDepartmentIndex === index;
 
-                    <Collapse isOpen={openDepartmentIndex === index}>
-                        <OccupationDropdown
-                            occupations={dept.occupations}
-                            onJobAdSelect={onJobAdSelect}
-                            selectedJobAdId={selectedJobAdId}
-                            parentDepartmentId={dept.departmentId ?? selectedDepartmentId ?? null}
-                            onOccupationSelect={onOccupationSelect}
-                            selectedOccupationId={selectedOccupationId}
-                        />
-                    </Collapse>
-                </div>
-            ))}
+                return (
+                    <div key={`${dept.department}-${dept.departmentId ?? index}`} className="occupation-box">
+                        <Button
+                            onClick={() => handleDepartmentClick(dept, index)}
+                            className={`department-btn ${isActiveDept(dept) ? 'active' : ''}`}
+                            block
+                            title="Select department"
+                        >
+                            <div className="department-header">
+                                <span className="truncate-1">{dept.department}</span>
+                            </div>
+                        </Button>
+
+                        <Collapse isOpen={isOpen}>
+                            {/* 👇 ΚΡΙΣΙΜΟ: αλλάζουμε key όταν ανοίγει/κλείνει για remount */}
+                            <OccupationDropdown
+                                key={`${dept.departmentId ?? index}-${isOpen ? 'open' : 'closed'}`}
+                                occupations={dept.occupations}
+                                onJobAdSelect={onJobAdSelect}
+                                selectedJobAdId={selectedJobAdId}
+                                parentDepartmentId={dept.departmentId ?? selectedDepartmentId ?? null}
+                                onOccupationSelect={onOccupationSelect}
+                                selectedOccupationId={selectedOccupationId}
+                            />
+                        </Collapse>
+                    </div>
+                );
+            })}
         </div>
     );
 }

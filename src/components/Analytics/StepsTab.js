@@ -29,7 +29,6 @@ export default function StepsTab({
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState('');
 
-    // NEW: find selected step object for the header
     const selectedStep = useMemo(
         () => steps.find(s => s.id === selectedStepId) || null,
         [steps, selectedStepId]
@@ -146,10 +145,7 @@ export default function StepsTab({
                                 <div key={(b.from ?? i) + '-' + (b.to ?? i)} style={{ textAlign: 'center', flex: 1 }}>
                                     <div style={{ height: 120, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
                                         <div style={{ fontSize: 10, opacity: 0.85, marginBottom: 4 }}>{pct}</div>
-                                        <div
-                                            title={title}
-                                            style={{ height: `${hPx}px`, background: '#e9ecef', borderRadius: 6, width: '100%' }}
-                                        />
+                                        <div title={title} style={{ height: `${hPx}px`, background: '#e9ecef', borderRadius: 6, width: '100%' }} />
                                     </div>
                                     <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }} title={title}>
                                         {label}
@@ -166,7 +162,7 @@ export default function StepsTab({
         );
     }
 
-    /* --- εμφανίση "passed/total(XX.X%)" --- */
+    /* passed/total (XX.X%) */
     const passValue = (() => {
         if (!stats) return '—';
         const rate = Number(stats.passRate);
@@ -191,14 +187,7 @@ export default function StepsTab({
             <>
                 <span>{passCount}/{total}</span>
                 {pctText && (
-                    <span
-                        style={{
-                            marginLeft: 8,
-                            fontWeight: 500,
-                            fontSize: 18,
-                            color: '#6c757d',
-                        }}
-                    >
+                    <span style={{ marginLeft: 8, fontWeight: 500, fontSize: 18, color: '#6c757d' }}>
                         {pctText}
                     </span>
                 )}
@@ -206,124 +195,127 @@ export default function StepsTab({
         );
     })();
 
-    // Avg step score in 0–100 (×10)
     const avgStepScore100 =
         Number.isFinite(Number(stats?.avgStepScore))
             ? Math.max(0, Math.min(100, Number(stats.avgStepScore) * 10))
             : null;
 
     return (
-        <Row className="g-3">
-            <Col lg="4">
-                <Card className="shadow-sm h-100">
-                    <CardBody style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        <div style={{ fontWeight: 600, marginBottom: 4 }}>Steps</div>
+        <div className="steps-tab-wrap q-col-flex q-no-x">
+            <Row className="g-3 q-fill">
+                {/* Αριστερά: Steps list (σταθερή κάρτα με εσωτερικό σκρολάρισμα λίστας) */}
+                <Col lg="4" className="q-col-flex">
+                    <Card className="shadow-sm q-card-fill">
+                        <CardBody style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <div style={{ fontWeight: 600, marginBottom: 4 }}>Steps</div>
 
-                        <div style={{ maxHeight: 220, overflow: 'auto', border: '1px solid #e9ecef', borderRadius: 8, padding: 8 }}>
-                            {stepsLoading && (
-                                <div className="d-flex align-items-center" style={{ gap: 8 }}>
-                                    <Spinner size="sm" /> <span>Loading steps…</span>
-                                </div>
-                            )}
+                            <div style={{ /* scroll ΜΟΝΟ στη λίστα */
+                                flex: '1 1 auto', minHeight: 0, overflow: 'auto',
+                                border: '1px solid #e9ecef', borderRadius: 8, padding: 8
+                            }}>
+                                {stepsLoading && (
+                                    <div className="d-flex align-items-center" style={{ gap: 8 }}>
+                                        <Spinner size="sm" /> <span>Loading steps…</span>
+                                    </div>
+                                )}
 
-                            {!stepsLoading && stepsErr && steps.length === 0 && (
-                                <div className="text-danger" style={{ fontSize: 12 }}>{stepsErr}</div>
-                            )}
+                                {!stepsLoading && stepsErr && steps.length === 0 && (
+                                    <div className="text-danger" style={{ fontSize: 12 }}>{stepsErr}</div>
+                                )}
 
-                            {!stepsLoading && !stepsErr && steps.length === 0 && (
-                                <div className="text-muted" style={{ fontSize: 12 }}>No steps.</div>
-                            )}
+                                {!stepsLoading && !stepsErr && steps.length === 0 && (
+                                    <div className="text-muted" style={{ fontSize: 12 }}>No steps.</div>
+                                )}
 
-                            {steps.map(s => {
-                                const active = s.id === selectedStepId;
-                                return (
-                                    <Button
-                                        key={s.id}
-                                        onClick={() => { setSelectedStepId(s.id); onSelectStep?.(s.id); }}
-                                        className={`w-100 text-start ${active ? 'btn-secondary' : 'btn-light'}`}
-                                        style={{ marginBottom: 6, borderRadius: 8 }}
-                                    >
-                                        <div className="d-flex align-items-center justify-content-between">
-                                            <span style={{ fontWeight: active ? 600 : 500 }}>{s.title}</span>
-                                        </div>
-                                    </Button>
-                                );
-                            })}
-                        </div>
-                    </CardBody>
-                </Card>
-            </Col>
-
-            <Col lg="8">
-                {!selectedStepId && (
-                    <Card className="shadow-sm">
-                        <CardBody>
-                            <div className="text-muted">Select a step to see analytics.</div>
+                                {steps.map(s => {
+                                    const active = s.id === selectedStepId;
+                                    return (
+                                        <Button
+                                            key={s.id}
+                                            onClick={() => { setSelectedStepId(s.id); onSelectStep?.(s.id); }}
+                                            className={`w-100 text-start ${active ? 'btn-secondary' : 'btn-light'}`}
+                                            style={{ marginBottom: 6, borderRadius: 8 }}
+                                        >
+                                            <div className="d-flex align-items-center justify-content-between">
+                                                <span style={{ fontWeight: active ? 600 : 500 }}>{s.title}</span>
+                                            </div>
+                                        </Button>
+                                    );
+                                })}
+                            </div>
                         </CardBody>
                     </Card>
-                )}
+                </Col>
 
-                {selectedStepId && (
-                    <Card className="shadow-sm">
-                        <CardBody>
-                            {/* NEW: Header like in Question */}
-                            <div style={{ fontWeight: 700, marginBottom: 6 }}>
-                                Step:{' '}
-                                <span style={{ fontWeight: 600 }}>
-                                    {selectedStep?.title ?? `#${selectedStepId}`}
-                                </span>
-                            </div>
-
-                            {loading && (
-                                <div className="d-flex align-items-center" style={{ gap: 8 }}>
-                                    <Spinner size="sm" /> <span>Loading step analytics…</span>
+                {/* Δεξιά: Analytics κάρτα ΠΛΗΡΟΥΣ ΥΨΟΥΣ με εσωτερικό scroll */}
+                <Col lg="8" className="q-col-flex">
+                    <Card className="shadow-sm q-card-fill">
+                        {/* Header μένει fixed */}
+                        <div style={{ padding: '1rem 1rem 0 1rem' }}>
+                            {!selectedStepId && <div className="text-muted">Select a step to see analytics.</div>}
+                            {selectedStepId && (
+                                <div style={{ fontWeight: 700, marginBottom: 6 }}>
+                                    Step: <span style={{ fontWeight: 600 }}>{selectedStep?.title ?? `#${selectedStepId}`}</span>
                                 </div>
                             )}
-                            {err && <div className="text-danger">Error: {err}</div>}
+                        </div>
 
-                            {stats && (
+                        {/* Scroll ONLY εδώ, ώστε να φαίνεται πάντα ΟΛΗ η κάρτα */}
+                        <CardBody className="q-card-body-scroll">
+                            {selectedStepId && (
                                 <>
-                                    <Row className="g-3">
-                                        <Col md="6"><Kpi title="Candidates with score ≥ 50%" value={passValue} /></Col>
-                                        <Col md="6">
-                                            <Kpi
-                                                title="Avg Step Score (0–100)"
-                                                value={avgStepScore100 != null ? avgStepScore100.toFixed(1) : '—'}
-                                            />
-                                        </Col>
-                                    </Row>
+                                    {loading && (
+                                        <div className="d-flex align-items-center" style={{ gap: 8 }}>
+                                            <Spinner size="sm" /> <span>Loading step analytics…</span>
+                                        </div>
+                                    )}
+                                    {err && <div className="text-danger">Error: {err}</div>}
 
-                                    <Row className="g-3 mt-1">
-                                        <Col md="12">
-                                            <StepScoreHistogram buckets={stats.scoreDistribution ?? []} />
-                                        </Col>
-                                    </Row>
+                                    {stats && (
+                                        <>
+                                            <Row className="g-3">
+                                                <Col md="6"><Kpi title="Candidates with score ≥ 50%" value={passValue} /></Col>
+                                                <Col md="6">
+                                                    <Kpi
+                                                        title="Avg Step Score (0–100)"
+                                                        value={avgStepScore100 != null ? avgStepScore100.toFixed(1) : '—'}
+                                                    />
+                                                </Col>
+                                            </Row>
 
-                                    <Row className="g-3 mt-1">
-                                        <Col md="6">
-                                            <Card className="shadow-sm h-100">
-                                                <CardBody>
-                                                    <div style={{ fontWeight: 600, marginBottom: 8 }}>Question Ranking</div>
-                                                    <ListGroup flush>
-                                                        {(stats.questionRanking ?? []).map(q => (
-                                                            <ListGroupItem key={q.question} className="d-flex align-items-center justify-content-between">
-                                                                <span>{q.question}</span>
-                                                                <strong>{fmt(q.avgScore ?? q.averageScore, 1)}</strong>
-                                                            </ListGroupItem>
-                                                        ))}
-                                                        {(!stats.questionRanking || stats.questionRanking.length === 0) &&
-                                                            <ListGroupItem className="text-muted">—</ListGroupItem>}
-                                                    </ListGroup>
-                                                </CardBody>
-                                            </Card>
-                                        </Col>
-                                    </Row>
+                                            <Row className="g-3 mt-1">
+                                                <Col md="12">
+                                                    <StepScoreHistogram buckets={stats.scoreDistribution ?? []} />
+                                                </Col>
+                                            </Row>
+
+                                            <Row className="g-3 mt-1">
+                                                <Col md="6">
+                                                    <Card className="shadow-sm h-100">
+                                                        <CardBody>
+                                                            <div style={{ fontWeight: 600, marginBottom: 8 }}>Question Ranking</div>
+                                                            <ListGroup flush>
+                                                                {(stats.questionRanking ?? []).map(q => (
+                                                                    <ListGroupItem key={q.question} className="d-flex align-items-center justify-content-between">
+                                                                        <span>{q.question}</span>
+                                                                        <strong>{fmt(q.avgScore ?? q.averageScore, 1)}</strong>
+                                                                    </ListGroupItem>
+                                                                ))}
+                                                                {(!stats.questionRanking || stats.questionRanking.length === 0) &&
+                                                                    <ListGroupItem className="text-muted">—</ListGroupItem>}
+                                                            </ListGroup>
+                                                        </CardBody>
+                                                    </Card>
+                                                </Col>
+                                            </Row>
+                                        </>
+                                    )}
                                 </>
                             )}
                         </CardBody>
                     </Card>
-                )}
-            </Col>
-        </Row>
+                </Col>
+            </Row>
+        </div>
     );
 }
