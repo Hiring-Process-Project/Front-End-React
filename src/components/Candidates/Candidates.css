@@ -101,7 +101,7 @@
 .candidate-status {
     flex: 1;
     white-space: nowrap;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .candidate-index {
@@ -129,7 +129,7 @@
 .question-text {
     flex: 1;
     min-width: 0;
-    font-size: 11px;
+    font-size: 12px;
     white-space: normal;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -149,7 +149,7 @@
     text-align: left;
     margin-bottom: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .step-btn:hover {
@@ -168,6 +168,7 @@
     border-radius: 9999px;
     padding: 2px 10px;
     line-height: 1.2;
+    font-size: 12px;
 }
 
 .score-badge,
@@ -178,6 +179,7 @@
     border-radius: 9999px;
     padding: 2px 10px;
     line-height: 1.2;
+    font-size: 12px;
 }
 
 /* ========== CANDIDATE DETAILS (collapse) ========== */
@@ -237,7 +239,7 @@
     background: #F6F6F6;
     border-radius: 12px;
     padding: 10px 12px;
-    font-size: 11px;
+    font-size: 12px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
 }
 
@@ -267,7 +269,7 @@
     padding: 10px 12px;
     text-align: center;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .lock-banner__title {
@@ -294,18 +296,18 @@
 
 /* ========== INPUTS & BUTTONS (common tweaks) ========== */
 .input-sm {
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .textarea-sm {
-    font-size: 11px;
+    font-size: 12px;
     resize: vertical;
 }
 
 .btn-sm-fixed {
     min-width: 108px;
     height: 34px;
-    font-size: 11px;
+    font-size: 15px;
 }
 
 .btn-lg-fixed {
@@ -329,7 +331,7 @@
 }
 
 .step-skills__btn {
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .step-skills__row {
@@ -360,6 +362,7 @@
 
 .step-skills__item {
     margin-bottom: 8px;
+    font-size: 12px;
 }
 
 .step-skills__card,
@@ -409,6 +412,7 @@
     gap: 8px;
     align-items: center;
     margin-bottom: 8px;
+    font-size: 12px;
 }
 
 /* ========== Utility for vertical color bar holder ========== */
@@ -419,9 +423,11 @@
 
 /* ========== CandidateListPanel active labels (unchanged semantics) ========== */
 .active-label {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
 }
+
+
 
 /* ========== Misc ========== */
 .placeholder-wrap {
@@ -432,13 +438,13 @@
 
 .placeholder-title {
     font-weight: 600;
-    font-size: 11px;
+    font-size: 12px;
     margin-bottom: 6px;
     color: #374151;
 }
 
 .analytics-scope-breadcrumb {
-    font-size: 0.85rem;
+    font-size: 12px;
     color: #6B7280;
     font-weight: 500;
 }
