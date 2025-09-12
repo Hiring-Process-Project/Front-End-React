@@ -266,8 +266,15 @@ export default function QuestionsTab({
                                                 </Col>
                                             </Row>
 
-                                            <Row className="g-3">
-                                                <Col md="12"><Histogram buckets={distribution} /></Col>
+                                            <Row className="g-3 mt-1">
+                                                <Col md="12">
+                                                    {/* ✅ ΜΟΝΗ αλλαγή: Histogram μέσα σε Card */}
+                                                    <Card className="shadow-sm h-100">
+                                                        <CardBody>
+                                                            <Histogram buckets={distribution} />
+                                                        </CardBody>
+                                                    </Card>
+                                                </Col>
                                             </Row>
 
                                             <Row className="g-3 mt-1">
@@ -276,7 +283,7 @@ export default function QuestionsTab({
                                                         <CardBody>
                                                             <div style={{ fontWeight: 600, marginBottom: 8 }}>Skill Ranking</div>
                                                             <ListGroup flush>
-                                                                {(skillRanking ?? []).map(s => (
+                                                                {(stats?.skillRanking ?? []).map((s) => (
                                                                     <ListGroupItem
                                                                         key={s.skill}
                                                                         className="d-flex align-items-center justify-content-between"
@@ -285,7 +292,7 @@ export default function QuestionsTab({
                                                                         <strong>{fmt1(s.avgScore ?? s.averageScore ?? s.avg_score)}</strong>
                                                                     </ListGroupItem>
                                                                 ))}
-                                                                {(!skillRanking || skillRanking.length === 0) && (
+                                                                {(!stats?.skillRanking || stats.skillRanking.length === 0) && (
                                                                     <ListGroupItem className="text-muted">—</ListGroupItem>
                                                                 )}
                                                             </ListGroup>

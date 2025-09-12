@@ -47,9 +47,16 @@ const CandidateListPanel = ({
                                 <div style={{ color: "crimson" }}>Error: {errCandidates}</div>
                             ) : (
                                 <CandidateDropdown
+                                    key={selectedCandidate ? "hasSel" : "noSel"}          // προαιρετικό hack
                                     candidates={candidates}
-                                    onSelect={(cand) => setSelectedCandidate(cand)}
+                                    selectedId={selectedCandidate?.id ?? null}
+                                    expandedId={selectedCandidate?.id ?? null}            // <<-- NEW: ελέγχουμε αν είναι ανοιχτό
+                                    onSelect={(cand) => {
+                                        setSelectedCandidate(prev => (prev?.id === cand?.id ? null : cand));
+                                    }}
                                 />
+
+
                             )}
                         </div>
 

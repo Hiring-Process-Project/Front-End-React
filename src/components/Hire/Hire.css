@@ -1,38 +1,83 @@
-/* ---------- Hire layout helpers ---------- */
-.page-stack {
+/* ================== Viewport shell (ίδιο pattern με Candidates) ================== */
+:root {
+    /* ρύθμισε το κενό που τρως από header/nav κ.λπ. αν χρειαστεί */
+    --app-chrome-gap: 180px;
+}
+
+.vh-shell {
+    height: calc(100dvh - var(--app-chrome-gap));
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    height: 100%;
+    overflow: hidden;
+    /* αποφεύγουμε page scroll */
+}
+
+.vh-shell>.row {
+    flex: 1 1 auto;
+    min-height: 0;
+    /* κρίσιμο για να δουλέψει το εσωτερικό scroll */
+}
+
+.vh-shell .col-md-4,
+.vh-shell .col-md-6,
+.vh-shell .col-md-8 {
     min-height: 0;
 }
 
-.row-fill {
-    display: flex;
-    align-items: stretch;
-    min-height: 0;
+/* ================== Panels (ίδιο baseline με Candidates) ================== */
+.panel {
+    background: #E5E7EB;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, .1);
 }
 
-.col-fill {
+.panel--flex {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    overflow: hidden;
+    /* το scroll θα γίνει στον inner wrapper */
 }
 
-.panel--fill {
-    flex: 1;
-    height: auto;
+/* by default το CardBody δεν σκρολάρει (όπως στο Candidates) */
+.panel--flex .card-body {
+    flex: 1 1 auto;
     min-height: 0;
+    overflow: hidden;
 }
 
-.panel__body {
-    flex: 1;
+/* Header γραμμή μέσα στα cards */
+.panel__header-row {
+    border-bottom: 1px solid rgb(183, 186, 188);
+}
+
+/* ================== Scroll containers ================== */
+/* ΜΟΝΟ εδώ κάνουμε scroll για Steps & Skills (το CardBody παίρνει αυτήν την κλάση) */
+.panel__scroll {
+    flex: 1 1 auto;
     min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: auto;
     -webkit-overflow-scrolling: touch;
-    scrollbar-gutter: stable;
 }
 
+/* ΜΟΝΟ εδώ κάνουμε scroll για τη λίστα Approved Candidates (inner div) */
+.clp-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Μη βάζουν δικά τους max-height/overflow τα εσωτερικά wrappers του StepsDropDown */
+.panel__scroll .steps-wrapper,
+.panel__scroll .candidate-container,
+.panel__scroll .question-box {
+    overflow: visible !important;
+    max-height: none !important;
+}
+
+/* ================== Hire specific UI ================== */
 .muted {
     opacity: .6;
     font-size: 18px;
@@ -42,13 +87,14 @@
     background-color: #E5E7EB;
     border-radius: 12px;
     min-height: 140px;
+    /* μόνο min, δεν είναι fixed */
 }
 
 .hire-readonly-input {
     resize: none;
     background-color: #f3f4f6;
     cursor: default;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .hire-btn {
@@ -57,36 +103,51 @@
     font-weight: 600;
 }
 
-/* Το πραγματικό scroll ζει εδώ */
-.panel__body--steps {
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-gutter: stable;
+/* Ετικέτες */
+.description-labels {
+    display: inline-block;
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #374151;
 }
 
-/* Σιγουρέψου ότι ΚΑΝΕΝΑ inner wrapper του StepsDropDown δεν κάνει δικό του scroll */
-.panel__body--steps .candidate-container,
-.panel__body--steps .question-box,
-.panel__body--steps .steps-wrapper {
-    overflow: visible !important;
-    max-height: none !important;
+.active-label {
+    font-size: 12px;
+    font-weight: 600;
 }
 
-/* Panel με ύψος όσο χρειάζεται μέχρι το τελευταίο στοιχείο */
-.panel--auto {
-    height: auto;
-    /* όχι fixed */
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
+/* Μικρό spacing util */
+.mt-8 {
+    margin-top: 8px;
 }
 
-.panel__body--steps {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    /* scroll μόνο αν χρειάζεται */
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
+/* ================== TinyToast ================== */
+.tiny-toast {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    color: #fff;
+    padding: 6px 8px;
+    border-radius: 8px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+    z-index: 9999;
+    font-weight: 600;
+    font-size: 11px;
+}
+
+.tiny-toast--info {
+    background: #334155;
+}
+
+.tiny-toast--success {
+    background: #16a34a;
+}
+
+.tiny-toast--warning {
+    background: #f59e0b;
+}
+
+.tiny-toast--error {
+    background: #dc2626;
 }

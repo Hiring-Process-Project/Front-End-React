@@ -46,8 +46,7 @@ export default function Hire({ jobAdId }) {
     const [rightPane, setRightPane] = useState(null);
 
     const [toast, setToast] = useState({ show: false, text: "", type: "info" });
-    const showToast = (text, type = "info") =>
-        setToast({ show: true, text, type });
+    const showToast = (text, type = "info") => setToast({ show: true, text, type });
     const hideToast = () => setToast((t) => ({ ...t, show: false }));
 
     const [showConfirm, setShowConfirm] = useState(false);
@@ -69,24 +68,18 @@ export default function Hire({ jobAdId }) {
         if (!jobAdId) return;
         (async () => {
             try {
-                const r = await fetch(
-                    `${API_BASE}/api/v1/candidates/jobad/${jobAdId}/final-scores`
-                );
+                const r = await fetch(`${API_BASE}/api/v1/candidates/jobad/${jobAdId}/final-scores`);
                 const data = r.ok ? await r.json() : [];
                 const mapped = (Array.isArray(data) ? data : [])
                     .filter((d) =>
-                        ["approved", "accepted", "hired"].includes(
-                            String(d.status || "").toLowerCase()
-                        )
+                        ["approved", "accepted", "hired"].includes(String(d.status || "").toLowerCase())
                     )
                     .map((d) => ({
                         id: d.candidateId ?? d.id,
                         name: `${d.firstName || ""} ${d.lastName || ""}`.trim(),
                         status: d.status,
                         avgScore:
-                            typeof d.avgScore === "number" && isFinite(d.avgScore)
-                                ? d.avgScore
-                                : null,
+                            typeof d.avgScore === "number" && isFinite(d.avgScore) ? d.avgScore : null,
                     }));
                 setCandidates(mapped);
             } catch {
@@ -237,71 +230,84 @@ export default function Hire({ jobAdId }) {
         }
     };
 
-    if (!jobAdId) {
-        return (
-            <Row>
-                <Col md="12">
-                    <CardBody>Select a job ad to view its candidates.</CardBody>
-                </Col>
-            </Row>
-        );
-    }
+    if (!jobAdId) return <p style={{ padding: "1rem" }}>Select a Job Ad to view its candidates.</p>;
 
     return (
-        <div className="page-stack">
-            {/* TOP ROW: γεμίζει όλο τον διαθέσιμο χώρο */}
-            <Row className="row-fill flex-grow-1 g-3">
+        <div className="vh-shell hire-shell">
+            {/* TOP ROW: γεμίζει τον χώρο, με εσωτερικά scroll */}
+            <Row className="g-3" style={{ flex: '1 1 auto', minHeight: 0 }}>
                 {/* Approved candidates */}
-                <Col md="4" className="col-fill">
-                    <label className="description-labels">Approved Candidates:</label>
-                    <Card className="panel panel--fill">
-                        <CardBody className="panel__body">
-                            <Row className="panel__header-row">
-                                <Col md="4"><label className="active-label">Score:</label></Col>
-                                <Col md="4"><label className="active-label">Name:</label></Col>
-                                <Col md="4"><label className="active-label">Status:</label></Col>
-                            </Row>
+                <Col md="4" className="d-flex flex-column" style={{ minHeight: 0, height: '100%' }}>
+                    <div style={{ flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                        <label className="description-labels">Approved Candidates:</label>
 
-                            <CandidateDropdown
-                                candidates={candidates}
-                                renderLeft={(c) =>
-                                    Number.isFinite(c.avgScore) ? c.avgScore : "—"
-                                }
-                                onSelect={async (cand) => {
-                                    if (!cand) return;
-                                    try {
-                                        const r = await fetch(`${API_BASE}/api/v1/candidates/${cand.id}`);
-                                        const d = r.ok ? await r.json() : null;
-                                        const enriched = {
-                                            ...cand,
-                                            email: d?.email ?? "",
-                                            cv: d?.cvPath ?? "",
-                                        };
-                                        setSelectedCandidate(enriched);
-                                        setCandidates((prev) =>
-                                            prev.map((x) =>
-                                                x.id === cand.id
-                                                    ? { ...x, email: enriched.email, cv: enriched.cv }
-                                                    : x
-                                            )
-                                        );
-                                    } catch {
-                                        setSelectedCandidate(cand);
-                                    }
-                                    setSelectedStep(null);
-                                    setSelectedQuestion(null);
-                                    setRightPane(null);
+                        <Card className="panel panel--flex" style={{ flex: '1 1 0%', minHeight: 0, display: 'flex' }}>
+                            <CardBody
+                                style={{
+                                    minHeight: 0,
+                                    height: '100%',
+                                    display: 'grid',
+                                    gridTemplateRows: 'auto 1fr', // header / scroll list
+                                    gap: 8,
                                 }}
-                            />
-                        </CardBody>
-                    </Card>
+                            >
+                                {/* Header εκτός scroll */}
+                                <Row className="panel__header-row">
+                                    <Col md="4"><label className="active-label">Score:</label></Col>
+                                    <Col md="4"><label className="active-label">Name:</label></Col>
+                                    <Col md="4"><label className="active-label">Status:</label></Col>
+                                </Row>
+
+                                {/* ΜΟΝΟ εδώ κάνει scroll (όπως στο Candidates) */}
+                                <div className="clp-scroll">
+                                    <CandidateDropdown
+                                        candidates={candidates}
+                                        selectedId={selectedCandidate?.id ?? null}   // <-- ΚΡΙΣΙΜΟ: controlled mode
+                                        renderLeft={(c) => (Number.isFinite(c.avgScore) ? c.avgScore : '—')}
+                                        onSelect={async (cand) => {
+                                            // toggle off -> καθάρισε τα πάντα ΚΑΙ κλείνει το collapse στο ίδιο κλικ
+                                            if (!cand) {
+                                                setSelectedCandidate(null);
+                                                setSelectedStep(null);
+                                                setSelectedQuestion(null);
+                                                setRightPane(null);
+                                                setCandComment('');
+                                                return;
+                                            }
+
+                                            // επιλογή νέου candidate
+                                            try {
+                                                const r = await fetch(`${API_BASE}/api/v1/candidates/${cand.id}`);
+                                                const d = r.ok ? await r.json() : null;
+                                                const enriched = { ...cand, email: d?.email ?? '', cv: d?.cvPath ?? '' };
+                                                setSelectedCandidate(enriched);
+                                                setCandidates(prev =>
+                                                    prev.map(x => (x.id === cand.id ? { ...x, email: enriched.email, cv: enriched.cv } : x))
+                                                );
+                                            } catch {
+                                                setSelectedCandidate(cand);
+                                            }
+
+                                            // reset steps/questions/skills κάθε φορά που αλλάζει υποψήφιος
+                                            setSelectedStep(null);
+                                            setSelectedQuestion(null);
+                                            setRightPane(null);
+                                        }}
+                                    />
+
+
+                                </div>
+                            </CardBody>
+                        </Card>
+                    </div>
                 </Col>
 
                 {/* Steps */}
-                <Col md="4" className="col-fill">
+                <Col md="4" className="d-flex flex-column" style={{ minHeight: 0, height: '100%' }}>
                     <label className="description-labels">Interview Steps:</label>
-                    <Card className="panel panel--fill">
-                        <CardBody className="panel__body">
+                    <Card className="panel panel--flex">
+                        {/* ΣΗΜΑΝΤΙΚΟ: το CardBody να είναι scrollable */}
+                        <CardBody className="panel__scroll">
                             {selectedCandidate ? (
                                 <StepsDropDown
                                     steps={steps}
@@ -319,10 +325,11 @@ export default function Hire({ jobAdId }) {
                 </Col>
 
                 {/* Skills (read-only) */}
-                <Col md="4" className="col-fill">
+                <Col md="4" className="d-flex flex-column" style={{ minHeight: 0, height: '100%' }}>
                     <label className="description-labels">Skills for this question:</label>
-                    <Card className="panel panel--fill">
-                        <CardBody className="panel__body">
+                    <Card className="panel panel--flex">
+                        {/* ΣΗΜΑΝΤΙΚΟ: scroll και εδώ */}
+                        <CardBody className="panel__scroll">
                             {selectedCandidate ? (
                                 <StepSkills step={rightPaneStepObj} mode="view" />
                             ) : (
@@ -333,8 +340,8 @@ export default function Hire({ jobAdId }) {
                 </Col>
             </Row>
 
-            {/* BOTTOM ROW */}
-            <Row className="g-3" style={{ marginTop: 16 }}>
+            {/* BOTTOM ROW: κολλημένο κάτω, δεν μεγαλώνει */}
+            <Row className="g-3 mt-8" style={{ flex: '0 0 auto' }}>
                 <Col md="8">
                     <Card className="shadow-sm hire-comments-card">
                         <CardBody>
@@ -357,10 +364,7 @@ export default function Hire({ jobAdId }) {
                     <Button
                         color="success"
                         onClick={openHireModal}
-                        disabled={
-                            !selectedCandidate ||
-                            String(selectedCandidate.status || "").toLowerCase() === "hired"
-                        }
+                        disabled={!selectedCandidate || String(selectedCandidate.status || '').toLowerCase() === 'hired'}
                         className="hire-btn"
                     >
                         HIRE
@@ -373,9 +377,8 @@ export default function Hire({ jobAdId }) {
                 title="Confirm Hire"
                 message={
                     <>
-                        Do you really want to <b>Hire</b>{" "}
-                        <b>{selectedCandidate?.name}</b>? This will change the status to{" "}
-                        <b>Hired</b>.
+                        Do you really want to <b>Hire</b> <b>{selectedCandidate?.name}</b>? This will change the
+                        status to <b>Hired</b>.
                     </>
                 }
                 confirmText="Confirm"
@@ -386,12 +389,8 @@ export default function Hire({ jobAdId }) {
                 onCancel={() => setShowConfirm(false)}
             />
 
-            <TinyToast
-                show={toast.show}
-                text={toast.text}
-                type={toast.type}
-                onHide={hideToast}
-            />
+            <TinyToast show={toast.show} text={toast.text} type={toast.type} onHide={hideToast} />
         </div>
     );
+
 }

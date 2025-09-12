@@ -265,7 +265,7 @@ export default function StepSkills({ step, mode = "edit", onAfterSave }) {
             <div className="placeholder-wrap">
                 {step?.name && <div className="description-labels">{step.name}</div>}
 
-                <div className="box box--fullwidth box__content-min50">{placeholderText}</div>
+                <div className="box box__content-min50">{placeholderText}</div>
 
                 <TinyToast show={toast.show} text={toast.text} type={toast.type} onHide={hideToast} />
             </div>
@@ -285,7 +285,7 @@ export default function StepSkills({ step, mode = "edit", onAfterSave }) {
                     // ===== VIEW =====
                     if (readOnly) {
                         return (
-                            <div key={s.id} className="box box--fullwidth step-skills__card">
+                            <div key={s.id} className="box step-skills__card">
                                 <div className="step-skills__item" style={{ fontWeight: 700 }}>{s.name}</div>
 
                                 {/* Score line: value + colored vertical bar */}
@@ -313,7 +313,7 @@ export default function StepSkills({ step, mode = "edit", onAfterSave }) {
 
                     // ===== EDIT =====
                     return (
-                        <div key={s.id} className="box box--fullwidth step-skills__card">
+                        <div key={s.id} className="box step-skills__card">
                             <div className="step-skills__item" style={{ fontWeight: 700 }}>{s.name}</div>
 
                             {/* Score input + colored vertical bar */}

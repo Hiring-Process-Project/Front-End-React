@@ -69,6 +69,9 @@ export default function Candidates({ jobAdId }) {
     const canEdit = !!selectedCandidate && !isLocked;
     const isCommentLocked = isLocked;
 
+    const [rightPane, setRightPane] = useState(null);
+
+
     // reset on job change
     useEffect(() => {
         setSelectedCandidate(null);
@@ -79,6 +82,21 @@ export default function Candidates({ jobAdId }) {
         setInterviewId(null);
         setCommentsHeight(null);
     }, [jobAdId]);
+
+    useEffect(() => {
+        if (!selectedCandidate) {
+            setSelectedStep(null);
+            setSelectedQuestion(null);
+            setRightPane(null);                        // κλείνει τα skills
+            setCandComment("");                        // καθαρίζει σχόλια
+            setSteps(prev => prev.map(s => ({          // καθαρίζει metrics/ratings
+                ...s,
+                __metrics: undefined,
+                questions: (s.questions || []).map(q => ({ ...q, __metrics: undefined }))
+            })));
+        }
+    }, [selectedCandidate]);
+
 
     /* 1) candidates */
     useEffect(() => {
@@ -102,6 +120,7 @@ export default function Candidates({ jobAdId }) {
                     email: c.email,
                     status: c.status,
                     cv: c.cvPath,
+                    cvName: c.cvOriginalName,
                     interviewReportId: c?.interviewReportId ?? null,
                 }));
                 setCandidates(mapped);
@@ -172,6 +191,19 @@ export default function Candidates({ jobAdId }) {
         return () => ac.abort();
     }, [jobAdId]);
 
+    /* 2.5) reset metrics όταν αλλάζει υποψήφιος */
+    useEffect(() => {
+        setRightPane(null);
+        setSteps(prev =>
+            prev.map(s => ({
+                ...s,
+                __metrics: undefined,
+                questions: (s.questions || []).map(q => ({ ...q, __metrics: undefined }))
+            }))
+        );
+    }, [selectedCandidate?.id]);
+
+
     /* 3) assessments per candidate */
     useEffect(() => {
         if (!interviewId || !selectedCandidate?.id) {
@@ -216,7 +248,7 @@ export default function Candidates({ jobAdId }) {
     }, [interviewId, selectedCandidate?.id]);
 
     /* 4) right pane: skills */
-    const [rightPane, setRightPane] = useState(null);
+    // const [rightPane, setRightPane] = useState(null);
 
     const handleSelectQ = useCallback(
         async (step, q) => {
@@ -424,28 +456,11 @@ export default function Candidates({ jobAdId }) {
         }
     }
 
-    // ----------- RENDER -----------
-
-    // Αν δεν υπάρχει jobAd επιλέγεται, δείξε ένα απλό state μέσα σε Card με vh-shell
-    if (!jobAdId) {
-        return (
-            <Card className="shadow-sm" style={{ backgroundColor: "#F6F6F6" }}>
-                <CardBody className="vh-shell">
-                    <Row>
-                        <Col md="12">
-                            <CardBody>Select a job ad to view its candidates.</CardBody>
-                        </Col>
-                    </Row>
-                </CardBody>
-            </Card>
-        );
-    }
-
+    if (!jobAdId) return <p style={{ padding: "1rem" }}>Select a Job Ad to view its candidates.</p>;
 
     return (
         <div className="vh-shell">
             <Row style={{ flex: 1, display: "flex", minHeight: 0 }}>
-                {/* LEFT: candidates */}
                 <CandidateListPanel
                     jobAdId={jobAdId}
                     loadingCandidates={loadingCandidates}
@@ -456,19 +471,26 @@ export default function Candidates({ jobAdId }) {
                     selectedCandidate={selectedCandidate}
                     isLocked={isLocked}
                     onCreated={(newCand) => {
-                        setCandidates((prev) => [
-                            ...prev,
-                            {
-                                id: newCand.id,
-                                name: `${newCand.firstName} ${newCand.lastName}`.trim(),
-                                email: newCand.email,
-                                status: newCand.status,
-                                cv: newCand.cvPath,
-                                interviewReportId: newCand?.interviewReport?.id ?? null,
-                            },
-                        ]);
+                        const mapped = {
+                            id: newCand.id,
+                            name: `${newCand.firstName} ${newCand.lastName}`.trim(),
+                            email: newCand.email,
+                            status: newCand.status ?? "Pending",
+                            cv: newCand.cvPath,
+                            cvName: newCand.cvOriginalName,
+                            interviewReportId: newCand?.interviewReport?.id ?? null,
+                        };
+
+                        // ενημέρωση λίστας χωρίς διπλά
+                        setCandidates(prev => {
+                            const exists = prev.some(c => c.id === mapped.id);
+                            return exists ? prev.map(c => (c.id === mapped.id ? mapped : c)) : [...prev, mapped];
+                        });
+
+                        // ΔΕΝ αλλάζουμε selectedCandidate -> μένει ο παλιός με τις βαθμολογίες του
                     }}
                 />
+
 
                 {/* RIGHT: Steps + Skills + Comments */}
                 <Col md="8" className="d-flex flex-column" style={{ minHeight: "100%", height: "100%" }}>
