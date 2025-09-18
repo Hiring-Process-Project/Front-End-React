@@ -24,6 +24,12 @@ const isEditableStatus = (raw) => {
     return n === "pending" || n === "pedding" || n === "draft";
 };
 
+// safe toast helper
+const toast = (msg, type = "success", ttl = 2500) => {
+    if (window.hfToast) window.hfToast(msg, type, ttl);
+    else window.dispatchEvent(new CustomEvent("hf:toast", { detail: { message: msg, type, ttl } }));
+};
+
 export default function Interview({ selectedJobAdId }) {
     const [interviewId, setInterviewId] = useState(null);
     const [description, setDescription] = useState("");
@@ -40,10 +46,10 @@ export default function Interview({ selectedJobAdId }) {
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
-    /* ====== ΥΠΟΛΟΓΙΣΜΟΣ ΥΨΟΥΣ ΓΙΑ ΤΟ SKILLS PANEL (όπως στο Description) ====== */
-    const rightDescWrapRef = useRef(null); // wrapper του JobDescription (για να ταιριάζει το ύψος)
-    const skillsColRef = useRef(null);     // όλη η δεξιά κολώνα που περιέχει τα skills (+ κουμπί)
-    const updateBtnRef = useRef(null);     // το block που έχει το Update
+    /* ====== ΥΠΟΛΟΓΙΣΜΟΣ ΥΨΟΥΣ ΓΙΑ ΤΟ SKILLS PANEL ====== */
+    const rightDescWrapRef = useRef(null);
+    const skillsColRef = useRef(null);
+    const updateBtnRef = useRef(null);
     const [skillsPanelHeight, setSkillsPanelHeight] = useState(null);
 
     const recalcHeights = useCallback(() => {
@@ -53,7 +59,6 @@ export default function Interview({ selectedJobAdId }) {
 
         const colH = col.clientHeight;
 
-        // Ύψος + margins του block με το Update
         let buttonsTotal = 0;
         if (btn) {
             const csBtn = getComputedStyle(btn);
@@ -63,14 +68,11 @@ export default function Interview({ selectedJobAdId }) {
             buttonsTotal = btnH + btnMt + btnMb;
         }
 
-        // Header "Skills:" ~28px (ίδια με Description) + ένα μικρό buffer
         const SKILLS_HEADER_H = 28;
         const buffer = 8;
 
-        // Διαθέσιμο ύψος ΜΟΝΟ για το panel (input + λίστα)
         let available = Math.max(140, colH - buttonsTotal - SKILLS_HEADER_H - buffer);
 
-        // Ταιριάζουμε και με το ύψος του panel της περιγραφής (όπως στο Questions)
         if (rightDescWrapRef.current) {
             const leftH = rightDescWrapRef.current.clientHeight;
             if (leftH > 0) available = Math.min(available, leftH);
@@ -79,7 +81,6 @@ export default function Interview({ selectedJobAdId }) {
         setSkillsPanelHeight(available);
     }, []);
 
-    // Kick ώστε να είναι σωστό από το 1ο render (layout/fonts)
     const kickRecalc = useCallback(() => {
         recalcHeights();
         requestAnimationFrame(() => recalcHeights());
@@ -91,17 +92,10 @@ export default function Interview({ selectedJobAdId }) {
     useLayoutEffect(() => { kickRecalc(); }, [kickRecalc]);
     useEffect(() => {
         let raf = 0;
-        const onResize = () => {
-            cancelAnimationFrame(raf);
-            raf = requestAnimationFrame(kickRecalc);
-        };
+        const onResize = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(kickRecalc); };
         window.addEventListener("resize", onResize);
         const t = setTimeout(kickRecalc, 0);
-        return () => {
-            window.removeEventListener("resize", onResize);
-            cancelAnimationFrame(raf);
-            clearTimeout(t);
-        };
+        return () => { window.removeEventListener("resize", onResize); cancelAnimationFrame(raf); clearTimeout(t); };
     }, [kickRecalc, steps.length, selectedStepIndex]);
 
     /* ====== DATA ====== */
@@ -212,6 +206,9 @@ export default function Interview({ selectedJobAdId }) {
                 });
                 if (!r2.ok) throw new Error();
             }
+            toast("Interview updated", "success");
+        } catch {
+            toast("Update failed", "error");
         } finally {
             setSaving(false);
         }
@@ -239,6 +236,7 @@ export default function Interview({ selectedJobAdId }) {
             const res = await fetch(`${API}/api/v1/step/${stepId}`, { method: "DELETE" });
             if (!res.ok) throw new Error();
             setConfirmOpen(false);
+            toast("Step deleted", "success");
         } catch {
             setSteps(prevSteps);
             setSelectedStepIndex(currentIndex);
@@ -246,6 +244,7 @@ export default function Interview({ selectedJobAdId }) {
             if (rollbackId != null) fetchStepSkills(rollbackId);
             else setStepSkills([]);
             setConfirmOpen(false);
+            toast("Delete failed", "error");
         } finally {
             setDeleting(false);
         }
@@ -265,17 +264,16 @@ export default function Interview({ selectedJobAdId }) {
                         Interview Steps
                     </label>
 
-                    {/* Το card δεν κάνει scroll. Το κάνει ΜΕΣΑ το InterviewSteps (όπως το sidebar). */}
                     <div className="boxStyle iv-card" style={{ overflow: "hidden" }}>
                         <InterviewSteps
                             interviewsteps={steps}
                             onSelect={handleSelectStep}
                             selectedIndex={selectedStepIndex}
                             interviewId={interviewId}
-                            reloadSteps={reloadSteps}
+                            reloadSteps={async () => { await reloadSteps(); toast("Steps updated", "info"); }}
                             onLocalReorder={onLocalReorder}
                             canEdit={canEdit}
-                            reserve={80}   // ίδια ιδέα με το bottomReserve του sidebar
+                            reserve={80}
                         />
 
                         {canEdit && (
@@ -309,18 +307,18 @@ export default function Interview({ selectedJobAdId }) {
                             </div>
                         </Col>
 
-                        {/* Skills (με εσωτερικό scroller όπως στο Description) */}
+                        {/* Skills */}
                         <Col md="5" className="iv-col" ref={skillsColRef}>
                             <div style={{ flex: "0 0 auto", minHeight: 0, height: skillsPanelHeight ?? "auto" }}>
-                                <SkillSelectorReadOnly label="Required Step Skills" requiredskills={stepSkills} panelHeight={skillsPanelHeight} />
+                                <SkillSelectorReadOnly
+                                    label="Required Step Skills"
+                                    requiredskills={stepSkills}
+                                    panelHeight={skillsPanelHeight}
+                                />
                             </div>
 
                             {canEdit && (
-                                <div
-                                    ref={updateBtnRef}
-                                    className="d-flex justify-content-center"
-                                    style={{ marginTop: 22 }}
-                                >
+                                <div ref={updateBtnRef} className="d-flex justify-content-center" style={{ marginTop: 22 }}>
                                     <Button
                                         color="secondary"
                                         className="delete-btn-req"
@@ -358,7 +356,7 @@ export default function Interview({ selectedJobAdId }) {
                 isOpen={showAddStep}
                 toggle={() => setShowAddStep((v) => !v)}
                 interviewId={interviewId}
-                onCreated={reloadSteps}
+                onCreated={async () => { await reloadSteps(); toast("Step created", "success"); }}
             />
         </>
     );

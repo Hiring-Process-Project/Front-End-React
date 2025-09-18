@@ -16,11 +16,14 @@ const isEditableStatus = (raw) => {
     return n === 'pending' || n === 'pedding' || n === 'draft';
 };
 
-// πόσο χώρο θες να μείνει κάτω από τη λίστα (π.χ. για κουμπιά)
 const RESERVE_LEFT = 80;
-
-// ΠΡΟΣΘΗΚΗ: σταθερό κενό πάνω από το Update button (px)
 const GAP_ABOVE_UPDATE = 12;
+
+// safe toast helper
+const toast = (msg, type = 'success', ttl = 2500) => {
+    if (window.hfToast) window.hfToast(msg, type, ttl);
+    else window.dispatchEvent(new CustomEvent('hf:toast', { detail: { message: msg, type, ttl } }));
+};
 
 export default function Questions({ selectedJobAdId }) {
     const [allSkills, setAllSkills] = React.useState([]);
@@ -68,7 +71,7 @@ export default function Questions({ selectedJobAdId }) {
             });
     }, [selectedQuestionId]);
 
-    /* ===== Κατάσταση Job Ad (για edit permissions) ===== */
+    /* ===== Κατάσταση Job Ad ===== */
     React.useEffect(() => {
         if (!selectedJobAdId) {
             setStatus(null);
@@ -93,8 +96,9 @@ export default function Questions({ selectedJobAdId }) {
                 }),
             });
             if (!resp.ok) throw new Error();
+            toast('Question updated', 'success');
         } catch {
-            alert('Update failed.');
+            toast('Update failed', 'error');
         }
     };
 
@@ -126,15 +130,16 @@ export default function Questions({ selectedJobAdId }) {
             );
 
             setConfirmOpen(false);
+            toast('Question deleted', 'success');
         } catch (e) {
-            alert('Delete failed.');
             setConfirmOpen(false);
+            toast('Delete failed', 'error');
         } finally {
             setDeleting(false);
         }
     };
 
-    /* ========= ΜΟΝΑΔΙΚΟΣ SCROLLER ΣΤΗ ΜΕΣΑΙΑ ΣΤΗΛΗ (Steps) ========= */
+    /* ========= ΜΟΝΑΔΙΚΟΣ SCROLLER ΣΤΗ ΜΕΣΑΙΑ ΣΤΗΛΗ ========= */
     const stepsScrollRef = React.useRef(null);
     React.useLayoutEffect(() => {
         const fit = () => {
@@ -155,9 +160,9 @@ export default function Questions({ selectedJobAdId }) {
     }, [selectedJobAdId, canEdit]);
 
     /* ========= ΚΑΘΑΡΟ ΥΨΟΣ ΓΙΑ ΤΟ ΔΕΞΙ SKILLS PANEL ========= */
-    const rightDescWrapRef = React.useRef(null);  // wrapper του Description
-    const rightSkillsColRef = React.useRef(null); // η δεξιά col (skills + Update)
-    const updateBtnRef = React.useRef(null);      // block με το Update
+    const rightDescWrapRef = React.useRef(null);
+    const rightSkillsColRef = React.useRef(null);
+    const updateBtnRef = React.useRef(null);
     const [skillsPanelHeight, setSkillsPanelHeight] = React.useState(null);
 
     const recalcHeights = React.useCallback(() => {
@@ -166,7 +171,6 @@ export default function Questions({ selectedJobAdId }) {
 
         const colH = col.clientHeight;
 
-        // πόσο ύψος «τρώνε» τα κουμπιά/footers κάτω από τη λίστα
         let buttonsTotal = 0;
         if (updateBtnRef.current) {
             const cs = getComputedStyle(updateBtnRef.current);
@@ -179,14 +183,11 @@ export default function Questions({ selectedJobAdId }) {
         const SKILLS_HEADER_H = 28;
         const buffer = 8;
 
-        // ΠΡΙΝ: colH - buttonsTotal - SKILLS_HEADER_H - buffer
-        // ΜΕΤΑ: αφαιρούμε ΚΑΙ ένα σταθερό GAP ώστε το κουμπί να κατεβαίνει λίγο
         let available = Math.max(
             140,
             colH - buttonsTotal - SKILLS_HEADER_H - buffer - GAP_ABOVE_UPDATE
         );
 
-        // Προσπαθούμε να μη ξεπερνά το ύψος του αριστερού Description
         if (rightDescWrapRef.current) {
             const leftH = rightDescWrapRef.current.clientHeight;
             if (leftH > 0) available = Math.min(available, leftH);
@@ -218,6 +219,7 @@ export default function Questions({ selectedJobAdId }) {
 
     const handleCreated = ({ stepId, question }) => {
         window.dispatchEvent(new CustomEvent('question-created', { detail: { stepId, question } }));
+        toast('Question created', 'success');
     };
 
     return (
@@ -232,7 +234,6 @@ export default function Questions({ selectedJobAdId }) {
                     </Row>
 
                     <div className="q-steps-card">
-                        {/* ✅ ΜΟΝΑΔΙΚΟΣ scroller */}
                         <div ref={stepsScrollRef} className="q-steps-scroll q-no-x">
                             <StepsTree
                                 selectedJobAdId={selectedJobAdId}
@@ -272,7 +273,7 @@ export default function Questions({ selectedJobAdId }) {
                             </div>
                         </Col>
 
-                        {/* Skills (με εσωτερικό scroller, ίδιο με Interview/Description) */}
+                        {/* Skills */}
                         <Col md="5" className="q-col-flex" ref={rightSkillsColRef}>
                             <div style={{ flex: '0 0 auto', minHeight: 0, height: skillsPanelHeight ?? 'auto' }}>
                                 <SkillSelector

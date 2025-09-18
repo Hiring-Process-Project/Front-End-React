@@ -12,16 +12,14 @@ import DescriptionButtons from "./DescriptionButtons";
 import SkillSelectorReadOnly from "./SkillSelectorReadOnly";
 import ConfirmModal from "../Hire/ConfirmModal";
 import RecommendedSkillsPanel from "./RecommendedSkillsPanel";
-
-import "./description-card.css"; // ⬅️ import CSS classes
+import "./description-card.css";
 
 const baseUrl = "http://localhost:8087";
 
-// spacing constants
-const SKILLS_BOTTOM_GAP = 7; // κενό ανάμεσα στα skills και τα κουμπιά
-const Y_GUTTER = 16;          // περίπου g-3 κάθετο gutter (Bootstrap)
-const PANEL_INNER = 12;       // padding + border “σκελετός” κάθε panel (top+bottom)
-const SAFETY_BUFFER = 20;     // extra για να μη “γλείφει” το κάτω μέρος
+const SKILLS_BOTTOM_GAP = 7;
+const Y_GUTTER = 16;
+const PANEL_INNER = 12;
+const SAFETY_BUFFER = 20;
 
 const normalizeStatus = (s) =>
     String(s ?? "")
@@ -47,12 +45,6 @@ export default function DescriptionCard({
     const [deleting, setDeleting] = useState(false);
     const [confirmPublishOpen, setConfirmPublishOpen] = useState(false);
     const [publishing, setPublishing] = useState(false);
-
-    const [toastMsg, setToastMsg] = useState("");
-    const showToast = useCallback((msg) => {
-        setToastMsg(msg);
-        setTimeout(() => setToastMsg(""), 3000);
-    }, []);
 
     const canEdit = useMemo(() => {
         const n = normalizeStatus(status);
@@ -128,8 +120,10 @@ export default function DescriptionCard({
             });
             if (!r.ok) throw new Error();
             await reloadSidebar?.();
+            window.hfToast?.("Description updated", "success");
         } catch {
             setError("Update failed.");
+            window.hfToast?.("Update failed", "error");
         } finally {
             setSaving(false);
         }
@@ -157,8 +151,10 @@ export default function DescriptionCard({
                 })
             );
             setConfirmPublishOpen(false);
+            window.hfToast?.("Job Ad published", "success");
         } catch {
             setError("Publish failed.");
+            window.hfToast?.("Publish failed", "error");
         } finally {
             setPublishing(false);
         }
@@ -181,20 +177,20 @@ export default function DescriptionCard({
             await reloadSidebar?.();
             onDeleted?.();
             setConfirmDeleteOpen(false);
+            window.hfToast?.("Job Ad deleted", "success");
         } catch {
             setError("Delete failed.");
+            window.hfToast?.("Delete failed", "error");
         } finally {
             setDeleting(false);
         }
     };
 
-    /* ================= Heights & refs ================= */
     const rightColRef = useRef(null);
     const buttonsRef = useRef(null);
     const leftPanelRef = useRef(null);
     const separatorRef = useRef(null);
 
-    // safe default + measured flag
     const [skillsPanelHeight, setSkillsPanelHeight] = useState(360);
     const [measured, setMeasured] = useState(false);
 
@@ -207,14 +203,12 @@ export default function DescriptionCard({
 
         const colH = col.clientHeight;
 
-        // buttons block height + margins
         const csBtn = getComputedStyle(btn);
         const btnH = btn.offsetHeight || 0;
         const btnMt = parseFloat(csBtn.marginTop || "0");
         const btnMb = parseFloat(csBtn.marginBottom || "0");
         const buttonsTotal = btnH + btnMt + btnMb;
 
-        // separator height + margins
         let sepTotal = 0;
         if (sep) {
             const csSep = getComputedStyle(sep);
@@ -224,22 +218,17 @@ export default function DescriptionCard({
             sepTotal = sepH + sepMt + sepMb;
         }
 
-        // διαθέσιμο ύψος
         let available = Math.floor(
             colH - buttonsTotal - sepTotal - SKILLS_BOTTOM_GAP - SAFETY_BUFFER - Y_GUTTER
         );
         available = Math.max(140, available);
 
-        // ευθυγράμμιση με αριστερό panel
         if (leftWrap) {
             const leftH = leftWrap.clientHeight;
             if (leftH > 0) available = Math.min(available, leftH);
         }
 
-        // allowance για εσωτερικά paddings
-        const perPanelAllowance = PANEL_INNER;
-        const adjusted = available - perPanelAllowance;
-
+        const adjusted = available - PANEL_INNER;
         setSkillsPanelHeight(Math.max(120, adjusted));
     }, []);
 
@@ -253,7 +242,6 @@ export default function DescriptionCard({
             raf = requestAnimationFrame(recalcHeights);
         };
         window.addEventListener("resize", onResize);
-
         const t = setTimeout(recalcHeights, 0);
 
         return () => {
@@ -263,73 +251,34 @@ export default function DescriptionCard({
         };
     }, [recalcHeights, requiredSkills.length]);
 
-    useEffect(() => {
-        if (typeof ResizeObserver === "undefined") return;
-        const ro = new ResizeObserver(() => recalcHeights());
-        if (rightColRef.current) ro.observe(rightColRef.current);
-        if (buttonsRef.current) ro.observe(buttonsRef.current);
-        if (leftPanelRef.current) ro.observe(leftPanelRef.current);
-        return () => ro.disconnect();
-    }, [recalcHeights]);
-
-    // AI action
-    const handleGetAIDescription = async () => {
-        try {
-            const url = `${baseUrl}/jobAds/${selectedJobAdId}/ai-description`;
-            await fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ description, requiredSkills }),
-            });
-            throw new Error("Not implemented");
-        } catch {
-            showToast("❌ Failed to fetch AI description!");
-        }
-    };
-
     if (!selectedJobAdId)
         return <p className="dc-pad">Select a Job Ad to view the Description.</p>;
     if (loading) return <p className="dc-pad">Loading…</p>;
 
     return (
         <>
-            {toastMsg && <div className="dc-toast">{toastMsg}</div>}
-
             <Row className="g-3 dc-root-row">
-                {/* Left */}
-                <Col md="6" className="dc-left-col">
-                    <div ref={leftPanelRef} className="dc-left-wrap">
-                        <Description
-                            name="Description"
-                            description={description}
-                            onDescriptionChange={setDescription}
-                            readOnly={!canEdit}
-                            disabled={!canEdit}
-                        />
-                        <div
-                            onClick={handleGetAIDescription}
-                            title="Get AI description"
-                            className="dc-ai-link"
-                        >
-                            <span className="dc-ai-badge">AI</span>
-                            <span>Get AI description</span>
-                        </div>
-                    </div>
+                <Col md="6" className="dc-left-col" ref={leftPanelRef}>
+                    <Description
+                        name="Description"
+                        description={description}
+                        onDescriptionChange={setDescription}
+                        readOnly={!canEdit}
+                        disabled={!canEdit}
+                    />
                 </Col>
 
-                {/* Right */}
                 <Col
                     md="6"
                     ref={rightColRef}
                     className={`dc-right-col ${measured ? "is-visible" : "is-hidden"}`}
                 >
-                    {/* Skills area */}
                     <div
                         className="dc-skills-wrap"
                         style={{ height: skillsPanelHeight, marginBottom: SKILLS_BOTTOM_GAP }}
                     >
                         <Row className="g-3 dc-skills-row">
-                            <Col md="6" className="dc-col-flex">
+                            <Col md="6">
                                 <RecommendedSkillsPanel
                                     label="Recommended skills"
                                     panelHeight={skillsPanelHeight}
@@ -339,7 +288,7 @@ export default function DescriptionCard({
                                     requiredSkills={requiredSkills}
                                 />
                             </Col>
-                            <Col md="6" className="dc-col-flex">
+                            <Col md="6">
                                 <SkillSelectorReadOnly
                                     label="Required skills"
                                     requiredskills={requiredSkills}
@@ -350,10 +299,8 @@ export default function DescriptionCard({
                         </Row>
                     </div>
 
-                    {/* separator */}
                     <div ref={separatorRef} className="dc-separator" />
 
-                    {/* Buttons */}
                     <div ref={buttonsRef} className="dc-buttons">
                         {canEdit ? (
                             <DescriptionButtons
@@ -373,19 +320,15 @@ export default function DescriptionCard({
                                 </Col>
                             </Row>
                         )}
-
                         {error && <div className="dc-error">{error}</div>}
                     </div>
                 </Col>
             </Row>
 
-            {/* Modals */}
             <ConfirmModal
                 isOpen={confirmPublishOpen}
                 title="Publish Job Ad"
-                message={
-                    <div>Do you want to publish this Job Ad? Your changes will be saved first.</div>
-                }
+                message={<div>Do you want to publish this Job Ad? Your changes will be saved first.</div>}
                 confirmText="Publish"
                 cancelText="Cancel"
                 confirmColor="primary"
