@@ -197,8 +197,9 @@ export default function StepsTab({
 
     const avgStepScore100 =
         Number.isFinite(Number(stats?.avgStepScore))
-            ? Math.max(0, Math.min(100, Number(stats.avgStepScore) * 10))
+            ? Math.max(0, Math.min(100, Number(stats.avgStepScore)))
             : null;
+
 
     return (
         <div className="steps-tab-wrap q-col-flex q-no-x">

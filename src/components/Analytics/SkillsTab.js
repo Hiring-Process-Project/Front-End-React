@@ -12,7 +12,6 @@ const Kpi = ({ title, value, sub }) => (
     </Card>
 );
 
-const fmt1 = (n) => (Number.isFinite(+n) ? (+n).toFixed(1) : '—');
 const fmtPct = (n) => (Number.isFinite(+n) ? `${(+n).toFixed(1)}%` : '—');
 const val = (...cands) => cands.find((x) => x !== undefined && x !== null);
 
@@ -73,6 +72,7 @@ async function fetchJsonSafe(url) {
 /* ---------- MAIN ---------- */
 export default function SkillsTab({
     apiBase = 'http://localhost:8087/api',
+    jobAdId,
     questionId,
     selectedSkillId,
     onSelectSkill,
@@ -130,7 +130,7 @@ export default function SkillsTab({
         return () => { ignore = true; };
     }, [apiBase, questionId]);
 
-    // 2) global analytics per skill
+    // 2) analytics per skill (scoped αν έχουμε jobAdId + questionId)
     useEffect(() => {
         if (!effectiveSkillId) {
             setStats(null);
@@ -139,7 +139,12 @@ export default function SkillsTab({
         let ignore = false;
         setStatsLoading(true);
         setStatsErr('');
-        fetch(`${apiBase}/statistics/skill/${effectiveSkillId}`, { headers: { Accept: 'application/json' } })
+
+        const url = (jobAdId && questionId)
+            ? `${apiBase}/statistics/jobad/${jobAdId}/question/${questionId}/skill/${effectiveSkillId}`
+            : `${apiBase}/statistics/skill/${effectiveSkillId}`;
+
+        fetch(url, { headers: { Accept: 'application/json' } })
             .then(async (r) => {
                 if (!r.ok) throw new Error(await r.text().catch(() => `HTTP ${r.status}`));
                 return r.json();
@@ -148,7 +153,7 @@ export default function SkillsTab({
             .catch((e) => { if (!ignore) setStatsErr(String(e.message || e)); })
             .finally(() => { if (!ignore) setStatsLoading(false); });
         return () => { ignore = true; };
-    }, [apiBase, effectiveSkillId]);
+    }, [apiBase, jobAdId, questionId, effectiveSkillId]);
 
     const avgSkillScore = val(stats?.avgSkillScore, stats?.avg_score, stats?.avgScore);
     const passRate = val(stats?.passRate, stats?.pass_rate);
@@ -168,19 +173,33 @@ export default function SkillsTab({
         if (!stats) return '—';
         const rate = Number(passRate);
         const buckets = Array.isArray(distribution) ? distribution : [];
-        const total = buckets.reduce((a, b) => a + (Number(b.count) || 0), 0);
 
-        let passCount = Number(stats?.passCount);
-        if (!Number.isFinite(passCount)) {
-            passCount = buckets.reduce((a, b, i) => {
-                const from = Number(b?.from ?? i * 10);
-                return a + (from >= 50 ? (Number(b.count) || 0) : 0);
-            }, 0);
-            if (!Number.isFinite(passCount) && Number.isFinite(rate) && total > 0) {
-                passCount = Math.round((rate / 100) * total);
-            }
+        // χρησιμοποίησε απευθείας αν υπάρχουν
+        const totalDto = Number(stats?.totalCount);
+        const passDto = Number(stats?.passCount);
+        if (Number.isFinite(totalDto) && totalDto > 0 && Number.isFinite(passDto)) {
+            const pctText = Number.isFinite(rate) ? `(${rate.toFixed(1)}%)` : '';
+            return (
+                <>
+                    <span>{passDto}/{totalDto}</span>
+                    {pctText && (
+                        <span style={{ marginLeft: 8, fontWeight: 500, fontSize: 18, color: '#6c757d' }}>
+                            {pctText}
+                        </span>
+                    )}
+                </>
+            );
         }
 
+        // αλλιώς derive από buckets/rate
+        const total = buckets.reduce((a, b) => a + (Number(b.count) || 0), 0);
+        let passCount = buckets.reduce((a, b, i) => {
+            const from = Number(b?.from ?? i * 10);
+            return a + (from >= 50 ? (Number(b.count) || 0) : 0);
+        }, 0);
+        if (!Number.isFinite(passCount) && Number.isFinite(rate) && total > 0) {
+            passCount = Math.round((rate / 100) * total);
+        }
         if (!(Number.isFinite(passCount) && total > 0)) return fmtPct(rate);
 
         const pctText = Number.isFinite(rate) ? `(${rate.toFixed(1)}%)` : '';
@@ -188,9 +207,7 @@ export default function SkillsTab({
             <>
                 <span>{passCount}/{total}</span>
                 {pctText && (
-                    <span
-                        style={{ marginLeft: 8, fontWeight: 500, fontSize: 18, color: '#6c757d' }}
-                    >
+                    <span style={{ marginLeft: 8, fontWeight: 500, fontSize: 18, color: '#6c757d' }}>
                         {pctText}
                     </span>
                 )}
@@ -201,7 +218,7 @@ export default function SkillsTab({
     return (
         <div className="steps-tab-wrap q-col-flex q-no-x">
             <Row className="q-fill gx-3 gy-tight">
-                {/* Λίστα δεξιοτήτων — ίδιο layout με Questions/Steps */}
+                {/* Λίστα δεξιοτήτων */}
                 <Col md="4" className="q-col-flex">
                     <Card className="shadow-sm q-card-fill">
                         <CardBody style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -249,10 +266,9 @@ export default function SkillsTab({
                     </Card>
                 </Col>
 
-                {/* Analytics δεξιότητας — fixed header + εσωτερικό scroll */}
+                {/* Analytics δεξιότητας */}
                 <Col md="8" className="q-col-flex">
                     <Card className="shadow-sm q-card-fill">
-                        {/* Header εκτός scroll */}
                         <div style={{ padding: '1rem 1rem 0 1rem' }}>
                             {!effectiveSkillId && <div className="text-muted">Select a skill to see its analytics.</div>}
                             {effectiveSkillId && (
@@ -262,7 +278,6 @@ export default function SkillsTab({
                             )}
                         </div>
 
-                        {/* Scroll ONLY εδώ */}
                         <CardBody className="q-card-body-scroll">
                             {effectiveSkillId && (
                                 <>
