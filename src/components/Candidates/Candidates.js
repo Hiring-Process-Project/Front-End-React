@@ -127,7 +127,6 @@ export default function Candidates({ jobAdId }) {
                     interviewReportId: c?.interviewReportId ?? null,
                 }));
                 setCandidates(mapped);
-                toast("Candidates loaded", "success");
             } catch (e) {
                 if (e.name !== "AbortError") {
                     setErrCandidates(e.message || "Load error");
@@ -188,7 +187,6 @@ export default function Candidates({ jobAdId }) {
                 }
 
                 setSteps(withQuestions);
-                toast("Steps loaded", "success");
             } catch (e) {
                 if (e.name !== "AbortError") {
                     setErrSteps(e.message || "Load error");
