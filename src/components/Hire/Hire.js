@@ -6,32 +6,13 @@ import ConfirmModal from "./ConfirmModal";
 import CandidateDropdown from "../Candidates/CandidateDropDown";
 import "./Hire.css";
 
-/** TinyToast με τις έτοιμες κλάσεις από το CSS */
-function TinyToast({ show, text, type = "info", onHide }) {
-    React.useEffect(() => {
-        if (!show) return;
-        const t = setTimeout(onHide, 2000);
-        return () => clearTimeout(t);
-    }, [show, onHide]);
-
-    if (!show) return null;
-    const variant =
-        type === "success"
-            ? "tiny-toast tiny-toast--success"
-            : type === "warning"
-                ? "tiny-toast tiny-toast--warning"
-                : type === "error"
-                    ? "tiny-toast tiny-toast--error"
-                    : "tiny-toast tiny-toast--info";
-
-    return (
-        <div className={variant} role="status" aria-live="polite">
-            {text}
-        </div>
-    );
-}
-
 const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8087";
+
+/* ---------- Toast helper (global + fallback) ---------- */
+const toast = (msg, type = "success", ttl = 2500) => {
+    if (window.hfToast) window.hfToast(msg, type, ttl);
+    else window.dispatchEvent(new CustomEvent("hf:toast", { detail: { message: msg, type, ttl } }));
+};
 
 export default function Hire({ jobAdId }) {
     const [selectedCandidate, setSelectedCandidate] = useState(null);
@@ -44,10 +25,6 @@ export default function Hire({ jobAdId }) {
 
     const [candComment, setCandComment] = useState("");
     const [rightPane, setRightPane] = useState(null);
-
-    const [toast, setToast] = useState({ show: false, text: "", type: "info" });
-    const showToast = (text, type = "info") => setToast({ show: true, text, type });
-    const hideToast = () => setToast((t) => ({ ...t, show: false }));
 
     const [showConfirm, setShowConfirm] = useState(false);
     const [confirmLoading, setConfirmLoading] = useState(false);
@@ -84,6 +61,7 @@ export default function Hire({ jobAdId }) {
                 setCandidates(mapped);
             } catch {
                 setCandidates([]);
+                toast("Failed to load approved candidates", "error");
             }
         })();
     }, [jobAdId]);
@@ -125,6 +103,7 @@ export default function Hire({ jobAdId }) {
                 setSteps(withQs);
             } catch {
                 setSteps([]);
+                toast("Failed to load steps", "error");
             }
         })();
     }, [jobAdId]);
@@ -181,7 +160,7 @@ export default function Hire({ jobAdId }) {
     const openHireModal = () => {
         if (!selectedCandidate) return;
         if (String(selectedCandidate.status || "").toLowerCase() === "hired") {
-            showToast("This candidate is already hired", "warning");
+            toast("This candidate is already hired", "info");
             return;
         }
         setShowConfirm(true);
@@ -221,9 +200,9 @@ export default function Hire({ jobAdId }) {
                     detail: { id: data.jobAdId ?? jobAdId, status: data.jobAdStatus ?? "Complete" },
                 })
             );
-            showToast("Candidate hired", "success");
+            toast("Candidate hired", "success");
         } catch (e) {
-            showToast(e.message || "Hire failed", "error");
+            toast(e.message || "Hire failed", "error");
         } finally {
             setConfirmLoading(false);
             setShowConfirm(false);
@@ -234,7 +213,7 @@ export default function Hire({ jobAdId }) {
 
     return (
         <div className="vh-shell hire-shell">
-            {/* TOP ROW: γεμίζει τον χώρο, με εσωτερικά scroll */}
+            {/* TOP ROW */}
             <Row className="g-3" style={{ flex: '1 1 auto', minHeight: 0 }}>
                 {/* Approved candidates */}
                 <Col md="4" className="d-flex flex-column" style={{ minHeight: 0, height: '100%' }}>
@@ -247,25 +226,22 @@ export default function Hire({ jobAdId }) {
                                     minHeight: 0,
                                     height: '100%',
                                     display: 'grid',
-                                    gridTemplateRows: 'auto 1fr', // header / scroll list
+                                    gridTemplateRows: 'auto 1fr',
                                     gap: 8,
                                 }}
                             >
-                                {/* Header εκτός scroll */}
                                 <Row className="panel__header-row">
                                     <Col md="4"><label className="active-label">Score:</label></Col>
                                     <Col md="4"><label className="active-label">Name:</label></Col>
                                     <Col md="4"><label className="active-label">Status:</label></Col>
                                 </Row>
 
-                                {/* ΜΟΝΟ εδώ κάνει scroll (όπως στο Candidates) */}
                                 <div className="clp-scroll">
                                     <CandidateDropdown
                                         candidates={candidates}
-                                        selectedId={selectedCandidate?.id ?? null}   // <-- ΚΡΙΣΙΜΟ: controlled mode
+                                        selectedId={selectedCandidate?.id ?? null}
                                         renderLeft={(c) => (Number.isFinite(c.avgScore) ? c.avgScore : '—')}
                                         onSelect={async (cand) => {
-                                            // toggle off -> καθάρισε τα πάντα ΚΑΙ κλείνει το collapse στο ίδιο κλικ
                                             if (!cand) {
                                                 setSelectedCandidate(null);
                                                 setSelectedStep(null);
@@ -274,8 +250,6 @@ export default function Hire({ jobAdId }) {
                                                 setCandComment('');
                                                 return;
                                             }
-
-                                            // επιλογή νέου candidate
                                             try {
                                                 const r = await fetch(`${API_BASE}/api/v1/candidates/${cand.id}`);
                                                 const d = r.ok ? await r.json() : null;
@@ -287,15 +261,11 @@ export default function Hire({ jobAdId }) {
                                             } catch {
                                                 setSelectedCandidate(cand);
                                             }
-
-                                            // reset steps/questions/skills κάθε φορά που αλλάζει υποψήφιος
                                             setSelectedStep(null);
                                             setSelectedQuestion(null);
                                             setRightPane(null);
                                         }}
                                     />
-
-
                                 </div>
                             </CardBody>
                         </Card>
@@ -306,7 +276,6 @@ export default function Hire({ jobAdId }) {
                 <Col md="4" className="d-flex flex-column" style={{ minHeight: 0, height: '100%' }}>
                     <label className="description-labels">Interview Steps:</label>
                     <Card className="panel panel--flex">
-                        {/* ΣΗΜΑΝΤΙΚΟ: το CardBody να είναι scrollable */}
                         <CardBody className="panel__scroll">
                             {selectedCandidate ? (
                                 <StepsDropDown
@@ -328,7 +297,6 @@ export default function Hire({ jobAdId }) {
                 <Col md="4" className="d-flex flex-column" style={{ minHeight: 0, height: '100%' }}>
                     <label className="description-labels">Skills for this question:</label>
                     <Card className="panel panel--flex">
-                        {/* ΣΗΜΑΝΤΙΚΟ: scroll και εδώ */}
                         <CardBody className="panel__scroll">
                             {selectedCandidate ? (
                                 <StepSkills step={rightPaneStepObj} mode="view" />
@@ -340,7 +308,7 @@ export default function Hire({ jobAdId }) {
                 </Col>
             </Row>
 
-            {/* BOTTOM ROW: κολλημένο κάτω, δεν μεγαλώνει */}
+            {/* BOTTOM ROW */}
             <Row className="g-3 mt-8" style={{ flex: '0 0 auto' }}>
                 <Col md="8">
                     <Card className="shadow-sm hire-comments-card">
@@ -388,9 +356,6 @@ export default function Hire({ jobAdId }) {
                 onConfirm={doHire}
                 onCancel={() => setShowConfirm(false)}
             />
-
-            <TinyToast show={toast.show} text={toast.text} type={toast.type} onHide={hideToast} />
         </div>
     );
-
 }

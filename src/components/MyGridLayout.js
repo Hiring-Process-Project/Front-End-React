@@ -9,15 +9,12 @@ import Interview from './Interview/Interview';
 import DescriptionCard from './Description/DescriptionCard';
 import Hire from './Hire/Hire';
 import Analytics from './Analytics/Analytics';
+import ToastHost from './Toast/ToastHost'; // ✅ προστέθηκε
 
 const baseUrl = 'http://localhost:8087';
 
 const normalizeStatus = (s) =>
-    String(s ?? '')
-        .replace(/\u00A0/g, ' ')
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, '');
+    String(s ?? '').replace(/\u00A0/g, ' ').trim().toLowerCase().replace(/\s+/g, '');
 
 const LOCKED_TABS = ['candidates', 'analytics', 'hire'];
 
@@ -130,11 +127,7 @@ export default function MyGridLayout() {
 
     return (
         <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <Header
-                selectedTab={selectedTab}
-                setSelectedTab={handleSelectTab}
-                disabledTabs={disabledTabs}
-            />
+            <Header selectedTab={selectedTab} setSelectedTab={handleSelectTab} disabledTabs={disabledTabs} />
 
             <div
                 style={{
@@ -151,16 +144,9 @@ export default function MyGridLayout() {
                 <Row style={{ flex: 1, minHeight: 0, width: '100%' }}>
                     <SidebarCard
                         onJobAdSelect={(jobOrId) => {
-                            // id από object ή number/string (προσοχή: null είναι "object")
                             const id =
-                                (jobOrId && typeof jobOrId === 'object')
-                                    ? (Number(jobOrId.id) || null)
-                                    : (Number(jobOrId) || null);
-
-                            // id για ό,τι χρειάζεται μόνο id
+                                (jobOrId && typeof jobOrId === 'object') ? (Number(jobOrId.id) || null) : (Number(jobOrId) || null);
                             setSelectedJobAdId(id);
-
-                            // meta για Analytics (τίτλοι/ονόματα)
                             setSelectedJobAdMeta(
                                 (jobOrId && typeof jobOrId === 'object')
                                     ? {
@@ -174,8 +160,6 @@ export default function MyGridLayout() {
                                     }
                                     : (id ? { id } : null)
                             );
-
-                            // ενημέρωσε τα πάνω φίλτρα αν έχουμε πλήρες object
                             if (jobOrId && typeof jobOrId === 'object') {
                                 if (jobOrId.departmentId || jobOrId.departmentName) {
                                     setSelectedDepartment({
@@ -190,12 +174,9 @@ export default function MyGridLayout() {
                                     });
                                 }
                             } else {
-                                // αν ήρθε μόνο id, καθάρισε occupation για να μην είναι out-of-sync
                                 if (id != null) setSelectedOccupation(null);
                             }
                         }}
-
-
                         selectedJobAdId={selectedJobAdId}
                         reloadKey={reloadKey}
                         onDepartmentSelect={(dept) => {
@@ -298,6 +279,9 @@ export default function MyGridLayout() {
                     </Col>
                 </Row>
             </div>
+
+            {/* ✅ Mount once, global για όλα τα toasts */}
+            <ToastHost />
         </div>
     );
 }

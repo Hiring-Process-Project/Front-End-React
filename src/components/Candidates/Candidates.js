@@ -9,6 +9,11 @@ import ConfirmModal from "../Hire/ConfirmModal";
 
 const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8087";
 
+/* ✅ Toast helper (global) */
+const toast = (msg, type = "info", ttl = 2500) => {
+    try { window.hfToast && window.hfToast(msg, type, ttl); } catch { }
+};
+
 /* ----------  Ενιαίο banner όταν ο υποψήφιος είναι κλειδωμένος ---------- */
 function LockBanner({ status }) {
     const up = String(status || "").toUpperCase();
@@ -71,7 +76,6 @@ export default function Candidates({ jobAdId }) {
 
     const [rightPane, setRightPane] = useState(null);
 
-
     // reset on job change
     useEffect(() => {
         setSelectedCandidate(null);
@@ -96,7 +100,6 @@ export default function Candidates({ jobAdId }) {
             })));
         }
     }, [selectedCandidate]);
-
 
     /* 1) candidates */
     useEffect(() => {
@@ -124,8 +127,12 @@ export default function Candidates({ jobAdId }) {
                     interviewReportId: c?.interviewReportId ?? null,
                 }));
                 setCandidates(mapped);
+                toast("Candidates loaded", "success");
             } catch (e) {
-                if (e.name !== "AbortError") setErrCandidates(e.message || "Load error");
+                if (e.name !== "AbortError") {
+                    setErrCandidates(e.message || "Load error");
+                    toast("Failed to load candidates", "error");
+                }
             } finally {
                 setLoadingCandidates(false);
             }
@@ -181,8 +188,12 @@ export default function Candidates({ jobAdId }) {
                 }
 
                 setSteps(withQuestions);
+                toast("Steps loaded", "success");
             } catch (e) {
-                if (e.name !== "AbortError") setErrSteps(e.message || "Load error");
+                if (e.name !== "AbortError") {
+                    setErrSteps(e.message || "Load error");
+                    toast("Failed to load steps", "error");
+                }
             } finally {
                 setLoadingSteps(false);
             }
@@ -202,7 +213,6 @@ export default function Candidates({ jobAdId }) {
             }))
         );
     }, [selectedCandidate?.id]);
-
 
     /* 3) assessments per candidate */
     useEffect(() => {
@@ -248,8 +258,6 @@ export default function Candidates({ jobAdId }) {
     }, [interviewId, selectedCandidate?.id]);
 
     /* 4) right pane: skills */
-    // const [rightPane, setRightPane] = useState(null);
-
     const handleSelectQ = useCallback(
         async (step, q) => {
             setSelectedStep(step);
@@ -361,8 +369,9 @@ export default function Candidates({ jobAdId }) {
                         );
                     }
                 }
+                toast("Scores saved", "success");
             } catch {
-                /* ignore */
+                toast("Failed to refresh metrics", "error");
             }
         },
         [selectedCandidate?.id, interviewId]
@@ -389,9 +398,11 @@ export default function Candidates({ jobAdId }) {
             setSelectedCandidate((prev) => prev ? { ...prev, status: backendStatus } : prev);
             setCandidates((prev) => prev.map((c) => c.id === selectedCandidate.id ? { ...c, status: backendStatus } : c));
             setSteps((prev) => [...prev]);
+
+            toast(`Candidate ${backendStatus}`, "success");
         } catch (e) {
             console.error(e);
-            alert(e.message || "Αποτυχία ενημέρωσης status");
+            toast(e.message || "Status update failed", "error");
         }
     }
 
@@ -450,9 +461,10 @@ export default function Candidates({ jobAdId }) {
                 const txt = await resp.text().catch(() => "");
                 throw new Error(`Failed to save comment. HTTP ${resp.status} ${txt}`.trim());
             }
+            toast("Comment saved", "success");
         } catch (e) {
             console.error(e);
-            alert(e.message || "Αποτυχία αποθήκευσης σχολίου");
+            toast(e.message || "Failed to save comment", "error");
         }
     }
 
@@ -488,9 +500,9 @@ export default function Candidates({ jobAdId }) {
                         });
 
                         // ΔΕΝ αλλάζουμε selectedCandidate -> μένει ο παλιός με τις βαθμολογίες του
+                        toast("Candidate added", "success");
                     }}
                 />
-
 
                 {/* RIGHT: Steps + Skills + Comments */}
                 <Col md="8" className="d-flex flex-column" style={{ minHeight: "100%", height: "100%" }}>
