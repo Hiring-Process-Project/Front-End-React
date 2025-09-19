@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Row, Col, Card, CardBody, ListGroup, ListGroupItem, Spinner } from 'reactstrap';
 
@@ -66,34 +67,102 @@ function SegmentedBar({ approved = 0, rejected = 0, hired = 0, showHired = true 
     );
 }
 
-/* Histogram 0–100 */
+/* Histogram 0–100 (normalize σε 10 κάδους· βρίσκει index από b/bucket/index ή από from/to ή range) */
+/* ---------- Histogram 0–100 (10 κάδοι) ---------- */
 function Histogram({ buckets }) {
-    const mapped = (Array.isArray(buckets) ? buckets : []).map((b, i) => ({
-        label: b.range ?? `${b.from ?? i * 10}–${b.to ?? (i === 9 ? 100 : (i + 1) * 10)}`,
-        value: Number(b.count ?? b.cnt ?? b.value ?? 0),
+    const normalized = Array.from({ length: 10 }, (_, i) => ({
+        b: i,
+        label: i === 9 ? '90-100' : `${i * 10}-${i * 10 + 9}`,
+        value: 0,
     }));
-    const max = Math.max(1, ...mapped.map((x) => x.value));
-    const total = mapped.reduce((s, x) => s + x.value, 0);
+
+    const rows = Array.isArray(buckets) ? buckets : [];
+
+    for (const r of rows) {
+        // ✅ πάρε το count από το DTO
+        const val = Number(r?.count ?? 0);
+        if (!Number.isFinite(val) || val <= 0) continue;
+
+        let idx =
+            Number.isFinite(r?.b) ? +r.b :
+                Number.isFinite(r?.bucket) ? +r.bucket :
+                    Number.isFinite(r?.index) ? +r.index : null;
+
+        // ✅ derive index από from/to ή range string
+        if (idx === null) {
+            if (Number.isFinite(r?.from) && Number.isFinite(r?.to)) {
+                const from = +r.from, to = +r.to;
+                idx = (to === 100) ? 9 : Math.floor(from / 10);
+            } else if (typeof r?.range === 'string') {
+                const m = r.range.match(/^\s*(\d+)\s*[-–]\s*(\d+)\s*$/);
+                if (m) {
+                    const from = +m[1], to = +m[2];
+                    idx = (to === 100) ? 9 : Math.floor(from / 10);
+                }
+            }
+        }
+
+        if (idx === null || idx < 0 || idx > 9) continue;
+
+        normalized[idx].value += val;
+
+        // ✅ κράτα custom label αν υπάρχει
+        if (r?.range) normalized[idx].label = String(r.range).replace('–', '-');
+        else if (r?.from != null && r?.to != null) normalized[idx].label = `${r.from}-${r.to}`;
+    }
+
+    const max = Math.max(1, ...normalized.map((x) => x.value));
+    const total = normalized.reduce((s, x) => s + x.value, 0);
 
     return (
         <div>
             <div className="mb-2" style={{ fontWeight: 600 }}>Score Distribution (0–100)</div>
-            <div style={{ fontSize: 11, color: '#6c757d', marginBottom: 6 }}>Each bar = candidates in that score range</div>
-            <div className="d-flex align-items-end" style={{ gap: 10, height: 150, padding: '8px 6px', border: '1px solid #eee', borderRadius: 8, background: '#fff' }}>
-                {mapped.map((b, i) => {
+            <div style={{ fontSize: 11, color: '#6c757d', marginBottom: 6 }}>
+                Each bar = candidates in that score range
+            </div>
+            <div
+                className="d-flex align-items-end"
+                style={{
+                    gap: 10,
+                    height: 150,
+                    padding: '8px 6px',
+                    border: '1px solid #eee',
+                    borderRadius: 8,
+                    background: '#fff',
+                }}
+            >
+                {normalized.map((b) => {
                     const hPx = (b.value / max) * 120;
                     const pct = total > 0 ? `${((b.value / total) * 100).toFixed(1)}%` : '0%';
                     return (
-                        <div key={i} style={{ textAlign: 'center', flex: 1 }}>
-                            <div style={{ height: 120, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
+                        <div key={b.b} style={{ textAlign: 'center', flex: 1 }}>
+                            <div
+                                style={{
+                                    height: 120,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'flex-end',
+                                }}
+                            >
                                 <div style={{ fontSize: 10, opacity: 0.85, marginBottom: 4 }}>{pct}</div>
-                                <div style={{ height: `${hPx}px`, background: '#e5e7eb', borderRadius: 6, width: '100%' }} title={`${b.label}: ${b.value} (${pct})`} />
+                                <div
+                                    style={{
+                                        height: `${hPx}px`,
+                                        background: '#e5e7eb',
+                                        borderRadius: 6,
+                                        width: '100%',
+                                    }}
+                                    title={`${b.label}: ${b.value} (${pct})`}
+                                />
                             </div>
-                            <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>{b.label.replace('–', '-')}</div>
+                            <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>{b.label}</div>
                         </div>
                     );
                 })}
-                {mapped.length === 0 && <div className="text-muted" style={{ fontSize: 12 }}>—</div>}
+                {normalized.length === 0 && (
+                    <div className="text-muted" style={{ fontSize: 12 }}>—</div>
+                )}
             </div>
         </div>
     );

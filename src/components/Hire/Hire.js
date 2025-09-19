@@ -14,6 +14,9 @@ const toast = (msg, type = "success", ttl = 2500) => {
     else window.dispatchEvent(new CustomEvent("hf:toast", { detail: { message: msg, type, ttl } }));
 };
 
+// μικρό helper για basename από path (fallback όταν δεν υπάρχει originalName)
+const fileNameFromPath = (p) => (typeof p === "string" ? p.split("/").pop() : "");
+
 export default function Hire({ jobAdId }) {
     const [selectedCandidate, setSelectedCandidate] = useState(null);
     const [selectedStep, setSelectedStep] = useState(null);
@@ -48,15 +51,12 @@ export default function Hire({ jobAdId }) {
                 const r = await fetch(`${API_BASE}/api/v1/candidates/jobad/${jobAdId}/final-scores`);
                 const data = r.ok ? await r.json() : [];
                 const mapped = (Array.isArray(data) ? data : [])
-                    .filter((d) =>
-                        ["approved", "accepted", "hired"].includes(String(d.status || "").toLowerCase())
-                    )
+                    .filter((d) => ["approved", "accepted", "hired"].includes(String(d.status || "").toLowerCase()))
                     .map((d) => ({
                         id: d.candidateId ?? d.id,
                         name: `${d.firstName || ""} ${d.lastName || ""}`.trim(),
                         status: d.status,
-                        avgScore:
-                            typeof d.avgScore === "number" && isFinite(d.avgScore) ? d.avgScore : null,
+                        avgScore: typeof d.avgScore === "number" && isFinite(d.avgScore) ? d.avgScore : null,
                     }));
                 setCandidates(mapped);
             } catch {
@@ -170,10 +170,7 @@ export default function Hire({ jobAdId }) {
         if (!selectedCandidate) return;
         setConfirmLoading(true);
         try {
-            const r = await fetch(
-                `${API_BASE}/api/v1/candidates/${selectedCandidate.id}/hire`,
-                { method: "POST" }
-            );
+            const r = await fetch(`${API_BASE}/api/v1/candidates/${selectedCandidate.id}/hire`, { method: "POST" });
             if (!r.ok) {
                 const msg =
                     r.status === 400
@@ -185,14 +182,10 @@ export default function Hire({ jobAdId }) {
             }
             const data = await r.json();
             setCandidates((prev) =>
-                prev.map((c) =>
-                    c.id === data.candidateId ? { ...c, status: data.candidateStatus } : c
-                )
+                prev.map((c) => (c.id === data.candidateId ? { ...c, status: data.candidateStatus } : c))
             );
             setSelectedCandidate((prev) =>
-                prev && prev.id === data.candidateId
-                    ? { ...prev, status: data.candidateStatus }
-                    : prev
+                prev && prev.id === data.candidateId ? { ...prev, status: data.candidateStatus } : prev
             );
 
             window.dispatchEvent(
@@ -214,49 +207,69 @@ export default function Hire({ jobAdId }) {
     return (
         <div className="vh-shell hire-shell">
             {/* TOP ROW */}
-            <Row className="g-3" style={{ flex: '1 1 auto', minHeight: 0 }}>
+            <Row className="g-3" style={{ flex: "1 1 auto", minHeight: 0 }}>
                 {/* Approved candidates */}
-                <Col md="4" className="d-flex flex-column" style={{ minHeight: 0, height: '100%' }}>
-                    <div style={{ flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                <Col md="4" className="d-flex flex-column" style={{ minHeight: 0, height: "100%" }}>
+                    <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column" }}>
                         <label className="description-labels">Approved Candidates:</label>
 
-                        <Card className="panel panel--flex" style={{ flex: '1 1 0%', minHeight: 0, display: 'flex' }}>
+                        <Card className="panel panel--flex" style={{ flex: "1 1 0%", minHeight: 0, display: "flex" }}>
                             <CardBody
                                 style={{
                                     minHeight: 0,
-                                    height: '100%',
-                                    display: 'grid',
-                                    gridTemplateRows: 'auto 1fr',
+                                    height: "100%",
+                                    display: "grid",
+                                    gridTemplateRows: "auto 1fr",
                                     gap: 8,
                                 }}
                             >
                                 <Row className="panel__header-row">
-                                    <Col md="4"><label className="active-label">Score:</label></Col>
-                                    <Col md="4"><label className="active-label">Name:</label></Col>
-                                    <Col md="4"><label className="active-label">Status:</label></Col>
+                                    <Col md="4">
+                                        <label className="active-label">Score:</label>
+                                    </Col>
+                                    <Col md="4">
+                                        <label className="active-label">Name:</label>
+                                    </Col>
+                                    <Col md="4">
+                                        <label className="active-label">Status:</label>
+                                    </Col>
                                 </Row>
 
                                 <div className="clp-scroll">
                                     <CandidateDropdown
                                         candidates={candidates}
                                         selectedId={selectedCandidate?.id ?? null}
-                                        renderLeft={(c) => (Number.isFinite(c.avgScore) ? c.avgScore : '—')}
+                                        renderLeft={(c) => (Number.isFinite(c.avgScore) ? c.avgScore : "—")}
                                         onSelect={async (cand) => {
                                             if (!cand) {
                                                 setSelectedCandidate(null);
                                                 setSelectedStep(null);
                                                 setSelectedQuestion(null);
                                                 setRightPane(null);
-                                                setCandComment('');
+                                                setCandComment("");
                                                 return;
                                             }
                                             try {
                                                 const r = await fetch(`${API_BASE}/api/v1/candidates/${cand.id}`);
                                                 const d = r.ok ? await r.json() : null;
-                                                const enriched = { ...cand, email: d?.email ?? '', cv: d?.cvPath ?? '' };
+
+                                                // === ΜΟΝΕΣ ουσιαστικές αλλαγές: κρατάμε cvPath + cvName (originalName ή basename) ===
+                                                const enriched = {
+                                                    ...cand,
+                                                    email: d?.email ?? "",
+                                                    cvPath: d?.cvPath ?? "",
+                                                    cvName: d?.cvOriginalName ?? fileNameFromPath(d?.cvPath) ?? "",
+                                                    interviewReportId:
+                                                        d?.interviewReport?.id ?? d?.interviewReportId ?? cand?.interviewReportId ?? null,
+                                                };
+
                                                 setSelectedCandidate(enriched);
-                                                setCandidates(prev =>
-                                                    prev.map(x => (x.id === cand.id ? { ...x, email: enriched.email, cv: enriched.cv } : x))
+                                                setCandidates((prev) =>
+                                                    prev.map((x) =>
+                                                        x.id === cand.id
+                                                            ? { ...x, email: enriched.email, cvPath: enriched.cvPath, cvName: enriched.cvName }
+                                                            : x
+                                                    )
                                                 );
                                             } catch {
                                                 setSelectedCandidate(cand);
@@ -273,7 +286,7 @@ export default function Hire({ jobAdId }) {
                 </Col>
 
                 {/* Steps */}
-                <Col md="4" className="d-flex flex-column" style={{ minHeight: 0, height: '100%' }}>
+                <Col md="4" className="d-flex flex-column" style={{ minHeight: 0, height: "100%" }}>
                     <label className="description-labels">Interview Steps:</label>
                     <Card className="panel panel--flex">
                         <CardBody className="panel__scroll">
@@ -294,7 +307,7 @@ export default function Hire({ jobAdId }) {
                 </Col>
 
                 {/* Skills (read-only) */}
-                <Col md="4" className="d-flex flex-column" style={{ minHeight: 0, height: '100%' }}>
+                <Col md="4" className="d-flex flex-column" style={{ minHeight: 0, height: "100%" }}>
                     <label className="description-labels">Skills for this question:</label>
                     <Card className="panel panel--flex">
                         <CardBody className="panel__scroll">
@@ -309,20 +322,14 @@ export default function Hire({ jobAdId }) {
             </Row>
 
             {/* BOTTOM ROW */}
-            <Row className="g-3 mt-8" style={{ flex: '0 0 auto' }}>
+            <Row className="g-3 mt-8" style={{ flex: "0 0 auto" }}>
                 <Col md="8">
                     <Card className="shadow-sm hire-comments-card">
                         <CardBody>
                             {!selectedCandidate ? (
                                 <div className="muted">Select a candidate to see comments…</div>
                             ) : (
-                                <Input
-                                    type="textarea"
-                                    rows={2}
-                                    value={candComment}
-                                    readOnly
-                                    className="hire-readonly-input"
-                                />
+                                <Input type="textarea" rows={2} value={candComment} readOnly className="hire-readonly-input" />
                             )}
                         </CardBody>
                     </Card>
@@ -332,7 +339,7 @@ export default function Hire({ jobAdId }) {
                     <Button
                         color="success"
                         onClick={openHireModal}
-                        disabled={!selectedCandidate || String(selectedCandidate.status || '').toLowerCase() === 'hired'}
+                        disabled={!selectedCandidate || String(selectedCandidate.status || "").toLowerCase() === "hired"}
                         className="hire-btn"
                     >
                         HIRE
@@ -345,8 +352,8 @@ export default function Hire({ jobAdId }) {
                 title="Confirm Hire"
                 message={
                     <>
-                        Do you really want to <b>Hire</b> <b>{selectedCandidate?.name}</b>? This will change the
-                        status to <b>Hired</b>.
+                        Do you really want to <b>Hire</b> <b>{selectedCandidate?.name}</b>? This will change the status to{" "}
+                        <b>Hired</b>.
                     </>
                 }
                 confirmText="Confirm"

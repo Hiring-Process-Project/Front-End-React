@@ -274,7 +274,11 @@ export default function Analytics({
                 <TabPane tabId="skills">
                     {level === 'jobAd' ? (
                         toInt(selectedQuestionId) ? (
-                            <SkillsTab apiBase={apiBase} questionId={toInt(selectedQuestionId)} />
+                            <SkillsTab
+                                apiBase={apiBase}
+                                jobAdId={jobAdId}
+                                questionId={toInt(selectedQuestionId)}
+                            />
                         ) : (
                             <div className="text-muted">Pick a question to see its skills.</div>
                         )
@@ -282,6 +286,7 @@ export default function Analytics({
                         <div className="text-muted">Select a Job Ad to view skills.</div>
                     )}
                 </TabPane>
+
             </TabContent>
         </>
     );

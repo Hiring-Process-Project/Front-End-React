@@ -144,7 +144,7 @@ export default function QuestionsTab({
     const passRate = val(stats?.passRate, stats?.pass_rate);
     const distribution = stats?.distribution ?? [];
     const skillRanking = Array.isArray(stats?.skillRanking) ? stats.skillRanking : [];
-    const avgScore100 = Number.isFinite(+avgScore) ? Math.max(0, Math.min(100, +avgScore * 10)) : null;
+    const avgScore100 = Number.isFinite(+avgScore) ? Math.max(0, Math.min(100, +avgScore)) : null;
 
     const passValue = (() => {
         if (!stats) return '—';
