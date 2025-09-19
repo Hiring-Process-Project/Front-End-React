@@ -6,9 +6,50 @@ import "./sidebar.css";
 
 const DEFAULT_BASE = "http://localhost:8087";
 
-// helper εκτός component
+// ομοιόμορφη κανονικοποίηση strings
 const norm = (s) => String(s ?? "").normalize("NFKC").trim().toLowerCase();
 
+/* -------------------- merge helpers (sticky order) -------------------- */
+function mergeJobsPreserveOrder(oldJobs, newJobs) {
+    const byId = new Map(newJobs.map(x => [Number(x.id), x]));
+    const kept = oldJobs
+        .filter(x => byId.has(Number(x.id)))
+        .map(x => ({ ...x, ...byId.get(Number(x.id)) })); // update fields, κρατά θέση
+    const oldIds = new Set(oldJobs.map(x => Number(x.id)));
+    const added = newJobs.filter(x => !oldIds.has(Number(x.id)));
+    return [...kept, ...added]; // νέες στο τέλος
+}
+
+function mergeDepartmentsPreserveOrder(oldDeps, newDeps) {
+    const byName = new Map(newDeps.map(d => [d.department, d]));
+    const merged = oldDeps.map(od => {
+        const nd = byName.get(od.department);
+        if (!nd) return od;
+
+        const occByName = new Map(nd.occupations.map(o => [o.name, o]));
+        const occs = od.occupations.map(oo => {
+            const no = occByName.get(oo.name);
+            if (!no) return oo;
+            return {
+                ...oo,
+                id: no.id ?? oo.id,
+                jobTitles: mergeJobsPreserveOrder(oo.jobTitles || [], no.jobTitles || []),
+            };
+        });
+
+        // πρόσθεσε τυχόν νέες occupations στο τέλος
+        const oldOccNames = new Set(od.occupations.map(o => o.name));
+        const addedOccs = nd.occupations.filter(o => !oldOccNames.has(o.name));
+        return { ...od, occupations: [...occs, ...addedOccs] };
+    });
+
+    // πρόσθεσε τυχόν νέα departments στο τέλος
+    const oldDepNames = new Set(oldDeps.map(d => d.department));
+    const addedDeps = newDeps.filter(d => !oldDepNames.has(d.department));
+    return [...merged, ...addedDeps];
+}
+
+/* -------------------- main component -------------------- */
 const SidebarCard = ({
     onJobAdSelect,
     selectedJobAdId,
@@ -24,8 +65,7 @@ const SidebarCard = ({
     const [departments, setDepartments] = useState([]);
     const [error, setError] = useState(null);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
-
-    const toggleCreate = () => setIsCreateOpen((v) => !v);
+    const toggleCreate = () => setIsCreateOpen(v => !v);
 
     // locate full job object by id μέσα από το state
     const findJobById = useCallback((id) => {
@@ -57,6 +97,7 @@ const SidebarCard = ({
         onJobAdSelect?.(obj ?? { id: Number(jobOrId) || null });
     }, [findJobById, onJobAdSelect]);
 
+    /* -------------------- fetch & group -------------------- */
     const loadDepartments = useCallback(async () => {
         try {
             const jobsRes = await fetch(`${baseUrl}/jobAds`, { cache: "no-store" });
@@ -70,7 +111,7 @@ const SidebarCard = ({
                 const depRes = await fetch(`${baseUrl}/api/v1/departments/names`, { cache: "no-store" });
                 if (depRes.ok) {
                     const depList = await depRes.json();
-                    deptNameToId = new Map(depList.map((d) => [norm(d.name), d.id]));
+                    deptNameToId = new Map(depList.map(d => [norm(d.name), d.id]));
                 }
             } catch { /* no-op */ }
 
@@ -78,7 +119,7 @@ const SidebarCard = ({
                 const occRes = await fetch(`${baseUrl}/api/v1/occupations/names`, { cache: "no-store" });
                 if (occRes.ok) {
                     const occList = await occRes.json();
-                    occNameToId = new Map(occList.map((o) => [norm(o.name), o.id]));
+                    occNameToId = new Map(occList.map(o => [norm(o.name), o.id]));
                 }
             } catch { /* no-op */ }
 
@@ -105,8 +146,8 @@ const SidebarCard = ({
                 return acc;
             }, {});
 
-            const final = Object.entries(grouped).map(([deptName, v]) => ({
-                department: deptName,
+            const final = Object.entries(grouped).map(([department, v]) => ({
+                department,
                 departmentId: v.id,
                 occupations: Object.entries(v.occupations).map(([name, info]) => ({
                     id: info.id,
@@ -115,7 +156,8 @@ const SidebarCard = ({
                 })),
             }));
 
-            setDepartments(final);
+            // sticky merge για να μην αλλάζει η σειρά αν έχουμε ήδη state
+            setDepartments(prev => prev.length ? mergeDepartmentsPreserveOrder(prev, final) : final);
             setError(null);
         } catch (err) {
             console.error(err);
@@ -124,16 +166,46 @@ const SidebarCard = ({
         }
     }, [baseUrl]);
 
-    useEffect(() => {
-        loadDepartments();
-    }, [loadDepartments, reloadKey]);
+    useEffect(() => { loadDepartments(); }, [loadDepartments, reloadKey]);
+
+    /* -------------------- in-place update on jobad-updated -------------------- */
+    const applyJobStatusInPlace = useCallback((jobId, nextStatus) => {
+        setDepartments(prev => {
+            let touched = false;
+            const next = prev.map(dep => {
+                let depTouched = false;
+                const occs = (dep.occupations || []).map(occ => {
+                    let occTouched = false;
+                    const jobs = (occ.jobTitles || []).map(j => {
+                        if (Number(j.id) === Number(jobId)) {
+                            occTouched = true; depTouched = true; touched = true;
+                            return { ...j, status: nextStatus }; // ίδια θέση, νέο status
+                        }
+                        return j;
+                    });
+                    return occTouched ? { ...occ, jobTitles: jobs } : occ;
+                });
+                return depTouched ? { ...dep, occupations: occs } : dep;
+            });
+            return touched ? next : prev;
+        });
+    }, []);
 
     useEffect(() => {
-        const onUpdated = () => loadDepartments();
+        const onUpdated = (e) => {
+            const { id, status } = e.detail || {};
+            if (id != null && status) {
+                applyJobStatusInPlace(id, status);
+            } else {
+                // fallback: αν δεν έχουμε id/status, κάνε ελεγχόμενο refetch με sticky merge
+                loadDepartments();
+            }
+        };
         window.addEventListener("hf:jobad-updated", onUpdated);
         return () => window.removeEventListener("hf:jobad-updated", onUpdated);
-    }, [loadDepartments]);
+    }, [applyJobStatusInPlace, loadDepartments]);
 
+    /* -------------------- create flow -------------------- */
     const handleCreated = async (created) => {
         await loadDepartments();
         if (created?.id) onJobAdSelect?.(created.id);
@@ -146,7 +218,7 @@ const SidebarCard = ({
         onJobAdSelect?.(null);
     };
 
-    // === Ρητό ύψος για το scroller, με επιπλέον bottomReserve ===
+    /* -------------------- scroller height -------------------- */
     const scrollRef = useRef(null);
     useLayoutEffect(() => {
         const fit = () => {
