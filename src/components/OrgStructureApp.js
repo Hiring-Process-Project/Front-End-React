@@ -1,9 +1,11 @@
+// src/components/OrgStructureApp.jsx
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col } from "reactstrap";
 import OrganizationsSidebar from "./OrganizationsSidebar";
 import OrgHeader from "./OrgHeader";
 
-const BASE_URL = "http://localhost:8087/api/v1/organisations";
+const API_BASE = "http://localhost:8087";
+const ORG_ENDPOINT = `${API_BASE}/api/v1/organisations`;
 
 const OrgStructureApp = () => {
     const [organizations, setOrganizations] = useState([]);
@@ -15,7 +17,7 @@ const OrgStructureApp = () => {
     const loadOrganizations = async () => {
         try {
             setLoading(true);
-            const res = await fetch(BASE_URL, { cache: "no-store" });
+            const res = await fetch(ORG_ENDPOINT, { cache: "no-store" });
 
             if (!res.ok) throw new Error("Failed to fetch organisations");
 
@@ -38,17 +40,19 @@ const OrgStructureApp = () => {
     return (
         <Container fluid className="mt-4">
             <Row>
+                {/* Logo / Tabs / κτλ – όπως το έχεις ήδη υλοποιήσει */}
                 <OrgHeader />
 
-                {/* LEFT PANEL */}
+                {/* LEFT PANEL – Organizations list */}
                 <OrganizationsSidebar
                     organizations={organizations}
+                    setOrganizations={setOrganizations}
                     selectedOrganizationId={selectedOrg?.id}
                     onOrganizationSelect={setSelectedOrg}
-                    onCreateNew={() => alert("Create new organization")}
+                    baseUrl={API_BASE}
                 />
 
-                {/* RIGHT PANEL */}
+                {/* RIGHT PANEL – Main view */}
                 <Col md="8" className="p-4">
                     {loading ? (
                         <h4>Loading organizations...</h4>
@@ -62,6 +66,7 @@ const OrgStructureApp = () => {
                     ) : (
                         <div>
                             <h3>{selectedOrg.name}</h3>
+                            <p>{selectedOrg.description || "No description provided."}</p>
                             <p>Here you will see departments, structure, options, etc.</p>
                         </div>
                     )}
