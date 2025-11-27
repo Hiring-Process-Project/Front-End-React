@@ -1,24 +1,28 @@
+// src/components/OrganizationsSidebar.jsx
 import React, { useLayoutEffect, useRef, useState } from "react";
 import { Card, CardBody, Row, Col, Button } from "reactstrap";
-import "./LeftCard/sidebar.css"; // ίδιο CSS με Departments sidebar
+import "./LeftCard/sidebar.css";     // ίδιο CSS με το Departments sidebar
+import CreateOrganization from "./CreateOrganization";
 
 const OrganizationsSidebar = ({
     organizations = [],
     onOrganizationSelect,
     selectedOrganizationId = null,
-    onCreateNew,
-    bottomReserve = 30,  // μικρό buffer όπως στο άλλο sidebar
+    setOrganizations,
+    baseUrl = "http://localhost:8087",
+    bottomReserve = 30,
 }) => {
-
     const [searchText, setSearchText] = useState("");
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const toggleCreate = () => setIsCreateOpen(v => !v);
+
     const scrollRef = useRef(null);
 
-    // Φιλτράρισμα όπως στο OccupationSelector
     const filteredOrgs = organizations.filter((org) =>
-        org.name.toLowerCase().includes(searchText.toLowerCase())
+        String(org.name || "").toLowerCase().includes(searchText.toLowerCase())
     );
 
-    // Dynamic height — ίδιο logic με SidebarCard
+    // Dynamic height – ίδιο logic με SidebarCard του HireFlow
     useLayoutEffect(() => {
         const fit = () => {
             const el = scrollRef.current;
@@ -44,12 +48,24 @@ const OrganizationsSidebar = ({
         return () => window.removeEventListener("resize", fit);
     }, [bottomReserve]);
 
+    // Όταν δημιουργηθεί νέο organisation
+    const handleOrganizationCreated = (org) => {
+        // 1) Προσθέτουμε στο state τη νέα οργάνωση
+        setOrganizations(prev => [...prev, org]);
+
+        // 2) Το κάνουμε αυτόματα selected
+        onOrganizationSelect(org);
+
+        // 3) Κλείνουμε modal
+        setIsCreateOpen(false);
+    };
+
     return (
         <Col xs="12" md="4" className="sidebar-col">
             <Card className="shadow-sm sidebar-card" style={{ backgroundColor: "#F6F6F6" }}>
                 <CardBody className="sidebar-body">
 
-                    {/* SEARCH BAR — identical to OccupationSelector */}
+                    {/* SEARCH BAR – ίδιο στυλ με OccupationSelector */}
                     <Row
                         style={{ borderBottom: "1px solid #B7BABC" }}
                         className="pb-2 mb-2"
@@ -103,15 +119,22 @@ const OrganizationsSidebar = ({
                         </Col>
                     </Row>
 
-                    {/* FOOTER buttons — identical structure */}
+                    {/* FOOTER BUTTON */}
                     <Row className="mt-3 org-footer-row">
                         <Col className="text-center">
-                            <Button color="secondary" onClick={onCreateNew}>
+                            <Button color="secondary" onClick={toggleCreate}>
                                 Create New Organization
                             </Button>
                         </Col>
                     </Row>
 
+                    {/* POPUP MODAL */}
+                    <CreateOrganization
+                        isOpen={isCreateOpen}
+                        toggle={toggleCreate}
+                        baseUrl={baseUrl}
+                        onCreated={handleOrganizationCreated}
+                    />
                 </CardBody>
             </Card>
         </Col>
