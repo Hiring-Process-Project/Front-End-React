@@ -1,4 +1,3 @@
-// Description/RecommendedSkillsPanel.jsx
 import React, {
     useState, useMemo, useRef, useLayoutEffect, useEffect, useCallback,
 } from "react";
@@ -11,17 +10,22 @@ export default function RecommendedSkillsPanel({
     searchPlaceholder = "Search within recommended...",
     jobAdId,
     baseUrl,
-    description,
+    description,     // <-- occupation name from parent
     requiredSkills = [],
 }) {
     const [searchText, setSearchText] = useState("");
     const [toast, setToast] = useState("");
 
-    const items = [];
+    // ⭐ Νέο state για AI recommendations
+    const [recommended, setRecommended] = useState([]);
+
+    // Items που θα εμφανιστούν
+    const items = recommended;
+
     const filtered = useMemo(() => {
         const q = searchText.trim().toLowerCase();
         return q ? items.filter((s) => (s || "").toLowerCase().includes(q)) : items;
-    }, [searchText]);
+    }, [searchText, items]);
 
     const boxRef = useRef(null);
     const inputRef = useRef(null);
@@ -64,19 +68,51 @@ export default function RecommendedSkillsPanel({
 
     const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
 
+    // ⭐ AI ENDPOINT – καλείται και manual και αυτόματα
     const hitEndpoint = async () => {
         try {
-            const url = `${baseUrl}/jobAds/${jobAdId}/recommended-skills`;
-            await fetch(url, {
+            const url = `${baseUrl}/required-skills/required_skills_service`;
+
+            const response = await fetch(url, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ description, requiredSkills }),
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    occupation_name: description,
+                }),
             });
-            throw new Error("Not implemented");
-        } catch {
+
+            if (!response.ok) {
+                throw new Error("Request failed");
+            }
+
+            const data = await response.json();
+
+            if (!Array.isArray(data)) {
+                throw new Error("Invalid response (not array)");
+            }
+
+            // Κρατάμε τα 10 πρώτα
+            setRecommended(data.slice(0, 10));
+
+        } catch (err) {
+            console.error("Recommended skills error:", err);
             showToast("❌ Failed to fetch recommended skills!");
         }
     };
+
+    // ⭐ AUTO-FETCH όταν αλλάζει το occupation (description)
+    useEffect(() => {
+        const text = description?.trim();
+        if (!text || text.length < 2) {
+            setRecommended([]);
+            return;
+        }
+
+        hitEndpoint();
+    }, [description]);
+
 
     return (
         <>
@@ -92,8 +128,8 @@ export default function RecommendedSkillsPanel({
 
                     <Row className={`rsp-content-row ${label ? "has-label" : ""}`}>
                         <Col className="desc-col">
-                            {/* ✅ ΕΔΩ προστέθηκε και η boxStyle για το πλαίσιο */}
                             <div ref={boxRef} className="boxStyle dc-box dc-box--skills">
+
                                 <Input
                                     innerRef={inputRef}
                                     type="text"
@@ -103,14 +139,24 @@ export default function RecommendedSkillsPanel({
                                     className="dc-input"
                                 />
 
+                                {/* ⭐ Recommended skills list */}
                                 <div
                                     ref={listRef}
                                     className="rsp-list selected-skills-container skills-scroll mt-3"
                                     style={{ "--list-h": `${Math.round(listH)}px` }}
                                 >
-                                    <span className="description-labels">No recommendations.</span>
+                                    {filtered.length > 0 ? (
+                                        filtered.map((skill, i) => (
+                                            <div key={i} className="skill-item">
+                                                {skill}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <span className="description-labels">No recommendations.</span>
+                                    )}
                                 </div>
 
+                                {/* ⭐ Manual AI button */}
                                 <div
                                     ref={actionRef}
                                     className="dc-action"
