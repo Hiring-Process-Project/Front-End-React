@@ -7,7 +7,7 @@ import OrgHeader from "./OrgHeader";
 const API_BASE = "http://localhost:8087";
 const ORG_ENDPOINT = `${API_BASE}/api/v1/organisations`;
 
-const OrgStructureApp = () => {
+const OrgStructureApp = ({ onSwitchPage }) => {
     const [organizations, setOrganizations] = useState([]);
     const [selectedOrg, setSelectedOrg] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -41,7 +41,7 @@ const OrgStructureApp = () => {
         <Container fluid className="mt-4">
             <Row>
                 {/* Logo / Tabs / κτλ – όπως το έχεις ήδη υλοποιήσει */}
-                <OrgHeader />
+                <OrgHeader onSwitchPage={onSwitchPage} />
 
                 {/* LEFT PANEL – Organizations list */}
                 <OrganizationsSidebar

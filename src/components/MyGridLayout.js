@@ -41,7 +41,8 @@ function LockNotice({ statusLabel = 'Pending' }) {
     );
 }
 
-export default function MyGridLayout() {
+// ✅ Προστέθηκε το onSwitchPage ως prop
+export default function MyGridLayout({ onSwitchPage }) {
     const [allskills, setAllSkills] = React.useState(['JavaScript', 'CSS', 'React']);
     const [selectedTab, setSelectedTab] = React.useState('description');
     const [selectedJobAdId, setSelectedJobAdId] = React.useState(null);
@@ -127,7 +128,8 @@ export default function MyGridLayout() {
 
     return (
         <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <Header selectedTab={selectedTab} setSelectedTab={handleSelectTab} disabledTabs={disabledTabs} />
+            {/* ✅ Περάσαμε το onSwitchPage στο Header */}
+            <Header selectedTab={selectedTab} setSelectedTab={handleSelectTab} disabledTabs={disabledTabs} onSwitchPage={onSwitchPage} />
 
             <div
                 style={{
