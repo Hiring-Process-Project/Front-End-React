@@ -100,7 +100,7 @@ function Histogram({ buckets }) {
     );
 }
 
-export default function OrganizationOverview({ orgId = 3, base = 'http://localhost:8087/api' }) {
+export default function OrganizationOverview({ orgId = 3, base = process.env.REACT_APP_BASE_URL+'/api' }) {
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState('');
     const [stats, setStats] = useState(null);

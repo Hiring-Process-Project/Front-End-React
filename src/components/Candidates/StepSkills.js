@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Button, Input } from "reactstrap";
 import './Candidates.css';
 
-const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8087";
+const API_BASE = process.env.REACT_APP_API_BASE;
 
 /** Tiny toast using CSS classes */
 function TinyToast({ show, text, type = "info", onHide }) {

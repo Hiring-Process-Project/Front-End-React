@@ -7,7 +7,7 @@ import AddQuestionModal from './AddQuestionModal';
 import ConfirmModal from '../Hire/ConfirmModal';
 import './questions.css';
 
-const API = 'http://localhost:8087';
+const API = process.env.REACT_APP_BASE_URL;
 
 const normalizeStatus = (s) =>
     String(s ?? '').replace(/\u00A0/g, ' ').trim().toLowerCase().replace(/\s+/g, '');

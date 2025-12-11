@@ -13,7 +13,7 @@
 //     Spinner,
 // } from "reactstrap";
 
-// const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8087";
+// const API_BASE = process.env.REACT_APP_API_BASE;
 
 // export default function AddCandidateModal({ isOpen, onClose, jobAdId, onCreated }) {
 //     const [firstName, setFirstName] = useState("");
@@ -205,7 +205,7 @@ import {
     Button, Form, FormGroup, Label, Input, Spinner,
 } from "reactstrap";
 
-const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8087";
+const API_BASE = process.env.REACT_APP_API_BASE;
 
 /* mini i18n (μένει όπως έχεις) */
 const STR = {

@@ -4,7 +4,7 @@ import OccupationSelector from "./OccupationSelector";
 import CreateJobAd from "./CreateJobAd";
 import "./sidebar.css";
 
-const DEFAULT_BASE = "http://localhost:8087";
+const DEFAULT_BASE = process.env.REACT_APP_BASE_URL;
 
 // ομοιόμορφη κανονικοποίηση strings
 const norm = (s) => String(s ?? "").normalize("NFKC").trim().toLowerCase();

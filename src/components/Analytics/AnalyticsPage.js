@@ -4,7 +4,7 @@ import Analytics from '../components/Analytics';
 import DepartmentsSidebar from '../components/DepartmentsSidebar';
 
 export default function AnalyticsPage({
-    apiBase = 'http://localhost:8087/api',
+    apiBase = process.env.REACT_APP_BASE_URL+'/api',
     orgId = 3,
 }) {
     const [departments, setDepartments] = useState([]);

@@ -4,7 +4,7 @@ import {
     Button, Form, FormGroup, Label, Input, Spinner
 } from "reactstrap";
 
-export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhost:8087", onCreated }) {
+export default function CreateJobAd({ isOpen, toggle, baseUrl = process.env.REACT_APP_BASE_URL, onCreated }) {
     const [name, setName] = useState("");
     const [deptId, setDeptId] = useState("");
     const [occId, setOccId] = useState("");
@@ -61,6 +61,7 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
                     .map(o => ({ id: o.id, name: o.title ?? o.name ?? "" }))
                     .filter(o => o.name);
                 mapped.sort((a, b) => a.name.localeCompare(b.name));
+                console.log(mapped);
                 setOccupations(mapped);
             })
             .catch(() => setError("Failed to load occupations."))
@@ -94,7 +95,7 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
 
         try {
             // 1) πιθανό endpoint
-            let r = await fetch(`${baseUrl}/api/v1/departments/${deptId}/occupations`, {
+            let r = await fetch(`${baseUrl}/api/v1/departments/${deptId}/occupations`, { //TODO failed request Method not allowed
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ occupationId: occId })
@@ -102,7 +103,7 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
 
             // 2) fallback
             if (!r.ok) {
-                r = await fetch(`${baseUrl}/api/v1/departments/${deptId}/occupations/${occId}`, { method: "POST" });
+                r = await fetch(`${baseUrl}/api/v1/departments/${deptId}/occupations/${occId}`, { method: "POST" }); //TODO failed request
             }
 
             if (r.ok) {
@@ -168,9 +169,11 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = "http://localhos
 
     const filteredOccupations = useMemo(() => {
         const q = occQuery.trim().toLowerCase();
-        const arr = !q ? occupations : occupations.filter(o => o.name.toLowerCase().includes(q));
-        return arr.slice(0, 12);
+        return !q ? occupations : occupations.filter(o =>
+            o.name.toLowerCase().includes(q)
+        );
     }, [occQuery, occupations]);
+
 
     // Επιλογές με click
     const pickDepartment = (d) => {

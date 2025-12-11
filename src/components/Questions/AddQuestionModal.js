@@ -46,7 +46,7 @@ export default function AddQuestionModal({
         setSaving(true);
         setError("");
         try {
-            const r = await fetch(`http://localhost:8087/api/v1/step/${stepId}/questions`, {
+            const r = await fetch(process.env.REACT_APP_BASE_URL+`/api/v1/step/${stepId}/questions`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ name: name.trim() }),

@@ -9,7 +9,7 @@ const OrganizationsSidebar = ({
     onOrganizationSelect,
     selectedOrganizationId = null,
     setOrganizations,
-    baseUrl = "http://localhost:8087",
+    baseUrl = process.env.REACT_APP_BASE_URL,
     bottomReserve = 30,
 }) => {
     const [searchText, setSearchText] = useState("");

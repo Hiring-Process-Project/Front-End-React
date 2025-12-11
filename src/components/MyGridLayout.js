@@ -11,7 +11,7 @@ import Hire from './Hire/Hire';
 import Analytics from './Analytics/Analytics';
 import ToastHost from './Toast/ToastHost'; // ✅ προστέθηκε
 
-const baseUrl = 'http://localhost:8087';
+const baseUrl = process.env.REACT_APP_BASE_URL;
 
 const normalizeStatus = (s) =>
     String(s ?? '').replace(/\u00A0/g, ' ').trim().toLowerCase().replace(/\s+/g, '');

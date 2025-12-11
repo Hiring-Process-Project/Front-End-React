@@ -11,7 +11,7 @@ export default function HireFlowPage() {
             <SidebarCard
                 onJobAdSelect={setSelectedJobAdId}
                 selectedJobAdId={selectedJobAdId}
-                baseUrl="http://localhost:8087"
+                baseUrl={process.env.REACT_APP_BASE_URL} //TOCHECK
             />
             <Col md="8">
                 <Candidates jobAdId={selectedJobAdId} />

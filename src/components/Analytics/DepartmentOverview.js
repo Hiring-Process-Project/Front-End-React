@@ -100,7 +100,7 @@ function Histogram({ buckets }) {
     );
 }
 
-export default function DepartmentOverview({ deptId, base = 'http://localhost:8087/api' }) {
+export default function DepartmentOverview({ deptId, base = process.env.REACT_APP_BASE_URL+'/api' }) {
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState('');
     const [stats, setStats] = useState(null);

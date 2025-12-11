@@ -22,7 +22,7 @@ export default function AddStepModal({ isOpen, toggle, interviewId, onCreated })
   };
 
   const createViaPrimary = async () => {
-    const r = await fetch(`http://localhost:8087/interviews/${interviewId}/steps`, {
+    const r = await fetch(process.env.REACT_APP_BASE_URL+`/api/interviews/${interviewId}/steps`, { //TOCHECK
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title })
@@ -32,7 +32,7 @@ export default function AddStepModal({ isOpen, toggle, interviewId, onCreated })
   };
 
   const createViaFallback = async () => {
-    const r = await fetch(`http://localhost:8087/api/v1/step`, {
+    const r = await fetch(process.env.REACT_APP_BASE_URL+`/api/v1/step`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ interviewId, title })

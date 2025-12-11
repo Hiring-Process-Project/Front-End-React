@@ -2,7 +2,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import StepsDnd from "./StepsDnd";
 import "./interview.css";
 
-const API_STEP = "http://localhost:8087/api/v1/step";
+const API_STEP = process.env.REACT_APP_BASE_URL+'/api/v1/step';
 
 export default function InterviewSteps({
     interviewsteps = [],

@@ -4,7 +4,7 @@ import { Container, Row, Col } from "reactstrap";
 import OrganizationsSidebar from "./OrganizationsSidebar";
 import OrgHeader from "./OrgHeader";
 
-const API_BASE = "http://localhost:8087";
+const API_BASE = process.env.REACT_APP_BASE_URL;
 const ORG_ENDPOINT = `${API_BASE}/api/v1/organisations`;
 
 const OrgStructureApp = ({ onSwitchPage }) => {

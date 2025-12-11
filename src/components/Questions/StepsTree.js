@@ -3,7 +3,7 @@ import { Row, Col } from 'reactstrap';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import './questions.css';
 
-const API = 'http://localhost:8087';
+const API = process.env.REACT_APP_BASE_URL;
 
 export default function StepsTree({
     selectedJobAdId,

@@ -168,7 +168,7 @@ function Histogram({ buckets }) {
     );
 }
 
-export default function JobAdOverview({ jobAdId, base = 'http://localhost:8087/api' }) {
+export default function JobAdOverview({ jobAdId, base = process.env.REACT_APP_BASE_URL+'/api' }) {
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState('');
     const [stats, setStats] = useState(null);

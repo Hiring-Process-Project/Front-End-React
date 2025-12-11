@@ -15,7 +15,7 @@ import {
 export default function CreateOrganization({
     isOpen,
     toggle,
-    baseUrl = "http://localhost:8087",
+    baseUrl = process.env.REACT_APP_BASE_URL,
     onCreated,
 }) {
     const [name, setName] = useState("");

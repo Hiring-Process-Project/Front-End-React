@@ -14,7 +14,7 @@ import ConfirmModal from "../Hire/ConfirmModal";
 import RecommendedSkillsPanel from "./RecommendedSkillsPanel";
 import "./description-card.css";
 
-const baseUrl = "http://localhost:8087";
+const baseUrl = process.env.REACT_APP_BASE_URL;
 
 const SKILLS_BOTTOM_GAP = 7;
 const Y_GUTTER = 16;
@@ -61,8 +61,8 @@ export default function DescriptionCard({
         const detailsUrl = `${baseUrl}/jobAds/details?jobAdId=${selectedJobAdId}`;
         const skillUrlsInPriority = [
             `${baseUrl}/jobAds/${selectedJobAdId}/interview-skills`,
-            `${baseUrl}/jobAds/${selectedJobAdId}/skills`,
-            `${baseUrl}/jobAds/${selectedJobAdId}/required-skills`,
+            `${baseUrl}/jobAds/${selectedJobAdId}/skills`, //TODO failed request
+            `${baseUrl}/jobAds/${selectedJobAdId}/required-skills`, //TODO failed request
         ];
 
         try {

@@ -84,7 +84,7 @@ async function tryFetchJson(url) {
 
 /* ===================== COMPONENT ===================== */
 export default function QuestionsTab({
-    apiBase = 'http://localhost:8087/api',
+    apiBase = process.env.REACT_APP_BASE_URL+'/api',
     jobAdId,
     stepId,
     selectedQuestionId,

@@ -71,7 +71,7 @@ async function fetchJsonSafe(url) {
 
 /* ---------- MAIN ---------- */
 export default function SkillsTab({
-    apiBase = 'http://localhost:8087/api',
+    apiBase = process.env.REACT_APP_BASE_URL+'/api',
     jobAdId,
     questionId,
     selectedSkillId,

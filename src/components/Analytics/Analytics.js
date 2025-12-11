@@ -42,7 +42,7 @@ const toInt = (v) => {
 
 export default function Analytics({
     orgId = 3,
-    apiBase = 'http://localhost:8087/api',
+    apiBase = process.env.REACT_APP_BASE_URL+'/api',
     departmentData,
     occupationData,
     jobAdData,

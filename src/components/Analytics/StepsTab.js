@@ -15,7 +15,7 @@ const fmt = (n, d = 1) => (Number.isFinite(Number(n)) ? Number(n).toFixed(d) : '
 const fmtPercent = (n) => (Number.isFinite(Number(n)) ? `${Number(n).toFixed(1)}%` : '—');
 
 export default function StepsTab({
-    apiBase = 'http://localhost:8087/api',
+    apiBase = process.env.REACT_APP_BASE_URL+'/api',
     jobAdId,
     onSelectStep,
 }) {
