@@ -4,20 +4,22 @@ import React, {
 import { Input, Row, Col } from "reactstrap";
 import "./description-card.css";
 
+/**
+ * AI recommendations are DISABLED.
+ * This component now works without hitting any backend endpoint
+ * and produces ZERO console errors.
+ */
 export default function RecommendedSkillsPanel({
     panelHeight,
     label = "Recommended skills",
     searchPlaceholder = "Search within recommended...",
     jobAdId,
     baseUrl,
-    description,     // <-- occupation name from parent
+    description,
     requiredSkills = [],
 }) {
     const [searchText, setSearchText] = useState("");
-    const [toast, setToast] = useState("");
-
-    // ⭐ Νέο state για AI recommendations
-    const [recommended, setRecommended] = useState([]);
+    const [recommended, setRecommended] = useState([]); // stays empty on purpose
 
     // Items που θα εμφανιστούν
     const items = recommended;
@@ -58,119 +60,72 @@ export default function RecommendedSkillsPanel({
     }, [recalcInsideBox]);
 
     useLayoutEffect(() => { kickInside(); }, [kickInside]);
+
     useEffect(() => {
         let raf = 0;
-        const onResize = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(kickInside); };
+        const onResize = () => {
+            cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(kickInside);
+        };
         window.addEventListener("resize", onResize);
         const t = setTimeout(kickInside, 0);
-        return () => { window.removeEventListener("resize", onResize); cancelAnimationFrame(raf); clearTimeout(t); };
+        return () => {
+            window.removeEventListener("resize", onResize);
+            cancelAnimationFrame(raf);
+            clearTimeout(t);
+        };
     }, [kickInside, searchText, panelHeight]);
 
-    const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
-
-    // ⭐ AI ENDPOINT – καλείται και manual και αυτόματα
-    const hitEndpoint = async () => {
-        try {
-            const url = `${baseUrl}/required-skills/required_skills_service`;
-
-            const response = await fetch(url, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    occupation_name: description,
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error("Request failed");
-            }
-
-            const data = await response.json();
-
-            if (!Array.isArray(data)) {
-                throw new Error("Invalid response (not array)");
-            }
-
-            // Κρατάμε τα 10 πρώτα
-            setRecommended(data.slice(0, 10));
-
-        } catch (err) {
-            console.error("Recommended skills error:", err);
-            showToast("❌ Failed to fetch recommended skills!");
-        }
-    };
-
-    // ⭐ AUTO-FETCH όταν αλλάζει το occupation (description)
-    useEffect(() => {
-        const text = description?.trim();
-        if (!text || text.length < 2) {
-            setRecommended([]);
-            return;
-        }
-
-        hitEndpoint();
-    }, [description]);
-
+    // ❌ No auto-fetch
+    // ❌ No manual fetch
+    // ❌ No backend calls at all
 
     return (
-        <>
-            {toast && <div className="dc-toast">{toast}</div>}
-
-            <Row className="rsp-root-row">
-                <Col className="desc-col">
-                    {label ? (
-                        <Row className="mb-2 desc-label-row">
-                            <Col><label className="description-labels">{label}</label></Col>
-                        </Row>
-                    ) : null}
-
-                    <Row className={`rsp-content-row ${label ? "has-label" : ""}`}>
-                        <Col className="desc-col">
-                            <div ref={boxRef} className="boxStyle dc-box dc-box--skills">
-
-                                <Input
-                                    innerRef={inputRef}
-                                    type="text"
-                                    value={searchText}
-                                    onChange={(e) => setSearchText(e.target.value)}
-                                    placeholder={searchPlaceholder}
-                                    className="dc-input"
-                                />
-
-                                {/* ⭐ Recommended skills list */}
-                                <div
-                                    ref={listRef}
-                                    className="rsp-list selected-skills-container skills-scroll mt-3"
-                                    style={{ "--list-h": `${Math.round(listH)}px` }}
-                                >
-                                    {filtered.length > 0 ? (
-                                        filtered.map((skill, i) => (
-                                            <div key={i} className="skill-item">
-                                                {skill}
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <span className="description-labels">No recommendations.</span>
-                                    )}
-                                </div>
-
-                                {/* ⭐ Manual AI button */}
-                                <div
-                                    ref={actionRef}
-                                    className="dc-action"
-                                    onClick={hitEndpoint}
-                                    title="Get recommended skills"
-                                >
-                                    <span className="dc-ai-badge">AI</span>
-                                    <span>Get recommended skills</span>
-                                </div>
-                            </div>
+        <Row className="rsp-root-row">
+            <Col className="desc-col">
+                {label && (
+                    <Row className="mb-2 desc-label-row">
+                        <Col>
+                            <label className="description-labels">{label}</label>
                         </Col>
                     </Row>
-                </Col>
-            </Row>
-        </>
+                )}
+
+                <Row className={`rsp-content-row ${label ? "has-label" : ""}`}>
+                    <Col className="desc-col">
+                        <div ref={boxRef} className="boxStyle dc-box dc-box--skills">
+
+                            <Input
+                                innerRef={inputRef}
+                                type="text"
+                                value={searchText}
+                                onChange={(e) => setSearchText(e.target.value)}
+                                placeholder={searchPlaceholder}
+                                className="dc-input"
+                            />
+
+                            <div
+                                ref={listRef}
+                                className="rsp-list selected-skills-container skills-scroll mt-3"
+                                style={{ "--list-h": `${Math.round(listH)}px` }}
+                            >
+                                {filtered.length > 0 ? (
+                                    filtered.map((skill, i) => (
+                                        <div key={i} className="skill-item">
+                                            {skill}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <span className="description-labels">
+                                        No recommendations.
+                                    </span>
+                                )}
+                            </div>
+
+                        </div>
+                    </Col>
+                </Row>
+            </Col>
+        </Row>
     );
 }
