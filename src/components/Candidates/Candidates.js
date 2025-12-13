@@ -7,7 +7,7 @@ import "./Candidates.css";
 import CandidateComments from "./CandidateComments";
 import ConfirmModal from "../Hire/ConfirmModal";
 
-const API_BASE = process.env.REACT_APP_API_BASE;
+const API_BASE = process.env.REACT_APP_BASE_URL;
 
 /* Toast helper (global) */
 const toast = (msg, type = "info", ttl = 2500) => {
