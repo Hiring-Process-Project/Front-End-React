@@ -61,8 +61,8 @@ export default function DescriptionCard({
         const detailsUrl = `${baseUrl}/jobAds/details?jobAdId=${selectedJobAdId}`;
         const skillUrlsInPriority = [
             `${baseUrl}/jobAds/${selectedJobAdId}/interview-skills`,
-            `${baseUrl}/jobAds/${selectedJobAdId}/skills`, //TODO failed request
-            `${baseUrl}/jobAds/${selectedJobAdId}/required-skills`, //TODO failed request
+            // `${baseUrl}/jobAds/${selectedJobAdId}/skills`, //TODO failed request
+            // `${baseUrl}/jobAds/${selectedJobAdId}/required-skills`, //TODO failed request
         ];
 
         try {
