@@ -124,14 +124,13 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = process.env.REAC
     const handleCreate = async e => {
         e?.preventDefault?.();
         if (!canCreate || saving) return;
+
         setSaving(true);
         setError("");
 
         try {
             const deptName = departments.find(d => String(d.id) === String(deptId))?.name ?? "";
             const occName = occupations.find(o => String(o.id) === String(occId))?.name ?? "";
-
-            await ensureDepartmentHasOccupation(deptId, occId);
 
             const payload = {
                 title: name.trim(),
@@ -153,12 +152,14 @@ export default function CreateJobAd({ isOpen, toggle, baseUrl = process.env.REAC
             const created = await r.json();
             onCreated?.(created);
             setTimeout(() => toggle?.(), 0);
+
         } catch {
             setError("Job Ad creation failed.");
         } finally {
             setSaving(false);
         }
     };
+
 
     // Filtered options (αναζήτηση) – limit για να μη γίνονται τεράστιες λίστες
     const filteredDepartments = useMemo(() => {

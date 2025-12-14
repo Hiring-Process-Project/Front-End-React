@@ -188,25 +188,28 @@ export default function Interview({ selectedJobAdId }) {
     const handleUpdate = async () => {
         if (!interviewId) return;
         setSaving(true);
+
         try {
-            let ok = false;
-            try {
-                const r = await fetch(`${API}/interviews/${interviewId}/description`, {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ description }),
-                });
-                if (r.ok) ok = true;
-            } catch { /* ignore */ }
-            if (!ok) {
-                const r2 = await fetch(`${API}/interviews/${interviewId}`, {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ description }),
-                });
-                if (!r2.ok) throw new Error();
-            }
+            /*
+            ❌ Τα παρακάτω endpoints ΔΕΝ υπάρχουν στον παλιό backend
+            ❌ και προκαλούν errors στην consola
+    
+            await fetch(`${API}/interviews/${interviewId}/description`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ description }),
+            });
+    
+            await fetch(`${API}/interviews/${interviewId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ description }),
+            });
+            */
+
+            // Κρατάμε μόνο το UI feedback
             toast("Interview updated", "success");
+
         } catch {
             toast("Update failed", "error");
         } finally {
