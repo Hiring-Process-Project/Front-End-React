@@ -55,7 +55,7 @@ export default function Candidates({ jobAdId }) {
     // comments
     const [candComment, setCandComment] = useState("");
 
-    // ► Σταθερό ύψος περιοχής σχολίων (αν το χρειαστείς)
+    // Σταθερό ύψος περιοχής σχολίων
     const [commentsHeight, setCommentsHeight] = useState(null);
     const handleCommentsMeasure = useCallback((h) => {
         setCommentsHeight((prev) => (prev == null ? h : Math.max(prev, h)));
@@ -343,30 +343,30 @@ export default function Candidates({ jobAdId }) {
                     })
                 );
 
-                if (interviewId) {
-                    const r2 = await fetch(
-                        `${API_BASE}/api/v1/assessment/interviews/${interviewId}/candidates/${selectedCandidate.id}/steps`
-                    );
-                    if (r2.ok) {
-                        const data = await r2.json();
-                        const byId = new Map((Array.isArray(data) ? data : []).map((a) => [a.stepId, a]));
-                        setSteps((prev) =>
-                            prev.map((s) => {
-                                const a = byId.get(s.id);
-                                return a
-                                    ? {
-                                        ...s,
-                                        __metrics: {
-                                            totalQuestions: a.totalQuestions ?? 0,
-                                            ratedQuestions: a.ratedQuestions ?? 0,
-                                            averageScore: a.averageScore ?? null,
-                                        },
-                                    }
-                                    : s;
-                            })
-                        );
-                    }
-                }
+                // if (interviewId) {
+                //     const r2 = await fetch(
+                //         `${API_BASE}/api/v1/assessment/interviews/${interviewId}/candidates/${selectedCandidate.id}/steps`
+                //     );
+                //     if (r2.ok) {
+                //         const data = await r2.json();
+                //         const byId = new Map((Array.isArray(data) ? data : []).map((a) => [a.stepId, a]));
+                //         setSteps((prev) =>
+                //             prev.map((s) => {
+                //                 const a = byId.get(s.id);
+                //                 return a
+                //                     ? {
+                //                         ...s,
+                //                         __metrics: {
+                //                             totalQuestions: a.totalQuestions ?? 0,
+                //                             ratedQuestions: a.ratedQuestions ?? 0,
+                //                             averageScore: a.averageScore ?? null,
+                //                         },
+                //                     }
+                //                     : s;
+                //             })
+                //         );
+                //     }
+                // }
                 toast("Scores saved", "success");
             } catch {
                 toast("Failed to refresh metrics", "error");

@@ -3,7 +3,7 @@ import { Button, Badge, Collapse } from 'reactstrap';
 import './Candidates.css';
 
 const API_BASE =
-    process.env.REACT_APP_API_BASE;
+    process.env.REACT_APP_BASE_URL;
 
 /* --------- helpers για το χρώμα & το μικρό “swatch” ---------- */
 function scoreColor(value) {
