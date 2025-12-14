@@ -13,7 +13,7 @@ function Header({ selectedTab, setSelectedTab, disabledTabs = [], onSwitchPage }
                 <Col md="4" style={{ paddingTop: '25px', display: 'flex', alignItems: 'center', gap: '15px' }}>
                     <img src={logo} className="logo-img" alt="logo" />
 
-                    {/* Το κουμπί που ζήτησες */}
+                    {/* Το κουμπί που ζήτησες
                     <button
                         className="switch-btn"
                         onClick={onSwitchPage}
@@ -27,7 +27,7 @@ function Header({ selectedTab, setSelectedTab, disabledTabs = [], onSwitchPage }
                         }}
                     >
                         Μετάβαση
-                    </button>
+                    </button> */}
                 </Col>
 
                 {/* RIGHT SIDE: Τα tabs */}

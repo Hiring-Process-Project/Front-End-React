@@ -7,13 +7,14 @@ function App() {
   const [page, setPage] = useState("org");
 
   return (
-    <>
-      {page === "org" ? (
-        <OrgStructureApp onSwitchPage={() => setPage("grid")} />
-      ) : (
-        <MyGridLayout onSwitchPage={() => setPage("org")} />
-      )}
-    </>
+    <MyGridLayout />
+    // <>
+    //   {page === "org" ? (
+    //     <OrgStructureApp onSwitchPage={() => setPage("grid")} />
+    //   ) : (
+    //     <MyGridLayout onSwitchPage={() => setPage("org")} />
+    //   )}
+    // </>
   );
 }
 
