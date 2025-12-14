@@ -6,7 +6,7 @@ import ConfirmModal from "./ConfirmModal";
 import CandidateDropdown from "../Candidates/CandidateDropDown";
 import "./Hire.css";
 
-const API_BASE = process.env.REACT_APP_API_BASE;
+const API_BASE = process.env.REACT_APP_BASE_URL;
 
 /* ---------- Toast helper (global + fallback) ---------- */
 const toast = (msg, type = "success", ttl = 2500) => {
