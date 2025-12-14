@@ -213,47 +213,47 @@ export default function Candidates({ jobAdId }) {
     }, [selectedCandidate?.id]);
 
     /* 3) assessments per candidate */
-    useEffect(() => {
-        if (!interviewId || !selectedCandidate?.id) {
-            setSteps((prev) => prev.map((s) => ({ ...s, __metrics: undefined })));
-            return;
-        }
-        const ac = new AbortController();
-        setLoadingAssess(true);
+    // useEffect(() => {
+    //     if (!interviewId || !selectedCandidate?.id) {
+    //         setSteps((prev) => prev.map((s) => ({ ...s, __metrics: undefined })));
+    //         return;
+    //     }
+    //     const ac = new AbortController();
+    //     setLoadingAssess(true);
 
-        (async () => {
-            try {
-                const url = `${API_BASE}/api/v1/assessment/interviews/${interviewId}/candidates/${selectedCandidate.id}/steps`;
-                const r = await fetch(url, { signal: ac.signal });
-                const data = r.ok ? await r.json() : [];
+    //     (async () => {
+    //         try {
+    //             const url = `${API_BASE}/api/v1/assessment/interviews/${interviewId}/candidates/${selectedCandidate.id}/steps`;
+    //             const r = await fetch(url, { signal: ac.signal });
+    //             const data = r.ok ? await r.json() : [];
 
-                const byId = new Map(
-                    (Array.isArray(data) ? data : []).map((a) => [a.stepId, a])
-                );
-                setSteps((prev) =>
-                    prev.map((s) => {
-                        const a = byId.get(s.id);
-                        return a
-                            ? {
-                                ...s,
-                                __metrics: {
-                                    totalQuestions: a.totalQuestions ?? 0,
-                                    ratedQuestions: a.ratedQuestions ?? 0,
-                                    averageScore: a.averageScore ?? null,
-                                },
-                            }
-                            : { ...s, __metrics: undefined };
-                    })
-                );
-            } catch {
-                setSteps((prev) => prev.map((s) => ({ ...s, __metrics: undefined })));
-            } finally {
-                setLoadingAssess(false);
-            }
-        })();
+    //             const byId = new Map(
+    //                 (Array.isArray(data) ? data : []).map((a) => [a.stepId, a])
+    //             );
+    //             setSteps((prev) =>
+    //                 prev.map((s) => {
+    //                     const a = byId.get(s.id);
+    //                     return a
+    //                         ? {
+    //                             ...s,
+    //                             __metrics: {
+    //                                 totalQuestions: a.totalQuestions ?? 0,
+    //                                 ratedQuestions: a.ratedQuestions ?? 0,
+    //                                 averageScore: a.averageScore ?? null,
+    //                             },
+    //                         }
+    //                         : { ...s, __metrics: undefined };
+    //                 })
+    //             );
+    //         } catch {
+    //             setSteps((prev) => prev.map((s) => ({ ...s, __metrics: undefined })));
+    //         } finally {
+    //             setLoadingAssess(false);
+    //         }
+    //     })();
 
-        return () => ac.abort();
-    }, [interviewId, selectedCandidate?.id]);
+    //     return () => ac.abort();
+    // }, [interviewId, selectedCandidate?.id]);
 
     /* 4) right pane: skills */
     const handleSelectQ = useCallback(

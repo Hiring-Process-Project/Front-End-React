@@ -332,14 +332,13 @@ export default function StepsDropDown({
                                                 : skillsCount;
 
                                         return (
-                                            <button
+                                            <div
                                                 key={q.id ?? `${step.name}::${i}`}
-                                                type="button"
                                                 className="step-btn"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    onSelect?.(step, q);
-                                                }}
+                                                role="button"
+                                                tabIndex={0}
+                                                onClick={(e) => { e.stopPropagation(); onSelect?.(step, q); }}
+                                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect?.(step, q); } }}
                                                 title={q.question}
                                             >
                                                 <span
@@ -390,7 +389,7 @@ export default function StepsDropDown({
                                                         </span>
                                                     </span>
                                                 )}
-                                            </button>
+                                            </div>
                                         );
                                     })}
                                 </div>
