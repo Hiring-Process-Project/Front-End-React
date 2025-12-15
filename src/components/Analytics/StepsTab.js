@@ -15,7 +15,7 @@ const fmt = (n, d = 1) => (Number.isFinite(Number(n)) ? Number(n).toFixed(d) : '
 const fmtPercent = (n) => (Number.isFinite(Number(n)) ? `${Number(n).toFixed(1)}%` : '—');
 
 export default function StepsTab({
-    apiBase = process.env.REACT_APP_BASE_URL+'/api',
+    apiBase = process.env.REACT_APP_BASE_URL + '/api',
     jobAdId,
     onSelectStep,
 }) {
@@ -48,7 +48,6 @@ export default function StepsTab({
         (async () => {
             const endpoints = [
                 `${apiBase}/statistics/jobad/${jobAdId}/steps`,
-                `${apiBase}/jobads/${jobAdId}/steps`,
             ];
             for (const url of endpoints) {
                 try {
@@ -85,7 +84,6 @@ export default function StepsTab({
         (async () => {
             const endpoints = [
                 `${apiBase}/statistics/jobad/${jobAdId}/step/${selectedStepId}`,
-                `${apiBase}/jobads/${jobAdId}/steps/${selectedStepId}/stats`,
             ];
             for (const url of endpoints) {
                 try {
@@ -162,7 +160,7 @@ export default function StepsTab({
         );
     }
 
-    /* passed/total (XX.X%) */
+    // passed/total (XX.X%) 
     const passValue = (() => {
         if (!stats) return '—';
         const rate = Number(stats.passRate);
@@ -204,13 +202,13 @@ export default function StepsTab({
     return (
         <div className="steps-tab-wrap q-col-flex q-no-x">
             <Row className="g-3 q-fill">
-                {/* Αριστερά: Steps list (σταθερή κάρτα με εσωτερικό σκρολάρισμα λίστας) */}
+                {/* Left: Steps list */}
                 <Col lg="4" className="q-col-flex">
                     <Card className="shadow-sm q-card-fill">
                         <CardBody style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                             <div style={{ fontWeight: 600, marginBottom: 4 }}>Steps</div>
 
-                            <div style={{ /* scroll ΜΟΝΟ στη λίστα */
+                            <div style={{
                                 flex: '1 1 auto', minHeight: 0, overflow: 'auto',
                                 border: '1px solid #e9ecef', borderRadius: 8, padding: 8
                             }}>
@@ -248,10 +246,9 @@ export default function StepsTab({
                     </Card>
                 </Col>
 
-                {/* Δεξιά: Analytics κάρτα ΠΛΗΡΟΥΣ ΥΨΟΥΣ με εσωτερικό scroll */}
+                {/* Right: Analytics card */}
                 <Col lg="8" className="q-col-flex">
                     <Card className="shadow-sm q-card-fill">
-                        {/* Header μένει fixed */}
                         <div style={{ padding: '1rem 1rem 0 1rem' }}>
                             {!selectedStepId && <div className="text-muted">Select a step to see analytics.</div>}
                             {selectedStepId && (
@@ -261,7 +258,6 @@ export default function StepsTab({
                             )}
                         </div>
 
-                        {/* Scroll ONLY εδώ, ώστε να φαίνεται πάντα ΟΛΗ η κάρτα */}
                         <CardBody className="q-card-body-scroll">
                             {selectedStepId && (
                                 <>

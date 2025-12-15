@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { Input, Button, Card, CardBody } from "reactstrap";
 
+// Toast notification
 function TinyToast({ show, text, type = "info", onHide }) {
     useEffect(() => {
         if (!show) return;
@@ -11,6 +11,7 @@ function TinyToast({ show, text, type = "info", onHide }) {
 
     if (!show) return null;
 
+    // Pick CSS class based on toast type
     const cls =
         type === "success"
             ? "tiny-toast tiny-toast--success"
@@ -36,12 +37,11 @@ const CandidateComments = ({
     onMeasureOnce,
     frozenHeight,
 }) => {
-    const [toast, setToast] = useState({ show: false, text: "", type: "info" });
 
+    const [toast, setToast] = useState({ show: false, text: "", type: "info" });
     const [originalComment, setOriginalComment] = useState("");
     const [originalForCandidateId, setOriginalForCandidateId] = useState(null);
     const [userEdited, setUserEdited] = useState(false);
-
     const showToast = (text, type = "info") => setToast({ show: true, text, type });
     const hideToast = () => setToast((t) => ({ ...t, show: false }));
 
@@ -52,6 +52,7 @@ const CandidateComments = ({
             setUserEdited(false);
             return;
         }
+
         setOriginalForCandidateId(selectedCandidate.id);
         setOriginalComment(candComment ?? "");
         setUserEdited(false);
@@ -61,13 +62,14 @@ const CandidateComments = ({
         if (!selectedCandidate) return;
         if (originalForCandidateId !== selectedCandidate.id) return;
         if (userEdited) return;
+
         if ((candComment ?? "") !== (originalComment ?? "")) {
             setOriginalComment(candComment ?? "");
         }
     }, [candComment, selectedCandidate, originalForCandidateId, userEdited, originalComment]);
 
-    // Enable/disable Save
     const hasChanges = (candComment ?? "").trim() !== (originalComment ?? "").trim();
+
     const isSaveDisabled =
         !selectedCandidate || !userEdited || !hasChanges || !!isCommentLocked;
 
@@ -82,7 +84,6 @@ const CandidateComments = ({
         }
     };
 
-    /* ========= GHOST SIZER (μετρά ΜΟΝΟ μία φορά το άθροισμα των 2 locked boxes) ========= */
     const ghostWrapRef = useRef(null);
     const measuredOnceRef = useRef(false);
 
@@ -91,7 +92,6 @@ const CandidateComments = ({
         const el = ghostWrapRef.current;
         if (!el) return;
 
-        // Μικρό buffer ώστε να μην εμφανίζεται εσωτερικό scroll ποτέ
         const BUFFER = 16;
         const h = Math.ceil(el.offsetHeight + BUFFER);
 
@@ -101,7 +101,7 @@ const CandidateComments = ({
 
     return (
         <>
-            {/* GHOST: αόρατος, off-screen, ίδιο layout με τα 2 locked boxes */}
+            {/* Hidden layout used only for measuring consistent height */}
             <div
                 ref={ghostWrapRef}
                 style={{
@@ -112,7 +112,7 @@ const CandidateComments = ({
                     pointerEvents: "none",
                     display: "flex",
                     flexDirection: "column",
-                    gap: 8, // ίδιο gap με το ορατό layout
+                    gap: 8,
                 }}
             >
                 <div className="box">
@@ -133,13 +133,14 @@ const CandidateComments = ({
                 </div>
             </div>
 
+            {/* Main comments panel */}
             <Card
                 className="panel panel--short d-flex flex-column"
                 style={{
                     flex: 1,
                     margin: 0,
-                    height: frozenHeight ?? "auto", // παγωμένο ύψος από τον parent
-                    overflow: "hidden",             // μην εμφανίζεται εσωτερικό scroll
+                    height: frozenHeight ?? "auto",
+                    overflow: "hidden",
                 }}
             >
                 <CardBody
@@ -147,7 +148,7 @@ const CandidateComments = ({
                         padding: "8px",
                         display: "flex",
                         flexDirection: "column",
-                        gap: "8px", // κενό ανάμεσα στα 2 box
+                        gap: "8px",
                         height: "100%",
                     }}
                 >
@@ -157,8 +158,8 @@ const CandidateComments = ({
 
                     {selectedCandidate &&
                         (isCommentLocked ? (
+                            // Read-only view when comments are locked
                             <>
-                                {/* Read-only σχόλια */}
                                 <div className="box">
                                     <div
                                         className={
@@ -186,6 +187,7 @@ const CandidateComments = ({
                                 </div>
                             </>
                         ) : (
+                            // Editable textarea + Save button
                             <>
                                 <Input
                                     type="textarea"
@@ -213,7 +215,13 @@ const CandidateComments = ({
                 </CardBody>
             </Card>
 
-            <TinyToast show={toast.show} text={toast.text} type={toast.type} onHide={hideToast} />
+            {/* Toast notifications */}
+            <TinyToast
+                show={toast.show}
+                text={toast.text}
+                type={toast.type}
+                onHide={hideToast}
+            />
         </>
     );
 };

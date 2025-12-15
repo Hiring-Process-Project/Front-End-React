@@ -729,18 +729,15 @@
 }
 
 :root {
-    /* ρύθμισε το κενό που τρως από logo/navbar/margins ώστε να κουμπώσει στο viewport */
     --app-chrome-gap: 180px;
 }
 
-/* Δένει ΟΛΟ το tab (τα 3 panels + comments) στο ύψος της οθόνης */
 .vh-shell {
     height: calc(100dvh - var(--app-chrome-gap));
     min-height: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    /* δεν αφήνουμε page scroll */
 }
 
 .vh-shell>.row {
@@ -754,7 +751,7 @@
     min-height: 0;
 }
 
-/* ——— βασικά panel helpers ——— */
+/*  panel helpers ——— */
 .panel {
     background: #E5E7EB;
     border-radius: 12px;

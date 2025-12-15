@@ -4,7 +4,6 @@ import { FaDownload } from "react-icons/fa";
 
 const API_BASE = process.env.REACT_APP_BASE_URL;
 
-/** Μικρό toast χωρίς libs */
 function TinyToast({ show, text, type = "info", onHide }) {
     React.useEffect(() => {
         if (!show) return;
@@ -13,6 +12,8 @@ function TinyToast({ show, text, type = "info", onHide }) {
     }, [show, onHide]);
 
     if (!show) return null;
+
+    // Choose styling based on toast type
     const cls =
         type === "success"
             ? "tiny-toast tiny-toast--success"
@@ -29,25 +30,16 @@ function TinyToast({ show, text, type = "info", onHide }) {
     );
 }
 
-/**
- * Props:
- * - candidates: [{ id, name, email, status, cv }, ...]
- * - onSelect:  (candidate|null) => void
- * - renderLeft?: (candidate, index) => ReactNode
- * - selectedId?: number | null   <-- όταν ΔΟΘΕΙ, το component είναι controlled
- */
+// Dropdown-style list for selecting and viewing candidate details
 function CandidateDropdown({
     candidates = [],
     onSelect,
     renderLeft,
-    selectedId, // <<-- ΔΕΝ έχει default πλέον
+    selectedId,
 }) {
-    // Uncontrolled fallback: κρατάμε index μόνο αν ΔΕΝ μας δίνουν selectedId
+
     const [openIndex, setOpenIndex] = useState(null);
-
-    // <<-- ΕΛΑΧΙΣΤΗ αλλαγή: θεωρούμε controlled αν το prop υπάρχει, ακόμα κι αν είναι null
     const isControlled = selectedId !== undefined;
-
     const [toast, setToast] = useState({ show: false, text: "", type: "success" });
     const showToast = (text, type = "success") => setToast({ show: true, text, type });
     const hideToast = () => setToast((t) => ({ ...t, show: false }));
@@ -70,6 +62,7 @@ function CandidateDropdown({
         showToast("CV download started!", "success");
     };
 
+    // Extract a readable CV filename from a path
     function getCvName(cvPath, fallback = "SampleCV.pdf") {
         if (!cvPath) return fallback;
         let s = String(cvPath);
@@ -78,7 +71,6 @@ function CandidateDropdown({
         return last || fallback;
     }
 
-    // <<-- ΕΛΑΧΙΣΤΗ αλλαγή: όταν είναι controlled, το openId προκύπτει μόνο από selectedId (ακόμα κι αν είναι null)
     const openId = isControlled
         ? selectedId
         : openIndex !== null
@@ -100,8 +92,10 @@ function CandidateDropdown({
         <div className="candidate-container">
             {candidates.map((candidate, index) => {
                 const isOpen = openId === candidate.id;
+
                 return (
                     <div key={candidate.id ?? index}>
+                        {/* Candidate header button */}
                         <Button
                             onClick={() => handleToggle(index, candidate)}
                             className={`candidate-btn ${isOpen ? "active" : ""} w-100`}
@@ -111,12 +105,15 @@ function CandidateDropdown({
                                     {renderLeft ? renderLeft(candidate, index) : index + 1}
                                 </span>
                                 <span className="candidate-name">{candidate.name}</span>
-                                <span className={`candidate-status ${candidate.status?.toLowerCase?.() || "unknown"}`}>
+                                <span
+                                    className={`candidate-status ${candidate.status?.toLowerCase?.() || "unknown"}`}
+                                >
                                     {candidate.status}
                                 </span>
                             </div>
                         </Button>
 
+                        {/* Expandable candidate details */}
                         <Collapse isOpen={isOpen}>
                             <div className="candidate-details">
                                 <p>
@@ -145,6 +142,7 @@ function CandidateDropdown({
                 );
             })}
 
+            {/* Toast notifications */}
             <TinyToast show={toast.show} text={toast.text} type={toast.type} onHide={hideToast} />
         </div>
     );

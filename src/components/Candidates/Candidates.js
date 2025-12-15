@@ -14,7 +14,7 @@ const toast = (msg, type = "info", ttl = 2500) => {
     try { window.hfToast && window.hfToast(msg, type, ttl); } catch { }
 };
 
-/* ----------  Ενιαίο banner όταν ο υποψήφιος είναι κλειδωμένος ---------- */
+// Banner for locked candidate
 function LockBanner({ status }) {
     const up = String(status || "").toUpperCase();
     return (
@@ -49,19 +49,17 @@ export default function Candidates({ jobAdId }) {
 
     // modal
     const [showConfirm, setShowConfirm] = useState(false);
-    const [confirmType, setConfirmType] = useState(null); // 'APPROVED' | 'REJECTED'
+    const [confirmType, setConfirmType] = useState(null);
     const [confirmLoading, setConfirmLoading] = useState(false);
 
     // comments
     const [candComment, setCandComment] = useState("");
 
-    // Σταθερό ύψος περιοχής σχολίων
     const [commentsHeight, setCommentsHeight] = useState(null);
     const handleCommentsMeasure = useCallback((h) => {
         setCommentsHeight((prev) => (prev == null ? h : Math.max(prev, h)));
     }, []);
 
-    // Μία φορά παγωμένο ύψος
     const [frozenCommentsHeight, setFrozenCommentsHeight] = useState(null);
     const handleCommentsMeasureOnce = useCallback((h) => {
         setFrozenCommentsHeight((prev) => prev ?? h);
@@ -91,9 +89,9 @@ export default function Candidates({ jobAdId }) {
         if (!selectedCandidate) {
             setSelectedStep(null);
             setSelectedQuestion(null);
-            setRightPane(null);                        // κλείνει τα skills
-            setCandComment("");                        // καθαρίζει σχόλια
-            setSteps(prev => prev.map(s => ({          // καθαρίζει metrics/ratings
+            setRightPane(null);
+            setCandComment("");
+            setSteps(prev => prev.map(s => ({
                 ...s,
                 __metrics: undefined,
                 questions: (s.questions || []).map(q => ({ ...q, __metrics: undefined }))
@@ -101,7 +99,7 @@ export default function Candidates({ jobAdId }) {
         }
     }, [selectedCandidate]);
 
-    /* 1) candidates */
+    // 1) candidates 
     useEffect(() => {
         if (!jobAdId) {
             setCandidates([]);
@@ -140,7 +138,7 @@ export default function Candidates({ jobAdId }) {
         return () => ac.abort();
     }, [jobAdId]);
 
-    /* 2) interview + steps + questions */
+    // 2) interview + steps + questions 
     useEffect(() => {
         if (!jobAdId) return;
         const ac = new AbortController();
@@ -200,7 +198,7 @@ export default function Candidates({ jobAdId }) {
         return () => ac.abort();
     }, [jobAdId]);
 
-    /* 2.5) reset metrics όταν αλλάζει υποψήφιος */
+    // 3) reset metrics after candidate change 
     useEffect(() => {
         setRightPane(null);
         setSteps(prev =>
@@ -212,50 +210,8 @@ export default function Candidates({ jobAdId }) {
         );
     }, [selectedCandidate?.id]);
 
-    /* 3) assessments per candidate */
-    // useEffect(() => {
-    //     if (!interviewId || !selectedCandidate?.id) {
-    //         setSteps((prev) => prev.map((s) => ({ ...s, __metrics: undefined })));
-    //         return;
-    //     }
-    //     const ac = new AbortController();
-    //     setLoadingAssess(true);
 
-    //     (async () => {
-    //         try {
-    //             const url = `${API_BASE}/api/v1/assessment/interviews/${interviewId}/candidates/${selectedCandidate.id}/steps`;
-    //             const r = await fetch(url, { signal: ac.signal });
-    //             const data = r.ok ? await r.json() : [];
-
-    //             const byId = new Map(
-    //                 (Array.isArray(data) ? data : []).map((a) => [a.stepId, a])
-    //             );
-    //             setSteps((prev) =>
-    //                 prev.map((s) => {
-    //                     const a = byId.get(s.id);
-    //                     return a
-    //                         ? {
-    //                             ...s,
-    //                             __metrics: {
-    //                                 totalQuestions: a.totalQuestions ?? 0,
-    //                                 ratedQuestions: a.ratedQuestions ?? 0,
-    //                                 averageScore: a.averageScore ?? null,
-    //                             },
-    //                         }
-    //                         : { ...s, __metrics: undefined };
-    //                 })
-    //             );
-    //         } catch {
-    //             setSteps((prev) => prev.map((s) => ({ ...s, __metrics: undefined })));
-    //         } finally {
-    //             setLoadingAssess(false);
-    //         }
-    //     })();
-
-    //     return () => ac.abort();
-    // }, [interviewId, selectedCandidate?.id]);
-
-    /* 4) right pane: skills */
+    // 4) right pane: skills 
     const handleSelectQ = useCallback(
         async (step, q) => {
             setSelectedStep(step);
@@ -343,30 +299,6 @@ export default function Candidates({ jobAdId }) {
                     })
                 );
 
-                // if (interviewId) {
-                //     const r2 = await fetch(
-                //         `${API_BASE}/api/v1/assessment/interviews/${interviewId}/candidates/${selectedCandidate.id}/steps`
-                //     );
-                //     if (r2.ok) {
-                //         const data = await r2.json();
-                //         const byId = new Map((Array.isArray(data) ? data : []).map((a) => [a.stepId, a]));
-                //         setSteps((prev) =>
-                //             prev.map((s) => {
-                //                 const a = byId.get(s.id);
-                //                 return a
-                //                     ? {
-                //                         ...s,
-                //                         __metrics: {
-                //                             totalQuestions: a.totalQuestions ?? 0,
-                //                             ratedQuestions: a.ratedQuestions ?? 0,
-                //                             averageScore: a.averageScore ?? null,
-                //                         },
-                //                     }
-                //                     : s;
-                //             })
-                //         );
-                //     }
-                // }
                 toast("Scores saved", "success");
             } catch {
                 toast("Failed to refresh metrics", "error");
@@ -491,13 +423,11 @@ export default function Candidates({ jobAdId }) {
                             interviewReportId: newCand?.interviewReport?.id ?? null,
                         };
 
-                        // ενημέρωση λίστας χωρίς διπλά
                         setCandidates(prev => {
                             const exists = prev.some(c => c.id === mapped.id);
                             return exists ? prev.map(c => (c.id === mapped.id ? mapped : c)) : [...prev, mapped];
                         });
 
-                        // ΔΕΝ αλλάζουμε selectedCandidate -> μένει ο παλιός με τις βαθμολογίες του
                         toast("Candidate added", "success");
                     }}
                 />
@@ -592,7 +522,6 @@ export default function Candidates({ jobAdId }) {
                 </Col>
             </Row>
 
-            {/* Modal επιβεβαίωσης έξω από τα panels */}
             <ConfirmModal
                 isOpen={showConfirm}
                 title={confirmType === "REJECTED" ? "Confirm Reject" : "Confirm Approve"}
